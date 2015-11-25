@@ -30,6 +30,9 @@ class GeoDataSet(object):
     def __init__(self, filename):
         self.filename = filename
         self.ds = gdal.Open(filename)
+    
+    def __repr__(self):
+        return os.path.basename(self.filename)
 
     @property
     def basename(self):
