@@ -27,3 +27,20 @@ def read_json(inputfile):
 	except:
 	    raise IOError
     return jdict
+
+def write_json(outdata, outputfile):
+    """
+    Write a Python dictionary as a plain-text JSON file
+
+    Parameters
+    ==========
+    outdata : dict
+              The data structure to be serialized
+    outputfile : str
+                 The file to write the data to.
+    """
+    try:
+        with open(outputfile, 'w') as f:
+            f.write(json.dumps(outdata, outputfile))
+    except:
+        raise IOError('Unable to write data to {}'.format(outputfile))
