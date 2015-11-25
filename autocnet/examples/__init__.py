@@ -34,7 +34,7 @@ def get_path(example_name):
     elif example_name == "":
         return os.path.join(base, 'examples', example_name)
     else:
-        raise KeyErro(example_name + 'not found in built-in examples')
+        raise KeyError(example_name + 'not found in built-in examples')
 
 def available(directory='', verbose=False):
     """
