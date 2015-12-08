@@ -12,7 +12,7 @@ AutoCNet
     :target: https://coveralls.io/github/USGS-Astrogeology/autocnet?branch=master
 
 .. image:: https://readthedocs.org/projects/autocnet/badge/?version=latest
-    :target: http://autocnet.readthedocs.org/en/latest/?badge=latest
+    :target: http://autocnet.readthedocs.org/en/latest/
     :alt: Documentation Status
 
 
