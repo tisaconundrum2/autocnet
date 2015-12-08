@@ -17,8 +17,8 @@ import math
 
 import scipy.stats as ss
 
-from pysat.utils.utils import find_in_dict, getnearest
-from pysat.spectral.spectra import Spectra
+from autocnet.utils.utils import find_in_dict, getnearest
+from autocnet.spectral.spectra import Spectra
 
 #Photometric Constants
 global c1,c2,c3,l,cosi,cose,xl_fixed
@@ -109,18 +109,18 @@ class Spectral_Profiler(object):
 
             indata.seek(ancillary_data_offset - 1)
 
-            for i in ancillary_data.iteritems():
+            for i in ancillary_data.items():
                 if i[0] == 'COLUMN':
                     entry = i[1]
                     columns.append(str(entry['NAME']))
                     datatypes.append(label_dtype_map[entry['DATA_TYPE']])
                     bytelengths.append(entry['BYTES'])
             strbytes = map(str, bytelengths)
-            rowdtype = zip(columns, map(''.join, zip(['>'] * ncols, datatypes, strbytes)))
+            rowdtype = list(zip(columns, map(''.join, zip(['>'] * ncols, datatypes, strbytes))))
             d = np.fromstring(indata.read(rowbytes * nrows), dtype=rowdtype,
-                             count=nrows)
+                              count=nrows)
             self.ancillary_data = pd.DataFrame(d, columns=columns,
-                                            index=np.arange(nrows))
+                                               index=np.arange(nrows))
 
             """
             print len(columns)
@@ -137,7 +137,7 @@ class Spectral_Profiler(object):
                             ref2_offset, radiance_offset, qa_offset]
             offsets = dict(zip(keys, array_offsets))
             arrays = {}
-            for k, offset in offsets.iteritems():
+            for k, offset in offsets.items():
                 indata.seek(offset - 1)
                 newk = k.split('_')[-1]
                 

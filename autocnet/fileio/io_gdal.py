@@ -4,7 +4,7 @@ import numpy as np
 from osgeo import gdal
 from osgeo import osr
 
-import extract_metadata as em
+from autocnet.fileio import extract_metadata as em
 
 NP2GDAL_CONVERSION = {
   "uint8": 1,
@@ -21,7 +21,7 @@ NP2GDAL_CONVERSION = {
 
 GDAL2NP_CONVERSION = {}
 
-for k, v in NP2GDAL_CONVERSION.iteritems():
+for k, v in iter(NP2GDAL_CONVERSION.items()):
     GDAL2NP_CONVERSION[v] = k
 
 GDAL2NP_CONVERSION[1] = 'int8'

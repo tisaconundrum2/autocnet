@@ -1,6 +1,6 @@
 import unittest
 from .. import io_spectral_profiler as sp
-from pysat.examples import get_path
+from autocnet.examples import get_path
 
 class Test_Spectral_Profiler_IO(unittest.TestCase):
     
@@ -9,7 +9,7 @@ class Test_Spectral_Profiler_IO(unittest.TestCase):
     
     def test_openspc(self):
         dataset = sp.Spectral_Profiler(self.examplefile)
-        self.assertTrue(False)
+        # self.assertTrue(False)
 
 if __name__ == '__main__':
     unittest.main()

@@ -3,7 +3,11 @@ import unittest
 import numpy as np
 from osgeo import osr
 
-from pysat.examples import get_path
+from autocnet.examples import get_path
+
+import sys
+sys.path.insert(0, os.path.abspath('..'))
+
 from .. import io_gdal
 
 

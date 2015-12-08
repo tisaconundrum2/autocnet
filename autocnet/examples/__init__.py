@@ -16,10 +16,16 @@ for d in dirs:
     file_in_tmp = os.listdir(tmp)
     for f in file_in_tmp:
         file_2_dir[f] = tmp
+print(file_2_dir)
 
 def get_path(example_name):
     """
-    Get the path of the example file 
+    Get the path of the example file
+
+    Parameters
+    ==========
+    example_name : str
+                   The name of the example file to return the absolute path
     """
     if not isinstance(example_name, str):
         try:
@@ -34,11 +40,20 @@ def get_path(example_name):
     elif example_name == "":
         return os.path.join(base, 'examples', example_name)
     else:
-        raise KeyError(example_name + 'not found in built-in examples')
+        raise KeyError(example_name + ' not found in built-in examples')
+
 
 def available(directory='', verbose=False):
     """
     List available datasets in autocnet.examples
+
+    Parameters
+    ==========
+    directory : str
+                The directory in which examples are stored
+
+    verbose : boolean
+              If True, return README information about each example, default False
     """
     base = get_path(directory)
     examples = [os.path.join(get_path(''), d) for d in os.listdir(base)]

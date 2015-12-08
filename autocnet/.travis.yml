@@ -17,7 +17,10 @@ before_install:
 
 install:
   - conda install --yes nose gdal
-  - pip install -r travis.txt
+  - conda install --yes conda install -c osgeo proj4 -c https://conda.anaconda.org/osgeo proj4
+  - pip install -r requirements.txt --user-mirrors
+  - pip install coverage
+  - pip install coveralls
 
 script:
   - nosetests --with-coverage --cover-package=autocnet

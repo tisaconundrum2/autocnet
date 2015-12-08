@@ -13,7 +13,6 @@ class TestSRSProjectionExtraction(unittest.TestCase):
 
     def test_generate_srs(self):
         self.srs = em.extract_projstring(self.wktsrs)
-        print dir(self.srs)
 
     def test_false_easting(self):
         e = em.get_false_easting(self.srs)

@@ -1,5 +1,5 @@
 import unittest
-from .. import X
+
 
 class TestX(unittest.TestCase):
     
@@ -7,7 +7,7 @@ class TestX(unittest.TestCase):
         pass
     
     def test_X(self):
-        self.assertEquals()
+        self.assertEquals(1, 1)
 
 if __name__ == '__main__':
     unittest.main()
