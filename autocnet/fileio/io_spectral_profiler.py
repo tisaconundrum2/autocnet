@@ -1,50 +1,10 @@
-from __future__ import division
-
-import itertools
-from struct import unpack
-import sys
-
 import pandas as pd
 import pvl
 import numpy as np
-from matplotlib.collections import LineCollection
-from pylab import *
-import argparse
-import os
-import math
 
-
-
-import scipy.stats as ss
-
-from autocnet.utils.utils import find_in_dict, getnearest
+from autocnet.utils.utils import find_in_dict
 from autocnet.spectral.spectra import Spectra
 
-#Photometric Constants
-global c1,c2,c3,l,cosi,cose,xl_fixed
-c1 = -0.019
-c2 = 0.000242
-c3 = -.00000146
-l = 1.0 + (c1*(30)) + (c2*(30**2)) + (c3*(30**3))
-cosi = math.cos(math.radians(30))
-cose = math.cos(math.radians(0))
-xl_fixed= ((2*l*(cosi /(cosi + cose)))) + ((1-l)*cosi)
-
-def openreferenceimage(dirpath, fname):
-    from osgeo import gdal
-    imagepath = os.path.join(dirpath, fname)
-    imagepath = imagepath.split('.')[0]
-
-    try:
-        ds = gdal.Open(imagepath + 'P.jpg')
-    except Exception:
-        ds = gdal.Open(imagepath +'.jpg')
-    bandcount = ds.RasterCount
-    xsize = ds.RasterXSize
-    ysize = ds.RasterYSize
-    img = ds.GetRasterBand(1).ReadAsArray()
-
-    return ds, img
 
 #TODO: The spectra should inhert from a SpectraABC, monkey patch smoothing in.
 class Spectral_Profiler(object):
@@ -174,36 +134,12 @@ class Spectral_Profiler(object):
             
                 self.spectra[i] = Spectra(self.spectra[i])
 
-        def get_band_numbers(self, *args):
-            """
-            This parses the wavelenth list,finds the mean wavelength closest to the
-            provided wavelength, and returns the index of that value.  One (1) is added
-            to the index to grab the correct band.
 
-            Parameters
-            ----------
-            *args: A variable number of input wavelengths to map to bands
-
-            Returns
-            -------
-            bands: A variable length list of bands.  These are in the same order they are
-            provided in.  Beware that altering the order will cause unexpected results.
-
-            """
-            bands = []
-            for wv in args:
-                bands.append(getnearest(self.wavelengths, wv))
-            return bands
-
-        def cleanspectra(self, spectral_df, qa_threshold=2000):
-            """
-            Clean the spectra's dataframe using the qa array
-        
-        
+"""
 class SpectralSeries(pd.Series):
     def __init__(self, **kwargs):
         super(SpectralSeries, self).__init__(*args, **kwargs)
-            """
+
 
 def parse_coefficients(coefficient_table):
     '''
@@ -448,4 +384,4 @@ if __name__ == "__main__":
             ylabel('Reflectance', fontsize=10)
             title('Continuum Removed Spectrum', fontsize=12)
     show()
-
+"""
