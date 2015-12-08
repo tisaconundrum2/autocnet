@@ -25,6 +25,7 @@ def boxcar(y, window_size=3):
     filt = np.ones(window_size) / window_size
     return Series(np.convolve(y, filt, mode='same'), index=y.index)
 
+
 def gaussian(y, window_size=3, sigma=2):
     """
     Apply a gaussian filter to smooth the input vector

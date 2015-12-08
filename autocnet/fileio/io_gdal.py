@@ -27,6 +27,54 @@ for k, v in iter(NP2GDAL_CONVERSION.items()):
 GDAL2NP_CONVERSION[1] = 'int8'
 
 class GeoDataSet(object):
+    """
+    Geospatial dataset object
+
+    Parameters
+    ----------
+    filename : str
+               The path to the file
+
+    Attributes
+    ----------
+
+    basename : str
+               The basename extracted from the full path
+
+    geotransform : object
+                   OGR geotransformation object
+
+    standardparallels : list
+                        of the standard parallels
+
+    unittype : str
+               Name of the unit, e.g. 'm' or 'ft' used by the raster
+
+    spatialreference : object
+                       OSR spatial reference object
+
+    geospatial_coordinate_system : object
+                                   OSR geospatial coordinate reference object
+
+    latlon_extent : list
+                    of tuples in the form (llat, llon), (ulat, ulon)
+
+    extent : list
+             of tuples in the form (minx, miny), (maxx, maxy)
+
+    xpixelsize : float
+                 Size of the x-pixel
+
+    ypixelsize : float
+                 Size of the y-pixel
+
+    xrotation : float
+                Rotation of the x-axis
+
+    yrotation : float
+                Rotation of the y-axis
+
+    """
     def __init__(self, filename):
         self.filename = filename
         self.ds = gdal.Open(filename)
@@ -112,6 +160,10 @@ class GeoDataSet(object):
 
     @property
     def ypixelsize(self):
+        """
+        The y-pixel size of the input data
+        """
+
         if not getattr(self, '_ypixelsize', None):
             self._ypixelsize = self.geotransform[5]
         return self._ypixelsize

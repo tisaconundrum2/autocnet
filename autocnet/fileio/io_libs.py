@@ -5,7 +5,7 @@ import re
 import numpy as np
 import pandas as pd
 
-from pysat.spectral.spectra import Spectra
+from autocnet.spectral.spectra import Spectra
 
 class LIBS(object):
     
@@ -41,5 +41,3 @@ class LIBS(object):
                     key, v = l.split(':')
                     k = '_'.join(key.split())
                     setattr(self, k, v.rstrip())
-
-                    

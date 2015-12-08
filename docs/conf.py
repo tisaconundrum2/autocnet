@@ -56,7 +56,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'AutoCNet'
-copyright = u'2015, Jay Laura'
+copyright = u'2015 - , AutoCNetDevelopers'
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
@@ -86,7 +86,7 @@ exclude_patterns = ['_build']
 #default_role = None
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
-#add_function_parentheses = True
+add_function_parentheses = False
 
 # If true, the current module name will be prepended to all description
 # unit titles (such as .. function::).
@@ -116,22 +116,33 @@ html_theme = 'default'
 # Theme options are theme-specific and customize the look and feel of a
 # theme further.  For a list of options available for each theme, see the
 # documentation.
-#html_theme_options = {}
+html_theme_options = {
+        "rightsidebar": "true",
+        "relbarbgcolor": "CornflowerBlue",
+        "sidebartextcolor": "black",
+        "sidebarlinkcolor": "#355f7c",
+        "sidebarbgcolor": "#F2F2F2",
+        "codebgcolor": "AliceBlue",
+        "footerbgcolor": "Black",
+        "externalrefs": "false",
+        "bodyfont": "Optima",
+        "headfont": "Optima "
+        }
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-#html_title = None
+html_title = "AutoCNet"
 
 # A shorter title for the navigation bar.  Default is the same as
 # html_title.
-#html_short_title = None
+html_short_title = "AutoCNet"
 
 # The name of an image file (relative to this directory) to place at the
 # top of the sidebar.
-#html_logo = None
+html_logo = "favicon.png"
 
 # The name of an image file (within the static path) to use as favicon
 # of the docs.  This file should be a Windows icon file (.ico) being
@@ -146,7 +157,7 @@ html_static_path = ['_static']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page
 # bottom, using the given strftime format.
-#html_last_updated_fmt = '%b %d, %Y'
+html_last_updated_fmt = '%b %d, %Y'
 
 # If true, SmartyPants will be used to convert quotes and dashes to
 # typographically correct entities.
@@ -273,3 +284,17 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
+
+#For ReadTheDocs, using Mocking to get the builds working.
+from unittest.mock import MagicMock
+class Mock(MagicMock):
+    @classmethod
+    def __getter__(cls, name):
+        return Mock()
+
+MOCK_MODULES = ['pyproj', 'gdal', 'numpy', 'pandas']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+
+#NumpyDoc Options
+numpydoc_show_class_members = True
+numpydoc_class_members_toctree = False

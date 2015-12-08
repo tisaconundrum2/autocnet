@@ -22,11 +22,11 @@ def read_json(inputfile):
 
     """
     with open(inputfile, 'r') as f:
-	try:
+        try:
             jdict = json.load(f)
-	except:
-	    raise IOError
-    return jdict
+            return jdict
+        except IOError:
+            return
 
 def write_json(outdata, outputfile):
     """

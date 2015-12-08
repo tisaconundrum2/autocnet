@@ -3,11 +3,20 @@ from networkx import DiGraph
 
 from autocnet.fileio import io_json
 class CandidateGraph(DiGraph):
+    """
+    A NetworkX derived directed graph to store candidate overlap images.
+
+    Parameters
+    ----------
+
+    Attributes
+    ----------
+    """
     #TODO: This would be better with composition, and then dispatch the 
     # network X calls to the graph object.
 
     def __init__(self,*args, **kwargs):
-        super(CandidateGraph,self).__init__(*args, **kwargs)
+        super(CandidateGraph, self).__init__(*args, **kwargs)
 
     def add_image(self, identifier, *args, **kwargs):
         """
