@@ -287,12 +287,13 @@ texinfo_documents = [
 
 #For ReadTheDocs, using Mocking to get the builds working.
 from unittest.mock import MagicMock
+
 class Mock(MagicMock):
     @classmethod
-    def __getter__(cls, name):
-        return Mock()
+    def __getattr__(cls, name):
+            return Mock()
 
-MOCK_MODULES = ['pyproj', 'gdal', 'numpy', 'pandas']
+MOCK_MODULES = ['proj4', 'gdal', 'numpy', 'pandas', 'scipy']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 #NumpyDoc Options
