@@ -1,4 +1,11 @@
+#Py Files
 *.pyc
 
+#Vim
 *.swp
+
+#iPython
 /.ipynb*
+
+#PyCharm
+/.idea
