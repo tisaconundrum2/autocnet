@@ -2,7 +2,7 @@
 Credits
 =======
 
-Development Lead
+Development Team
 ----------------
 
 * Jay Laura <jlaura@usgs.gov>
