@@ -12,8 +12,8 @@ AutoCNet
     :target: https://coveralls.io/github/USGS-Astrogeology/autocnet?branch=master
 
 .. image:: https://readthedocs.org/projects/autocnet/badge/?version=latest
-        :target: https://readthedocs.org/projects/autocnet/?badge=latest
-        :alt: Documentation Status
+    :target: http://autocnet.readthedocs.org/en/latest/
+    :alt: Documentation Status
 
 
 R&D for automated control network generation.
