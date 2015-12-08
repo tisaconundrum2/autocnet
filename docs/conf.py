@@ -273,3 +273,13 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
+
+#For ReadTheDocs, using Mocking to get the builds working.
+from unittest.mock import MagicMock
+class Mock(MagicMock):
+    @classmethod
+    def __getter__(cls, name):
+        return Mock()
+
+MOCK_MODULES = ['pyproj', 'gdal', 'numpy', 'pandas']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
