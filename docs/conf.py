@@ -15,6 +15,15 @@
 
 import sys
 import os
+from unittest.mock import MagicMock
+
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+            return Mock()
+
+MOCK_MODULES = ['proj4', 'gdal', 'numpy', 'pandas', 'scipy']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # If extensions (or modules to document with autodoc) are in another
 # directory, add these directories to sys.path here. If the directory is
@@ -285,16 +294,7 @@ texinfo_documents = [
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
 
-#For ReadTheDocs, using Mocking to get the builds working.
-from unittest.mock import MagicMock
 
-class Mock(MagicMock):
-    @classmethod
-    def __getattr__(cls, name):
-            return Mock()
-
-MOCK_MODULES = ['proj4', 'gdal', 'numpy', 'pandas', 'scipy']
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 #NumpyDoc Options
 numpydoc_show_class_members = True

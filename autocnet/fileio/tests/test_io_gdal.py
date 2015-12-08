@@ -60,12 +60,24 @@ class TestMercator(unittest.TestCase):
 
     def test_xpixelsize(self):
         self.assertAlmostEqual(self.ds.xpixelsize, 4630.0, 6)
-       
+
+    def test_xrotation(self):
+        self.assertAlmostEqual(self.ds.xrotation, 0.0, 6)
+
+    def test_yrotation(self):
+        self.assertAlmostEqual(self.ds.yrotation, 0.0, 6)
+
+    def test_centralmeridian(self):
+        self.assertAlmostEqual(self.ds.central_meridian, 0.0, 6)
+
+    def test_latlon_to_pixel(self):
+        self.assertEqual(self.ds.latlon_to_pixel(0.0, 0.0), [4, 6])
+
     def test_readarray(self):
         arr = self.ds.readarray()
         self.assertEqual(arr.shape, (1694, 2304))
         self.assertEqual(arr.dtype, np.float32)
-    
+
     def test_read_clipped_array(self):
         arr = self.ds.readarray(pixels=((0,0), (100,100)))
         self.assertEqual(arr.shape, (100,100))

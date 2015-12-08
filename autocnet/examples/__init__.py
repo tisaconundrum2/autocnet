@@ -18,7 +18,7 @@ for d in dirs:
         file_2_dir[f] = tmp
 print(file_2_dir)
 
-def get_path(example_name):
+def get_path(example_name): # pragma: no cover
     """
     Get the path of the example file
 
@@ -43,7 +43,7 @@ def get_path(example_name):
         raise KeyError(example_name + ' not found in built-in examples')
 
 
-def available(directory='', verbose=False):
+def available(directory='', verbose=False): # pragma: no cover
     """
     List available datasets in autocnet.examples
 

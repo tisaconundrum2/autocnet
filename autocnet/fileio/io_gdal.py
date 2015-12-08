@@ -114,7 +114,7 @@ class GeoDataSet(object):
             try:
                 self._srs.MorphToESRI()
                 self._srs.MorphFromESRI()
-            except: pass
+            except: pass #pragma: no cover
 
             #Setup the GCS
             self._gcs = self._srs.CloneGeogCS()
