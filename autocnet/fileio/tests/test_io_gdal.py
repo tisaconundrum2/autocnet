@@ -71,7 +71,7 @@ class TestMercator(unittest.TestCase):
         self.assertAlmostEqual(self.ds.central_meridian, 0.0, 6)
 
     def test_latlon_to_pixel(self):
-        self.assertEqual(self.ds.latlon_to_pixel(0.0, 0.0), [4, 6])
+        self.assertEqual(self.ds.latlon_to_pixel(0.0, 0.0), (0.0, 846.9999999999999))
 
     def test_readarray(self):
         arr = self.ds.readarray()
