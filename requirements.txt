@@ -2,4 +2,3 @@ numpy>=1.10.0
 scipy
 gdal>=2.0
 pvl>=0.2.0
-proj4
