@@ -32,8 +32,8 @@ install:
   - source activate test-env
 
   # Install the non-conda packages if required, requirements.txt duplicates are ignored
-  - conda install --yes conda install -c osgeo proj4 -c https://conda.anaconda.org/osgeo proj4
-  - pip install -r requirements.txt --user-mirrors
+  - conda install -c osgeo proj4
+  - pip install -r requirements.txt
   - pip install coverage
   - pip install coveralls
 
