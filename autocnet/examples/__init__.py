@@ -16,7 +16,6 @@ for d in dirs:
     file_in_tmp = os.listdir(tmp)
     for f in file_in_tmp:
         file_2_dir[f] = tmp
-print(file_2_dir)
 
 def get_path(example_name): # pragma: no cover
     """
