@@ -6,6 +6,7 @@ Development Team
 ----------------
 
 * Jay Laura <jlaura@usgs.gov>
+* Kristin Berry <kberry@usgs.gov>
 
 Contributors
 ------------
