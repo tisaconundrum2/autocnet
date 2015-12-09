@@ -6,6 +6,7 @@ Development Team
 ----------------
 
 * Jay Laura <jlaura@usgs.gov>
+* Jeannie Backer <jwbacker@usgs.gov>
 
 Contributors
 ------------
