@@ -18,13 +18,14 @@ AutoCNet
 
 R&D for automated control network generation.
 
-* Free software: ISC license
 * Documentation: https://autocnet.readthedocs.org.
 
-Features
---------
+Developer TODOs
+---------------
 
-* TODO
+* Ensure installation requirements are met
+    * Watch for the OpenCV dependency
+* Read comparing workflows (https://www.atlassian.com/git/tutorials/comparing-workflows)
 
 Credits
 ---------
