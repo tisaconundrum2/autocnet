@@ -43,6 +43,8 @@ notifications:
     email:
         recipients:
             - jlaura@usgs.gov
+            - kberry@usgs.gov
+            - dmlytle@usgs.gov
         on_success: always
         on_failure: always
 
