@@ -45,6 +45,7 @@ notifications:
             - jlaura@usgs.gov
             - kberry@usgs.gov
             - dmlytle@usgs.gov
+            - jwbacker@usgs.gov
         on_success: always
         on_failure: always
 
