@@ -39,7 +39,7 @@ def continuum_correct(spectrum, nodes=None, method='linear'):
     continuum = np.empty(return_length)
     
     start = 0
-    nlist = zip(nodes, nodes[1:])
+    nlist = list(zip(nodes, nodes[1:]))
     for i, n in enumerate(nlist):
         # Define indices into sub-series
         ny = y[n[0]:n[1]]

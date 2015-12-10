@@ -35,9 +35,9 @@ class Spectrum(object):
     
     def __getitem__(self, key):
         try:
-            result = self.series.iloc[key]
+            result = self.series.loc[key]
         except:
-            result = self.series[key]
+            result = self.series.iloc[key]
         return result
 
     def boxcar_smooth(self, *args, **kwargs):
