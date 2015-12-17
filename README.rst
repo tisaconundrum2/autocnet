@@ -37,3 +37,5 @@ Tools used in rendering this package:
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+
+Dyer added a new line to this file as a test.
