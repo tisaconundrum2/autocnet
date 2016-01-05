@@ -1,7 +1,6 @@
 import os
 import unittest
 import numpy as np
-from osgeo import osr
 
 from autocnet.examples import get_path
 
@@ -14,6 +13,9 @@ from .. import io_gdal
 class TestMercator(unittest.TestCase):
     def setUp(self):
         self.ds = io_gdal.GeoDataSet(get_path('Mars_MGS_MOLA_ClrShade_MAP2_0.0N0.0_MERC.tif'))
+
+    def test_should_fail(self):
+        self.assertTrue(False)
 
     def test_geotransform(self):
         self.assertEqual(self.ds.geotransform, (0.0, 4630.0, 0.0, 3921610.0, 0.0, -4630.0))
