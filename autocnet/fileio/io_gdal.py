@@ -260,20 +260,20 @@ class GeoDataSet(object):
         """
         Extract the required data as a numpy array
 
-	Parameters
-	----------
+        Parameters
+        ----------
 
-	pixels	: list
-		  [start, ystart, xstop, ystop]
+        pixels	: list
+            start, ystart, xstop, ystop]
 
         dtype : str
-                numpy dtype, e.g. float32
+            numpy dtype, e.g. float32
         """
         band = self.ds.GetRasterBand(band)
 
         dtype = getattr(np, dtype)
 
-        if pixels == None:
+        if not pixels:
             array = band.ReadAsArray().astype(dtype)
         else:
             xstart = pixels[0][0]
