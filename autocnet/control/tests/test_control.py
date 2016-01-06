@@ -1,5 +1,6 @@
 import os
 import sys
+from time import gmtime, strftime
 import unittest
 
 sys.path.insert(0, os.path.abspath('..'))
@@ -17,3 +18,10 @@ class TestC(unittest.TestCase):
 
     def test_n_measures(self):
         self.assertEqual(self.C.m, 500)
+
+    def test_modified_date(self):
+        self.assertEqual(self.C.modifieddate, 'Not modified')
+
+    def test_creation_date(self):
+
+        self.assertEqual(self.C.creationdate, strftime("%Y-%m-%d %H:%M:%S", gmtime()))

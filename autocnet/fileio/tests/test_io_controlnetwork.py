@@ -7,6 +7,8 @@ sys.path.insert(0, os.path.abspath('..'))
 import pvl
 
 from .. import io_controlnetwork
+from .. import ControlNetFileV0002 as cnf
+
 from autocnet.utils.utils import find_in_dict
 from autocnet.control.control import C
 
@@ -23,7 +25,16 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
         cnet.modifieddate = 'None'
         io_controlnetwork.to_isis('test.net', cnet, mode='wb')
 
-    def test_writepvl_header(self):
+    def test_create_buffer_header(self):
+        header_message_size = 45
+        with open('test.net', 'rb') as f:
+            f.seek(io_controlnetwork.HEADERSTARTBYTE)
+            raw_header_message = f.read(header_message_size)
+            header_protocol = cnf.ControlNetFileHeaderV0002()
+            self.assertEqual('', header_protocol.networkId)
+            self.assertEqual('', header_protocol.targetName)
+
+    def test_create_pvl_header(self):
         pvl_header = pvl.load('test.net')
         npoints = find_in_dict(pvl_header, 'NumberOfPoints')
         self.assertEqual(75, npoints)
