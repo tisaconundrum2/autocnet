@@ -3,7 +3,7 @@ import sys
 import pvl
 import numpy as np
 
-from autocnet.fileio import ControlNetFileV0002 as cnf
+from autocnet.fileio import ControlNetFileV0002_pb2 as cnf
 
 #TODO: Protobuf3 should be a conditional import, if availble use it, otherwise bail
 
@@ -14,7 +14,7 @@ DEFAULTUSERNAME = 'AutoControlNetGeneration'
 def to_isis(path, C, mode='w', version=VERSION,
             headerstartbyte=HEADERSTARTBYTE,
             networkid='None', targetname='None',
-            description='', username=DEFAULTUSERNAME):
+            description='None', username=DEFAULTUSERNAME):
     """
     Parameters
     ----------
@@ -58,10 +58,12 @@ def to_isis(path, C, mode='w', version=VERSION,
 
     if isinstance(path, str):
         with IsisStore(path, mode) as store:
-            buffer_header, buffer_header_size = store.create_buffer_header(C, version,
-                                                                           headerstartbyte, networkid,
-                                                                           targetname, description,
+            buffer_header, buffer_header_size = store.create_buffer_header(C, networkid,
+                                                                           targetname,
+                                                                           description,
                                                                            username)
+
+            print(buffer_header_size)
             store.write(buffer_header,HEADERSTARTBYTE)
             header = store.create_pvl_header(C, version, headerstartbyte, networkid,
                                 targetname, description, username, buffer_header_size)
@@ -99,8 +101,8 @@ class IsisStore(object):
         self._handle.seek(offset)
         self._handle.write(data)
 
-    def create_buffer_header(self, cnet, version, headerstartbyte,
-                      networkid, targetname, description, username):
+    def create_buffer_header(self, cnet, networkid, targetname,
+                             description, username):
         """
         Create the Google Protocol Buffer header using the
         protobuf spec.
@@ -116,18 +118,18 @@ class IsisStore(object):
                   The serialized message to write
         """
         raw_header_message = cnf.ControlNetFileHeaderV0002()
-        #raw_header_message.created = cnet.creationdate
-        #raw_header_message.description = description
-        #raw_header_message.lastModified = cnet.modifieddate
+        raw_header_message.created = cnet.creationdate
+        raw_header_message.lastModified = cnet.modifieddate
         raw_header_message.networkId = networkid
+        raw_header_message.description = description
         raw_header_message.targetName = targetname
-        #raw_header_message.userName = username
+        raw_header_message.userName = username
 
-        #raw_header_message.pointMessageSizes
 
-        header_message = raw_header_message.encode_to_bytes()
+        raw_header_message.pointMessageSizes.extend(range(10))
+        print(dir(raw_header_message))
+        header_message = raw_header_message.SerializeToString()
         header_message_size = sys.getsizeof(header_message)
-
         return header_message, header_message_size
 
     def create_pvl_header(self, cnet, version, headerstartbyte,

@@ -2,4 +2,4 @@ numpy>=1.10.0
 scipy
 gdal>=2.0
 pvl>=0.2.0
-protobuf3
+protobuf==3.0.0b2
