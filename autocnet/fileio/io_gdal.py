@@ -48,13 +48,14 @@ class GeoDataset(object):
                                    Represents the geospatial coordinate system OSR object.
 
     latlon_extent : list
-                    of two tuples to describe that latitide/longitude boundaries. This list is in the form [(lowerlat, lowerlon), (upperlat, upperlon)].
+                    of two tuples to describe that latitide/longitude boundaries. 
+                    This list is in the form [(lowerlat, lowerlon), (upperlat, upperlon)].
 
     pixel_width : float
-                  The width of the image pixels (i.e. length in the x-direction).
+                  The width of the image pixels (i.e. displacement in the x-direction).
 
     pixel_height : float
-                   The height of the image pixels (i.e. length in the y-direction).
+                   The height of the image pixels (i.e. displacement in the y-direction).
 
     spatial_reference : object
                         Represents the OSR spatial reference system OSR object.
@@ -65,13 +66,14 @@ class GeoDataset(object):
     unit_type : str
                 Name of the unit used by the raster, e.g. 'm' or 'ft'.
 
-    xrotation : float
+    x_rotation : float
                 The geotransform coefficient that represents the rotation about the x-axis.
 
     xy_extent : list
-                of two tuples to describe the x/y boundaries. This list is in the form [(minx, miny), (maxx, maxy)].
+                of two tuples to describe the x/y boundaries. 
+                This list is in the form [(minx, miny), (maxx, maxy)].
 
-    yrotation : float
+    y_rotation : float
                 The geotransform coefficient that represents the rotation about the y-axis.
 
     """
@@ -109,7 +111,8 @@ class GeoDataset(object):
     @property
     def geotransform(self):
         """
-        Gets an array of size 6 containing the affine transformation coefficients for transforming from raw sample/line to projected x/y.
+        Gets an array of size 6 containing the affine transformation coefficients for transforming
+        from raw sample/line to projected x/y.
 
         xproj = geotransform[0] + sample * geotransform[1] + line * geotransform[2]
         yproj = geotransform[3] + sample * geotransform[4] + line * geotransform[5]
@@ -127,7 +130,8 @@ class GeoDataset(object):
     @property
     def standard_parallels(self):
         """
-        Gets the list of standard parallels found in the metadata using the spatial reference for this GeoDataset.
+        Gets the list of standard parallels found in the metadata using the spatial reference for
+        this GeoDataset.
 
         Returns
         -------
@@ -142,7 +146,8 @@ class GeoDataset(object):
     @property
     def unit_type(self):
         """
-        Gets the type of units the raster data is stored in. For example, this might be meters, kilometers, feet, etc.
+        Gets the type of units the raster data is stored in. For example, this might be meters,
+        kilometers, feet, etc.
 
         Returns
         -------
@@ -195,7 +200,8 @@ class GeoDataset(object):
     @property
     def latlon_extent(self):
         """
-        Gets the size two list of tuples containing the latitide/longitude boundaries. This list is in the form [(lowerlat, lowerlon), (upperlat, upperlon)].
+        Gets the size two list of tuples containing the latitide/longitude boundaries. 
+        This list is in the form [(lowerlat, lowerlon), (upperlat, upperlon)].
 
         Returns
         -------
@@ -204,30 +210,33 @@ class GeoDataset(object):
         
         """
         if not getattr(self, '_latlon_extent', None):
-            ext = self.extent
-            llat, llon = self.pixel_to_latlon(ext[0][0], ext[0][1])
-            ulat, ulon = self.pixel_to_latlon(ext[1][0], ext[1][1])
-            self._latlon_extent = [(llat, llon), (ulat, ulon)]
+            xy_extent = self.xy_extent
+            lowerlat, lowerlon = self.pixel_to_latlon(xy_extent[0][0], xy_extent[0][1])
+            upperlat, upperlon = self.pixel_to_latlon(xy_extent[1][0], xy_extent[1][1])
+            self._latlon_extent = [(lowerlat, lowerlon), (upperlat, upperlon)]
         return self._latlon_extent
 
     @property
     def xy_extent(self):
         """
-        Gets the size two list of tuples containing the sample/line boundaries. This list is in the form [(minx, miny), (maxx, maxy)].
+        Gets the size two list of tuples containing the sample/line boundaries. 
+        The first value is the upper left corner of the upper left pixel and 
+        the second value is the lower right corner of the lower right pixel. 
+        This list is in the form [(minx, miny), (maxx, maxy)].
 
         Returns
         -------
         _xy_extent : list
-                         [(minx, miny), (maxx, maxy)]
+                     [(minx, miny), (maxx, maxy)]
         
         """
         if not getattr(self, '_xy_extent', None):
-            gt = self.geotransform
-            minx = gt[0]
-            maxy = gt[3]
+            geotransform = self.geotransform
+            minx = geotransform[0]
+            maxy = geotransform[3]
 
-            maxx = minx + gt[1] * self.dataset.RasterXSize
-            miny = maxy + gt[5] * self.dataset.RasterYSize
+            maxx = minx + geotransform[1] * self.dataset.RasterXSize
+            miny = maxy + geotransform[5] * self.dataset.RasterYSize
 
             self._xy_extent = [(minx, miny), (maxx, maxy)]
 
@@ -236,7 +245,7 @@ class GeoDataset(object):
     @property
     def pixel_width(self):
         """
-        Get the width of the pixels in the input image (i.e. the length in the x-direction).
+        Get the width of the pixels in the input image (i.e. the displacement in the x-direction).
         Note: This is the second value geotransform array.
 
         Returns
@@ -252,7 +261,7 @@ class GeoDataset(object):
     @property
     def pixel_height(self):
         """
-        Get the height of the pixels in the input image (i.e the length in the y-direction).
+        Get the height of the pixels in the input image (i.e the displacement in the y-direction).
         Note: This is the sixth (last) value geotransform array.
 
         Returns
@@ -266,41 +275,42 @@ class GeoDataset(object):
         return self._pixel_height
 
     @property
-    def xrotation(self):
+    def x_rotation(self):
         """
         Get the geotransform rotation about the x-axis.
         Note: This is the third value geotransform array.
 
         Returns
         -------
-        _xrotation : float
+        _x_rotation : float
                      The geotransform coefficient representing rotation about the x-axis.
         
         """
-        if not getattr(self, '_xrotation', None):
-            self._xrotation = self.geotransform[2]
-        return self._xrotation
+        if not getattr(self, '_x_rotation', None):
+            self._x_rotation = self.geotransform[2]
+        return self._x_rotation
 
     @property
-    def yrotation(self):
+    def y_rotation(self):
         """
         Get the geotransform rotation about the y-axis.
         Note: This is the fifth value geotransform array.
 
         Returns
         -------
-        _yrotation : float
+        _y_rotation : float
                      The geotransform coefficient representing rotation about the y-axis.
         
         """
-        if not getattr(self, '_yrotation', None):
-            self._yrotation = self.geotransform[4]
-        return self._yrotation
+        if not getattr(self, '_y_rotation', None):
+            self._y_rotation = self.geotransform[4]
+        return self._y_rotation
 
     @property
     def coordinate_transformation(self):
         """
-        Gets the coordinate transformation from the spatial reference system to the geospatial coordinate system.
+        Gets the coordinate transformation from the spatial reference system to the geospatial 
+        coordinate system.
 
         Returns
         -------
@@ -316,7 +326,8 @@ class GeoDataset(object):
     @property
     def inverse_coordinate_transformation(self):
         """
-        Gets the coordinate transformation from the geospatial coordinate system to the spatial reference system.
+        Gets the coordinate transformation from the geospatial coordinate system to the spatial 
+        reference system.
 
         Returns
         -------
@@ -330,7 +341,7 @@ class GeoDataset(object):
         return self._ict
 
     @property
-    def ndv(self, band=1):
+    def no_data_value(self, band=1):
         """
         Gets the no data value for the given band. This is used to indicate pixels that are not valid.
 
@@ -341,18 +352,19 @@ class GeoDataset(object):
 
         Returns
         -------
-        _ndv : float
-               Special value used to indicate invalid pixels.
+        _no_data_value : float
+                         Special value used to indicate invalid pixels.
         
         """
-        if not getattr(self, '_ndv', None):
-            self._ndv = self.dataset.GetRasterBand(band).GetNoDataValue()
-        return self._ndv
+        if not getattr(self, '_no_data_value', None):
+            self._no_data_value = self.dataset.GetRasterBand(band).GetNoDataValue()
+        return self._no_data_value
 
     @property
     def scale(self):
         """
-        Gets the name and value of the linear projection units of the spatial reference system. To transform a linear distance to meters, multiply by this value.
+        Gets the name and value of the linear projection units of the spatial reference system. 
+        To transform a linear distance to meters, multiply by this value.
         If no units are available ("Meters", 1) will be returned.
 
         Returns
@@ -428,9 +440,9 @@ class GeoDataset(object):
                    (Latitude, Longitude) corresponding to the given (x,y).
         
         """
-        gt = self.geotransform
-        x = gt[0] + (x * gt[1]) + (y * gt[2])
-        y = gt[3] + (x * gt[4]) + (y * gt[5])
+        geotransform = self.geotransform
+        x = geotransform[0] + (x * geotransform[1]) + (y * geotransform[2])
+        y = geotransform[3] + (x * geotransform[4]) + (y * geotransform[5])
         lon, lat, _ = self.coordinate_transformation.TransformPoint(x, y)
 
         return lat, lon
@@ -451,10 +463,10 @@ class GeoDataset(object):
                (Sample, line) position corresponding to the given (latitude, longitude).
         
         """
-        gt = self.geotransform
-        ulat, ulon, _ = self.inverse_coordinate_transformation.TransformPoint(lon, lat)
-        x = (ulat - gt[0]) / gt[1]
-        y = (ulon - gt[3]) / gt[5]
+        geotransform = self.geotransform
+        upperlat, upperlon, _ = self.inverse_coordinate_transformation.TransformPoint(lon, lat)
+        x = (upperlat - geotransform[0]) / geotransform[1]
+        y = (upperlon - geotransform[3]) / geotransform[5]
         return x, y
 
     def read_array(self, band=1, pixels=None, dtype='float32'):
@@ -513,8 +525,8 @@ def array_to_raster(array, file_name, projection=None,
     outformat : const char *
                 Default outformat='GTiff'.
 
-    ndv : 
-          Default ndv=None.
+    ndv : float
+          The no data value for the given band. See no_data_value(). Default ndv=None.
 
     """
     driver = gdal.GetDriverByName(outformat)
