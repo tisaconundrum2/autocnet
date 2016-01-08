@@ -2,6 +2,10 @@
 AutoCNet
 ===============================
 
+.. image:: https://badges.gitter.im/USGS-Astrogeology/autocnet.svg
+   :alt: Join the chat at https://gitter.im/USGS-Astrogeology/autocnet
+   :target: https://gitter.im/USGS-Astrogeology/autocnet?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
+
 .. image:: https://img.shields.io/pypi/v/autocnet.svg
         :target: https://pypi.python.org/pypi/autocnet
 
