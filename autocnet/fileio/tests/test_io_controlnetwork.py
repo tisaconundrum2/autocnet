@@ -1,10 +1,12 @@
 import os
 from time import gmtime, strftime
 import unittest
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
+import numpy as np
+import pandas as pd
 import pvl
 
 from .. import io_controlnetwork
@@ -17,19 +19,29 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
 
     def setUp(self):
         """
-        The C object is mocked in, we do not want to test it here
+        Not 100% sure how to mock in the DF without creating lots of methods...
         """
-        cnet = Mock(spec=C)
-        cnet.n = 75
-        cnet.m = 621
+        ids = ['pt1','pt1', 'pt1', 'pt2', 'pt2']
+        ptype = [2,2,2,2,2]
+        serials = ['a', 'b', 'c', 'b', 'c']
+        mtype = [2,2,2,2,2]
+
+        multi_index = pd.MultiIndex.from_tuples(list(zip(ids, ptype, serials, mtype)),
+                                    names=['Id', 'Type', 'Serial Number', 'Measure Type'])
+
+        columns = ['Random Number']
+        self.data_length = 5
+        data = np.random.randn(self.data_length)
+
         self.creation_time =  strftime("%Y-%m-%d %H:%M:%S", gmtime())
-        cnet.creationdate = self.creation_time
-        self.modified = 'Not modified'
-        cnet.modifieddate = self.modified
+        cnet = C(data, index=multi_index, columns=columns)
+
         io_controlnetwork.to_isis('test.net', cnet, mode='wb')
 
+
+
     def test_create_buffer_header(self):
-        header_message_size = 124
+        header_message_size = 116
         with open('test.net', 'rb') as f:
             f.seek(io_controlnetwork.HEADERSTARTBYTE)
             raw_header_message = f.read(header_message_size)
@@ -44,17 +56,32 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
             self.assertEqual(self.creation_time,
                              header_protocol.created)
             self.assertEqual('None', header_protocol.description)
-            self.assertEqual(self.modified, header_protocol.lastModified)
+            self.assertEqual('Not modified', header_protocol.lastModified)
 
             #Repeating
-            self.assertEqual(list(range(10)), header_protocol.pointMessageSizes)
+            self.assertEqual([64, 56], header_protocol.pointMessageSizes)
+
+    def test_create_point(self):
+        with open('test.net', 'rb') as f:
+            point_protocol = cnf.ControlPointFileEntryV0002()
+            #self.assertTrue(False)
 
     def test_create_pvl_header(self):
         pvl_header = pvl.load('test.net')
+
         npoints = find_in_dict(pvl_header, 'NumberOfPoints')
-        self.assertEqual(75, npoints)
+        self.assertEqual(2, npoints)
+
         mpoints = find_in_dict(pvl_header, 'NumberOfMeasures')
-        self.assertEqual(621, mpoints)
+        self.assertEqual(5, mpoints)
+
+        points_bytes = find_in_dict(pvl_header, 'PointsBytes')
+        self.assertEqual(120, points_bytes)
+
+        points_start_byte = find_in_dict(pvl_header, 'PointsStartByte')
+        self.assertEqual(65652, points_start_byte)
+
+
 
     def tearDown(self):
         os.remove('test.net')

@@ -58,15 +58,20 @@ def to_isis(path, C, mode='w', version=VERSION,
 
     if isinstance(path, str):
         with IsisStore(path, mode) as store:
+            point_messages, point_sizes = store.create_points(C)
+            points_bytes = sum(point_sizes)
+            #store.write()
             buffer_header, buffer_header_size = store.create_buffer_header(C, networkid,
                                                                            targetname,
                                                                            description,
-                                                                           username)
+                                                                           username,
+                                                                           point_sizes)
 
-            print(buffer_header_size)
             store.write(buffer_header,HEADERSTARTBYTE)
+
             header = store.create_pvl_header(C, version, headerstartbyte, networkid,
-                                targetname, description, username, buffer_header_size)
+                                             targetname, description, username,
+                                             buffer_header_size, points_bytes)
 
 
             store.write(header)
@@ -101,8 +106,41 @@ class IsisStore(object):
         self._handle.seek(offset)
         self._handle.write(data)
 
+    def create_points(self, cnet):
+        point_sizes = []
+        point_messages = []
+
+        for point_id in cnet.index.levels[0]:
+
+            # Instantiate the proto spec
+            point_spec = cnf.ControlPointFileEntryV0002()
+
+            # Get the subset of the dataframe
+            point = cnet.loc[point_id]
+
+            point_spec.id = point_id
+            point_spec.type = 2  # Hard coded to free
+
+            # A single extend call is cheaper than many add calls to pack points
+            measure_iterable = []
+
+            for m in point.iterrows():
+                measure_spec = point_spec.Measure()
+                serialnumber = m[0][1]
+                mtype = m[0][2]
+                measure_spec.serialnumber = serialnumber
+                measure_spec.type = mtype
+                measure_iterable.append(measure_spec)
+            point_spec.measures.extend(measure_iterable)
+
+            point_message = point_spec.SerializeToString()
+            point_sizes.append(sys.getsizeof(point_message))
+            point_messages.append(point_message)
+
+        return point_messages, point_sizes
+
     def create_buffer_header(self, cnet, networkid, targetname,
-                             description, username):
+                             description, username, point_sizes):
         """
         Create the Google Protocol Buffer header using the
         protobuf spec.
@@ -125,22 +163,24 @@ class IsisStore(object):
         raw_header_message.targetName = targetname
         raw_header_message.userName = username
 
-
-        raw_header_message.pointMessageSizes.extend(range(10))
-        print(dir(raw_header_message))
+        raw_header_message.pointMessageSizes.extend(point_sizes)
         header_message = raw_header_message.SerializeToString()
         header_message_size = sys.getsizeof(header_message)
+
         return header_message, header_message_size
 
     def create_pvl_header(self, cnet, version, headerstartbyte,
                       networkid, targetname, description, username,
-                          buffer_header_size):
+                          buffer_header_size, points_bytes):
         """
         Create the PVL header object
         Parameters
         ----------
         cnet : C
                A control net object
+
+        points_bytes : int
+                       The total number of bytes all points require
 
         Returns
         -------
@@ -149,16 +189,15 @@ class IsisStore(object):
 
         encoder = pvl.encoder.IsisCubeLabelEncoder
 
-        headerbytes = buffer_header_size
-        pointsstartbyte = HEADERSTARTBYTE + buffer_header_size
-        pointsbytes = 1
+        header_bytes = buffer_header_size
+        points_start_byte = HEADERSTARTBYTE + buffer_header_size
 
         header = pvl.PVLModule([
             ('Protobuffer',
             {'Core':{'HeaderStartByte':headerstartbyte,
-                    'HeaderBytes':headerbytes,
-                    'PointsStartByte':pointsstartbyte,
-                    'PointsBytes':pointsbytes}}),
+                    'HeaderBytes':header_bytes,
+                    'PointsStartByte':points_start_byte,
+                    'PointsBytes':points_bytes}}),
             ('ControlNetworkInfo',pvl.PVLGroup([
                     ('NetworkId', networkid),
                     ('TargetName', targetname),

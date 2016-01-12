@@ -30,8 +30,25 @@ class C(pd.DataFrame):
 
     creationdate : str
                    The date that this control network was created.
+
+    Examples
+    --------
+    This example illustrates the manual creation of a pandas dataframe with
+    a multi-index (created from a list of tuples).
+
+    >>> ids = ['pt1','pt1', 'pt1', 'pt2', 'pt2']
+    >>> ptype = [2,2,2,2,2]
+    >>> serials = ['a', 'b', 'c', 'b', 'c']
+    >>> mtype = [2,2,2,2,2]
+    >>> multi_index = pd.MultiIndex.from_tuples(list(zip(ids, ptype, serials, mtype)),\
+                                    names=['Id', 'Type', 'Serial Number', 'Measure Type'])
+    >>> columns = ['Random Number']
+    >>> data_length = 5
+    >>> data = np.random.randn(data_length)
+    >>> C = control.C(data, index=multi_index, columns=columns)
+
     """
-    def __init__(self, *args,**kwargs):
+    def __init__(self, *args, **kwargs):
         super(C, self).__init__(*args, **kwargs)
         self._creationdate = strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
@@ -44,13 +61,13 @@ class C(pd.DataFrame):
     @property
     def n(self):
         if not getattr(self, '_n', None):
-            self._n = 100
+            self._n = len(self.index.levels[0])
         return self._n
 
     @property
     def m(self):
         if not getattr(self, '_m', None):
-            self._m = 500
+            self._m = len(self)
         return self._m
 
     @property
