@@ -1,7 +1,6 @@
 import os
 import unittest
 import numpy as np
-from osgeo import osr
 
 from autocnet.examples import get_path
 

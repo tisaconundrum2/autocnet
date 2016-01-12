@@ -319,6 +319,7 @@ class GeoDataset(object):
 
         Parameters
         ----------
+
         band : int
                The image band number to be extracted as a NumPy array. Default band=1.
 
@@ -338,7 +339,7 @@ class GeoDataset(object):
 
         dtype = getattr(np, dtype)
 
-        if pixels == None:
+        if not pixels:
             array = band.ReadAsArray().astype(dtype)
         else:
             xstart = pixels[0][0]

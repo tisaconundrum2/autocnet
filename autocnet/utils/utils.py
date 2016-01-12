@@ -1,5 +1,6 @@
 import functools
-import logging
+
+import pvl
 
 
 def enum(*sequential, **named):
