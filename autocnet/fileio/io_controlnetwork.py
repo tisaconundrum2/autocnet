@@ -65,10 +65,8 @@ def to_isis(path, C, mode='w', version=VERSION,
                                                                            description,
                                                                            username,
                                                                            point_sizes)
-
             # Write the buffer header
             store.write(buffer_header,HEADERSTARTBYTE)
-
 
             # Then write the points, so we know where to start writing, + 1 to avoid overwrite
             point_start_offset = HEADERSTARTBYTE + buffer_header_size
@@ -82,8 +80,7 @@ def to_isis(path, C, mode='w', version=VERSION,
 
 
             store.write(header)
-        import os
-        print(os.path.abspath(path))
+
 class IsisStore(object):
     """
     Class to manage IO of an ISIS3 control network (version 2).

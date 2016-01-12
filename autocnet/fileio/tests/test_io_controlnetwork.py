@@ -20,10 +20,20 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
         """
         Not 100% sure how to mock in the DF without creating lots of methods...
         """
+
+        serial_times = {295: '1971-07-31T01:24:11.754',
+                   296: '1971-07-31T01:24:36.970',
+                   297: '1971-07-31T01:25:02.243',
+                   298: '1971-07-31T01:25:27.457',
+                   299: '1971-07-31T01:25:52.669',
+                   300: '1971-07-31T01:26:17.923'}
+        self.serials = ['APOLLO15/METRIC/{}'.format(i) for i in serial_times.values()]
+
         ids = ['pt1','pt1', 'pt1', 'pt2', 'pt2']
-        ptype = [2,2,2,2,2]
-        serials = ['a', 'b', 'c', 'b', 'c']
-        mtype = [2,2,2,2,2]
+        ptype = [2, 2, 2, 2, 2]
+        serials = [self.serials[0], self.serials[1], self.serials[2],
+                   self.serials[2], self.serials[3]]
+        mtype = [2, 2, 2, 2, 2]
 
         multi_index = pd.MultiIndex.from_tuples(list(zip(ids, ptype, serials, mtype)),
                                     names=['Id', 'Type', 'Serial Number', 'Measure Type'])
@@ -37,8 +47,8 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
 
         io_controlnetwork.to_isis('test.net', cnet, mode='wb', targetname='Moon')
 
-        self.header_message_size = 83
-        self.point_start_byte = 65619
+        self.header_message_size = 84
+        self.point_start_byte = 65620
 
     def test_create_buffer_header(self):
         with open('test.net', 'rb') as f:
@@ -58,21 +68,21 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
             self.assertEqual('Not modified', header_protocol.lastModified)
 
             #Repeating
-            self.assertEqual([31, 23], header_protocol.pointMessageSizes)
+            self.assertEqual([145, 99], header_protocol.pointMessageSizes)
 
     def test_create_point(self):
         with open('test.net', 'rb') as f:
 
             with open('test.net', 'rb') as f:
                 f.seek(self.point_start_byte)
-                for i, length in enumerate([31, 23]):
+                for i, length in enumerate([145, 99]):
                     point_protocol = cnf.ControlPointFileEntryV0002()
                     raw_point = f.read(length)
                     point_protocol.ParseFromString(raw_point)
                     self.assertEqual('pt{}'.format(i+1), point_protocol.id)
                     self.assertEqual(2, point_protocol.type)
                     for m in point_protocol.measures:
-                        self.assertTrue(m.serialnumber in ['a', 'b', 'c'])
+                        self.assertTrue(m.serialnumber in self.serials)
                         self.assertEqual(2, m.type)
 
     def test_create_pvl_header(self):
@@ -85,11 +95,10 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
         self.assertEqual(5, mpoints)
 
         points_bytes = find_in_dict(pvl_header, 'PointsBytes')
-        self.assertEqual(54, points_bytes)
+        self.assertEqual(244, points_bytes)
 
         points_start_byte = find_in_dict(pvl_header, 'PointsStartByte')
-        self.assertEqual(65619, points_start_byte)
+        self.assertEqual(65620, points_start_byte)
 
     def tearDown(self):
-        return
-        #os.remove('test.net')
+        os.remove('test.net')

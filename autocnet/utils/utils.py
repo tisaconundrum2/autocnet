@@ -1,5 +1,6 @@
 import functools
-import logging
+
+import pvl
 
 
 def enum(*sequential, **named):
@@ -138,6 +139,26 @@ def find_in_dict(obj, key):
             item = find_in_dict(v, key)
             if item is not None:
                 return item
+
+def create_isis3_serial(in_cube):
+    """
+
+    Parameters
+    ----------
+    in_cube : str
+              Path to the input data cube
+
+    Returns
+    -------
+    serial : str
+             The ISIS3 serial number
+    """
+    header = pvl.load(in_cube)
+    components = []
+
+    spacecraft_name = find_in_dict(header, 'SpacecraftName')
+    instrument_id = find_in_dict(header, 'InstrumentId')
+    spacecraft_clock_count = find_in_dict(header, 'StartTime')
 
 # note that this decorator ignores **kwargs
 def memoize(obj):
