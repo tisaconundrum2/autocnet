@@ -1,7 +1,6 @@
 import os
 from time import gmtime, strftime
 import unittest
-from unittest.mock import MagicMock
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
@@ -36,7 +35,7 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
         self.creation_time =  strftime("%Y-%m-%d %H:%M:%S", gmtime())
         cnet = C(data, index=multi_index, columns=columns)
 
-        io_controlnetwork.to_isis('test.net', cnet, mode='wb')
+        io_controlnetwork.to_isis('test.net', cnet, mode='wb', targetname='Moon')
 
         self.header_message_size = 83
         self.point_start_byte = 65619
@@ -50,7 +49,7 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
 
             #Non-repeating
             self.assertEqual('None', header_protocol.networkId)
-            self.assertEqual('None', header_protocol.targetName)
+            self.assertEqual('Moon', header_protocol.targetName)
             self.assertEqual(io_controlnetwork.DEFAULTUSERNAME,
                              header_protocol.userName)
             self.assertEqual(self.creation_time,
@@ -91,7 +90,6 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
         points_start_byte = find_in_dict(pvl_header, 'PointsStartByte')
         self.assertEqual(65619, points_start_byte)
 
-
-
     def tearDown(self):
-        os.remove('test.net')
+        return
+        #os.remove('test.net')

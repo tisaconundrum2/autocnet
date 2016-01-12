@@ -82,7 +82,8 @@ def to_isis(path, C, mode='w', version=VERSION,
 
 
             store.write(header)
-
+        import os
+        print(os.path.abspath(path))
 class IsisStore(object):
     """
     Class to manage IO of an ISIS3 control network (version 2).
@@ -261,23 +262,28 @@ class IsisStore(object):
         points_start_byte = HEADERSTARTBYTE + buffer_header_size
 
         header = pvl.PVLModule([
-            ('Protobuffer',
-            {'Core':{'HeaderStartByte':headerstartbyte,
-                    'HeaderBytes':header_bytes,
-                    'PointsStartByte':points_start_byte,
-                    'PointsBytes':points_bytes}}),
-            ('ControlNetworkInfo',pvl.PVLGroup([
-                    ('NetworkId', networkid),
-                    ('TargetName', targetname),
-                    ('UserName', username),
-                    ('Created',cnet.creationdate),
-                    ('LastModified',cnet.modifieddate),
-                    ('Description',description),
-                    ('NumberOfPoints',cnet.n),
-                    ('NumberOfMeasures',cnet.m),
-                    ('Version',version)
-                    ]))
+            ('ProtoBuffer',
+                ({'Core':{'HeaderStartByte': headerstartbyte,
+                        'HeaderBytes': header_bytes,
+                        'PointsStartByte': points_start_byte,
+                        'PointsBytes': points_bytes},
+
+                  'ControlNetworkInfo': pvl.PVLGroup([
+                        ('NetworkId', networkid),
+                        ('TargetName', targetname),
+                        ('UserName', username),
+                        ('Created', cnet.creationdate),
+                        ('LastModified', cnet.modifieddate),
+                        ('Description', description),
+                        ('NumberOfPoints', cnet.n),
+                        ('NumberOfMeasures', cnet.m),
+                        ('Version', version)
+                        ])
+                  }),
+
+                 )
         ])
+
         return pvl.dumps(header, cls=encoder)
 
     def __enter__(self):
