@@ -41,7 +41,7 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
 
 
     def test_create_buffer_header(self):
-        header_message_size = 116
+        header_message_size = 83
         with open('test.net', 'rb') as f:
             f.seek(io_controlnetwork.HEADERSTARTBYTE)
             raw_header_message = f.read(header_message_size)
@@ -59,7 +59,7 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
             self.assertEqual('Not modified', header_protocol.lastModified)
 
             #Repeating
-            self.assertEqual([64, 56], header_protocol.pointMessageSizes)
+            self.assertEqual([31, 23], header_protocol.pointMessageSizes)
 
     def test_create_point(self):
         with open('test.net', 'rb') as f:
@@ -76,10 +76,10 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
         self.assertEqual(5, mpoints)
 
         points_bytes = find_in_dict(pvl_header, 'PointsBytes')
-        self.assertEqual(120, points_bytes)
+        self.assertEqual(54, points_bytes)
 
         points_start_byte = find_in_dict(pvl_header, 'PointsStartByte')
-        self.assertEqual(65652, points_start_byte)
+        self.assertEqual(65619, points_start_byte)
 
 
 
