@@ -31,6 +31,9 @@ class C(pd.DataFrame):
     creationdate : str
                    The date that this control network was created.
 
+    modifieddate : str
+                   The date that this control network was last modified.
+
     Examples
     --------
     This example illustrates the manual creation of a pandas dataframe with

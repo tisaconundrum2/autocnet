@@ -11,6 +11,8 @@ VERSION = 2
 HEADERSTARTBYTE = 65536
 DEFAULTUSERNAME = 'AutoControlNetGeneration'
 
+FREEPOINT = 2
+
 def to_isis(path, C, mode='w', version=VERSION,
             headerstartbyte=HEADERSTARTBYTE,
             networkid='None', targetname='None',
@@ -83,7 +85,7 @@ def to_isis(path, C, mode='w', version=VERSION,
 
 class IsisStore(object):
     """
-    Class to manage IO of an ISIS3 control network (version 2).
+    Class to manage IO of an ISIS control network (version 2).
     """
 
     def __init__(self, path, mode=None, **kwargs):
@@ -105,8 +107,8 @@ class IsisStore(object):
         """
         Parameters
         ----------
-        C : object
-               A control network object
+        data : str
+               to be written to the file
 
         offset : int
                  The byte offset into the output binary
@@ -116,7 +118,7 @@ class IsisStore(object):
 
     def create_points(self, cnet):
         """
-        Step through a C object and return protocol buffer point objects
+        Step through a control network (C) and return protocol buffer point objects
 
         Parameters
         ----------
@@ -143,7 +145,7 @@ class IsisStore(object):
             point = cnet.loc[point_id]
 
             point_spec.id = point_id
-            point_spec.type = 2  # Hard coded to free
+            point_spec.type = FREEPOINT  # Hard coded to free
 
             # A single extend call is cheaper than many add calls to pack points
             measure_iterable = []
@@ -204,11 +206,10 @@ class IsisStore(object):
         raw_header_message.description = description
         raw_header_message.targetName = targetname
         raw_header_message.userName = username
-
         raw_header_message.pointMessageSizes.extend(point_sizes)
+
         header_message_size = raw_header_message.ByteSize()
         header_message = raw_header_message.SerializeToString()
-        #header_message_size = sys.getsizeof(header_message)
 
         return header_message, header_message_size
 
@@ -217,6 +218,7 @@ class IsisStore(object):
                           buffer_header_size, points_bytes):
         """
         Create the PVL header object
+
         Parameters
         ----------
         cnet : object
