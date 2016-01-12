@@ -9,7 +9,7 @@ class CSeries(pd.Series):
     """
     @property
     def _constructor(self):
-        return CustomSeries
+        return CustomSeries # pragma: no cover
 
 
 class C(pd.DataFrame):
@@ -80,6 +80,8 @@ class C(pd.DataFrame):
             self._modifieddate = 'Not modified'
         return self._modifieddate
 
+    '''
     @modifieddate.setter
     def update_modifieddate(self):
         self._modifieddate = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+    '''

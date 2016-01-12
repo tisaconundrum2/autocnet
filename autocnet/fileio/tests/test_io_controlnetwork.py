@@ -70,8 +70,6 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
                     point_protocol = cnf.ControlPointFileEntryV0002()
                     raw_point = f.read(length)
                     point_protocol.ParseFromString(raw_point)
-                    print(point_protocol)
-                    print(dir(point_protocol))
                     self.assertEqual('pt{}'.format(i+1), point_protocol.id)
                     self.assertEqual(2, point_protocol.type)
                     for m in point_protocol.measures:

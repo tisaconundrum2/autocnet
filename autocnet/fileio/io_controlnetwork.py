@@ -91,7 +91,7 @@ class IsisStore(object):
     def __init__(self, path, mode=None, **kwargs):
         self._path = path
         if not mode:
-            mode = 'a'
+            mode = 'a' # pragma: no cover
         self._mode = mode
         self._handle = None
 
