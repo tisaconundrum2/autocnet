@@ -38,13 +38,13 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
 
         io_controlnetwork.to_isis('test.net', cnet, mode='wb')
 
-
+        self.header_message_size = 83
+        self.point_start_byte = 65619
 
     def test_create_buffer_header(self):
-        header_message_size = 83
         with open('test.net', 'rb') as f:
             f.seek(io_controlnetwork.HEADERSTARTBYTE)
-            raw_header_message = f.read(header_message_size)
+            raw_header_message = f.read(self.header_message_size)
             header_protocol = cnf.ControlNetFileHeaderV0002()
             header_protocol.ParseFromString(raw_header_message)
 
@@ -63,8 +63,20 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
 
     def test_create_point(self):
         with open('test.net', 'rb') as f:
-            point_protocol = cnf.ControlPointFileEntryV0002()
-            #self.assertTrue(False)
+
+            with open('test.net', 'rb') as f:
+                f.seek(self.point_start_byte)
+                for i, length in enumerate([31, 23]):
+                    point_protocol = cnf.ControlPointFileEntryV0002()
+                    raw_point = f.read(length)
+                    point_protocol.ParseFromString(raw_point)
+                    print(point_protocol)
+                    print(dir(point_protocol))
+                    self.assertEqual('pt{}'.format(i+1), point_protocol.id)
+                    self.assertEqual(2, point_protocol.type)
+                    for m in point_protocol.measures:
+                        self.assertTrue(m.serialnumber in ['a', 'b', 'c'])
+                        self.assertEqual(2, m.type)
 
     def test_create_pvl_header(self):
         pvl_header = pvl.load('test.net')
