@@ -1,4 +1,5 @@
 import cv2
+from scipy import misc
 
 def extract_features(image_array, num_nodes=500):
     """
@@ -19,4 +20,5 @@ def extract_features(image_array, num_nodes=500):
       This tuple is in the form (list of KeyPoints, array of descriptors)
     """
     sift = cv2.xfeatures2d.SIFT_create(num_nodes)
-    return sift.detectAndCompute(image_array, None)
+    converted_array = misc.bytescale(image_array)
+    return sift.detectAndCompute(converted_array, None)

@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import unittest
-from scipy.misc import bytescale
 from autocnet.examples import get_path
 import cv2
 
@@ -15,7 +14,7 @@ from autocnet.fileio import io_gdal
 class TestFeatureExtractor(unittest.TestCase):
     def setUp(self):
         self.dataset = io_gdal.GeoDataset(get_path('Mars_MGS_MOLA_ClrShade_MAP2_0.0N0.0_MERC.tif'))
-        self.data_array = bytescale(self.dataset.read_array())
+        self.data_array = self.dataset.read_array()
 
     def test_extract_features(self):
         features = feature_extractor.extract_features(self.data_array, 10)
