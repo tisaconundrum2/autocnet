@@ -350,6 +350,7 @@ class GeoDataset(object):
                                           xextent, yextent).astype(dtype)
         return array
 
+
 def array_to_raster(array, file_name, projection=None,
                     geotransform=None, outformat='GTiff',
                     ndv=None):

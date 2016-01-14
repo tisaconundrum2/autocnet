@@ -18,7 +18,7 @@ class TestMercator(unittest.TestCase):
         self.assertEqual(self.dataset.geotransform, (0.0, 4630.0, 0.0, 3921610.0, 0.0, -4630.0))
 
     def test_get_unit_type(self):
-        #Write a test that has a unit_type or check why this is not 'm'
+        # Write a test that has a unit_type or check why this is not 'm'
         self.assertEqual(self.dataset.unit_type, '')
 
     def test_get_xy_extent(self):
