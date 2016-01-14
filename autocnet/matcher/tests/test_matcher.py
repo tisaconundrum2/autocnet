@@ -22,7 +22,7 @@ class TestMatcher(unittest.TestCase):
 
         self.fd['AS15-M-0296_SML.png'] = sift.detectAndCompute(im1, None)
         self.fd['AS15-M-0297_SML.png'] = sift.detectAndCompute(im2, None)
-
+        print(dir(self.fd))
     def test_flann_match_two_images(self):
 
         fmatcher = matcher.FlannMatcher()

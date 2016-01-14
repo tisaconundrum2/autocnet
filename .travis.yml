@@ -10,6 +10,7 @@ python:
 
 before_install:
   - sudo apt-get update
+
 install:
   # We do this conditionally because it saves us some downloading if the
   # version is the same.
@@ -43,8 +44,8 @@ install:
   - sudo apt-get install -y python-dev python-numpy libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff-dev libjasper-dev libdc1394-22-dev
 
   #Grab the source
-  - curl -sL https://github.com/Itseez/opencv/archive/3.0.0.zip > opencv.zip
-  - curl -sL https://github.com/Itseez/opencv_contrib/archive/3.0.0.zip > opencv_contrib.zip
+  - curl -sL http://github.com/Itseez/opencv/archive/3.0.0.zip > opencv.zip
+  - curl -sL http://github.com/Itseez/opencv_contrib/archive/3.0.0.zip > opencv_contrib.zip
   - unzip opencv_contrib.zip
   - unzip opencv.zip
   - cd opencv-3.0.0
@@ -70,6 +71,8 @@ install:
 
   # Return to the root
   - cd ../../
+
+  # Might need to link the cv2.so into the env?
 
 script:
   - nosetests --with-coverage --cover-package=autocnet
