@@ -9,6 +9,7 @@ python:
   - "3.5"
 
 before_install:
+
 install:
   # We do this conditionally because it saves us some downloading if the
   # version is the same.
@@ -31,6 +32,7 @@ install:
   - source activate test-env
 
   # Install the non-conda packages if required, requirements.txt duplicates are ignored
+  - conda install -c https://conda.binstar.org/menpo opencv3
   - conda install -c osgeo proj4
   - pip install -r requirements.txt
   - pip install coverage
