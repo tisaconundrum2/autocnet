@@ -1,13 +1,41 @@
+import os
 import unittest
 
+from autocnet.examples import get_path
 
-class TestX(unittest.TestCase):
+import sys
+sys.path.insert(0, os.path.abspath('..'))
+
+from .. import network
+
+
+class TestCandidateGraph(unittest.TestCase):
     
     def setUp(self):
-        pass
+        self.graph = network.CandidateGraph.from_adjacency(get_path('adjacency.json'))
     
-    def test_X(self):
-        self.assertEquals(1, 1)
+    def test_add_image(self):
+        self.graph.add_image("A")
+        self.graph.add_image("PI")
+        self.graph.add_image("OTHER")
+        truth = ['AS15-M-0298_SML.png',
+                 'AS15-M-0300_SML.png',
+                 'AS15-M-0295_SML.png',
+                 'AS15-M-0299_SML.png',
+                 'AS15-M-0296_SML.png',
+                 'AS15-M-0297_SML.png']
+        truth += ['A', 'PI', 'OTHER']
+        self.assertEqual(sorted(self.graph.nodes()), sorted(truth))
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_add_image_fail(self):
+        self.assertRaises(TypeError, self.graph.add_image, [1, 2, 3])
+
+    def test_adjacency_to_json(self):
+        self.graph.adjacency_to_json('test_adjacency_to_json.json')
+        self.assertTrue(os.path.exists('test_adjacency_to_json.json'))
+
+    def tearDown(self):
+        try:
+            os.remove('test_adjacency_to_json.json')
+        except:
+            pass

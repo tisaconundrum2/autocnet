@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import scipy.stats as ss
 
+
 def continuum_correct(spectrum, nodes=None, method='linear'):
     """
     Apply a continuum correction to a given spectrum
@@ -39,7 +40,7 @@ def continuum_correct(spectrum, nodes=None, method='linear'):
     continuum = np.empty(return_length)
     
     start = 0
-    nlist = zip(nodes, nodes[1:])
+    nlist = list(zip(nodes, nodes[1:]))
     for i, n in enumerate(nlist):
         # Define indices into sub-series
         ny = y[n[0]:n[1]]
@@ -90,6 +91,7 @@ def regression(nx, ny):
     m, b, r_value, p_value, stderr = ss.linregress(nx, ny)
     c = m * nx + b
     return c
+
 
 def linear(nx, ny, ex=None):
     y1 = ny.iloc[0]

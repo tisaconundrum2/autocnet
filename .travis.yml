@@ -9,6 +9,7 @@ python:
   - "3.5"
 
 before_install:
+
 install:
   # We do this conditionally because it saves us some downloading if the
   # version is the same.
@@ -26,11 +27,12 @@ install:
   - conda info -a
 
   # Create a virtual env and install dependencies
-  - conda create -y -q -n test-env python=$TRAVIS_PYTHON_VERSION nose gdal numpy scipy pandas
+  - conda create -y -q -n test-env python=$TRAVIS_PYTHON_VERSION nose gdal numpy pillow scipy pandas networkx
   # Activate the env
   - source activate test-env
 
   # Install the non-conda packages if required, requirements.txt duplicates are ignored
+  - conda install -c https://conda.binstar.org/menpo opencv3
   - conda install -c osgeo proj4
   - pip install -r requirements.txt
   - pip install coverage

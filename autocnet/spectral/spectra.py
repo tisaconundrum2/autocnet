@@ -5,14 +5,14 @@ from autocnet.spectral.continuum import continuum_correct
 import autocnet.spectral.analytics as analytics
 
 
-def tospectra(func):
+def tospectra(func): # pragma: no cover
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)
         return Spectra(result)
     return wrapper
 
 
-def tospectrum(func):
+def tospectrum(func): # pragma: no cover
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)
         return Spectrum(result)
@@ -35,9 +35,9 @@ class Spectrum(object):
     
     def __getitem__(self, key):
         try:
-            result = self.series.iloc[key]
+            result = self.series.loc[key]
         except:
-            result = self.series[key]
+            result = self.series.iloc[key]
         return result
 
     def boxcar_smooth(self, *args, **kwargs):
