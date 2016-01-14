@@ -62,5 +62,6 @@ class TestMatcher(unittest.TestCase):
         # Check that self neighbors are being omitted
         distance = matched['distance']
         self.assertFalse(distance[distance == 0].any())
+
     def tearDown(self):
         pass

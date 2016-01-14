@@ -3,10 +3,10 @@ import numpy as np
 import pandas as pd
 from autocnet.graph.network import CandidateGraph
 
-FLANN_INDEX_KDTREE = 1
+
+FLANN_INDEX_KDTREE = 1  # Algorithm to set centers,
 DEFAULT_FLANN_PARAMETERS = dict(algorithm=FLANN_INDEX_KDTREE,
                                 trees=3)
-
 
 class FlannMatcher(object):
     """
@@ -18,7 +18,8 @@ class FlannMatcher(object):
     Attributes
     ----------
     image_indices : dict
-                    with key equal to the train image idx (returned by the DMatch object)
+                    with key equal to the train image index (returned by the DMatch object),
+                    e.g. an integer array index
                     and value equal to the image identifier, e.g. the name
 
     image_index_counter : int
@@ -66,11 +67,14 @@ class FlannMatcher(object):
 
         self_neighbor : bool
                         If the query descriptor is also a member
-                        of the train descriptors, default True
+                        of the KDTree avoid self neighbor, default True.
+
         Returns
         -------
         matched : dataframe
-                  containing matched points
+                  containing matched points with columns containg:
+                  matched image name, query index, train index, and
+                  descriptor distance
         """
         idx = 0
         if self_neighbor:
