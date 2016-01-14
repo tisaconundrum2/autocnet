@@ -293,8 +293,8 @@ class Mock(MagicMock):
     def __getter__(cls, name):
         return Mock()
 
-
-MOCK_MODULES = ['proj4', 'numpy', 'pandas', 'scipy', 'osgeo']
+# All imported libraries should be added to this mock modules list.
+MOCK_MODULES = ['proj4', 'numpy', 'pandas', 'scipy', 'osgeo', 'cv2']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # NumpyDoc Options

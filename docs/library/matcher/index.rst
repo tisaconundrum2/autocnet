@@ -3,4 +3,5 @@
 
 .. toctree::
 
-   nimage
+   feature_extractor
+   matcher
