@@ -37,5 +37,5 @@ class TestCandidateGraph(unittest.TestCase):
     def tearDown(self):
         try:
             os.remove('test_adjacency_to_json.json')
-        except:
+        except FileExistsError:
             pass
