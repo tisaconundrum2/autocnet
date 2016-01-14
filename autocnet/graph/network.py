@@ -1,9 +1,8 @@
 from collections import Hashable
-import networkx as nx
+from networkx import DiGraph
 
 from autocnet.fileio import io_json
-
-class CandidateGraph(nx.DiGraph):
+class CandidateGraph(DiGraph):
     """
     A NetworkX derived directed graph to store candidate overlap images.
 
@@ -13,6 +12,8 @@ class CandidateGraph(nx.DiGraph):
     Attributes
     ----------
     """
+    #TODO: This would be better with composition, and then dispatch the 
+    # network X calls to the graph object.
 
     def __init__(self,*args, **kwargs):
         super(CandidateGraph, self).__init__(*args, **kwargs)
@@ -35,7 +36,6 @@ class CandidateGraph(nx.DiGraph):
 
         Parameters
         ==========
-
         outputfile : str
                      PATH where the JSON will be written
         """
@@ -50,21 +50,12 @@ class CandidateGraph(nx.DiGraph):
         Instantiate the class using an adjacency list
 
         Parameters
-        ----------
+        ==========
         inputfile : str
                     The input file containing the graph representation
-
-        Returns
-        -------
-         : object
-           A Network graph object
-
-        Examples
-        --------
-        >>> from autocnet.examples import get_path
-        >>> inputfile = get_path('adjacency.json')
-        >>> candidate_graph = network.CandidateGraph.from_adjacency(inputfile)
         """
+        #TODO: This is better as a generic reader that tries drivers until 
+        # a valid dict is returned.
         adjacency_dict = io_json.read_json(inputfile)
         return cls(adjacency_dict)
 
