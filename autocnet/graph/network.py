@@ -1,7 +1,12 @@
 from collections import Hashable
 import networkx as nx
 
+from autocnet.control.control import C
 from autocnet.fileio import io_json
+
+import numpy as np
+from scipy import misc
+misc.bytescale(np.arange(100).reshape(10,10))
 
 class CandidateGraph(nx.DiGraph):
     """
@@ -43,6 +48,17 @@ class CandidateGraph(nx.DiGraph):
         for n in self.nodes():
             adjacency_dict[n] = self.neighbors(n)
         io_json.write_json(adjacency_dict, outputfile)
+
+    def cnet_from_graph(self):
+        """
+        Create a control network from a graph or subgraph
+
+        Returns
+        -------
+        cnet : object
+               A control network object
+        """
+        pass
 
     @classmethod
     def from_adjacency(cls, inputfile):
