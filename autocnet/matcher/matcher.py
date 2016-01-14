@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-
+import pandas as pd
 from autocnet.graph.network import CandidateGraph
 
 FLANN_INDEX_KDTREE = 1
@@ -26,7 +26,7 @@ class FlannMatcher(object):
     def __init__(self, flann_parameters=DEFAULT_FLANN_PARAMETERS):
         self._flann_matcher = cv2.FlannBasedMatcher(flann_parameters, {})
         self.image_indices = {}
-        self.image_index_counter = 0  # OpenCv DMatch.imgIdx are one based
+        self.image_index_counter = 0
 
     def add(self, descriptor, key):
         """
@@ -64,52 +64,16 @@ class FlannMatcher(object):
 
         Returns
         -------
-         :
+        matched : dataframe
+                  containing matched points
         """
-        print(self.image_indices)
         matches = self._flann_matcher.knnMatch(descriptor, k=k)
-        print(dir(self._flann_matcher))
-        print(matches)
+        matched = []
         for m in matches:
-            print(m[0].imgIdx, m[0].queryIdx, m[0].trainIdx)
-            #print(self.image_indices[m[0].imgIdx])
+            matched.append((self.image_indices[m[1].imgIdx],
+                  m[1].queryIdx,
+                  m[1].trainIdx,
+                  m[1].distance))
+        return pd.DataFrame(matched, columns=['matched_to', 'queryIdx',
+                                              'trainIdx', 'distance'])
 
-
-def match_features(iterable, flann_parameters=DEFAULT_FLANN_PARAMETERS):
-    """
-    Iterate over all nodes in the graph, create a single KDTree,
-    and then apply a FLANN matcher.
-
-    Parameters
-    ----------
-    iterable : iterable
-            An iterable of descriptors
-
-    flann_parameters : dict
-                       of parameters for the FLANN matcher
-
-
-    Returns
-    -------
-
-    """
-    flann_matcher = create_flann_matcher(iterable, flann_parameters)
-
-
-def create_flann_matcher(iterable, flann_parameters):
-
-    flann_matcher = cv2.FlannBasedMatcher(flann_parameters, {})
-
-    try:
-        if isinstance(iterable, CandidateGraph):
-            training_descriptors = [i[1]['descriptors'] for i in iterable.nodes_iter(data=True)]
-        elif isinstance(iterable[0], np.ndarray):
-            training_descriptors = iterable
-        else:
-            raise(TypeError, 'Unsupported iterable passed to match_features')
-    except TypeError:
-        print('Object is not iterable')
-
-    flann_matcher.add(training_descriptors)
-    flann_matcher.train()
-    return flann_matcher

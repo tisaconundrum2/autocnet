@@ -23,7 +23,7 @@ class TestMatcher(unittest.TestCase):
         self.fd['AS15-M-0296_SML.png'] = sift.detectAndCompute(im1, None)
         self.fd['AS15-M-0297_SML.png'] = sift.detectAndCompute(im2, None)
 
-    def test_flann_match(self):
+    def test_flann_match_two_images(self):
 
         fmatcher = matcher.FlannMatcher()
         truth_image_indices = {}
@@ -37,11 +37,13 @@ class TestMatcher(unittest.TestCase):
 
         fmatcher.train()
 
-        matches = fmatcher.query(self.fd['AS15-M-0296_SML.png'][1], k=2)
-        #self.assertEqual(10, len(matches))
-        #self.assertEqual(2, len(matches[0]))
+        matched = fmatcher.query(self.fd['AS15-M-0296_SML.png'][1], k=2)
+        self.assertEqual(10, len(matched))
 
-        self.assertTrue(False)
+        # Check that self neighbors are being omitted
+        distance = matched['distance']
+        self.assertFalse(distance[distance == 0].any())
+
 
     def tearDown(self):
         pass
