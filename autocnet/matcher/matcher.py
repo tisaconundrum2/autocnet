@@ -11,7 +11,9 @@ DEFAULT_FLANN_PARAMETERS = dict(algorithm=FLANN_INDEX_KDTREE,
 class FlannMatcher(object):
     """
     A wrapper to the OpenCV Flann based matcher class that adds
-    metadata tracking attributes and methods.
+    metadata tracking attributes and methods.  This takes arbitrary
+    descriptors and so should be available for use with any
+    descriptor data stored as an ndarray.
 
     Attributes
     ----------
@@ -51,7 +53,7 @@ class FlannMatcher(object):
         """
         self._flann_matcher.train()
 
-    def query(self, descriptor, k=3):
+    def query(self, descriptor, k=3, self_neighbor=True):
         """
 
         Parameters
@@ -62,18 +64,25 @@ class FlannMatcher(object):
         k : int
             The number of nearest neighbors to search for
 
+        self_neighbor : bool
+                        If the query descriptor is also a member
+                        of the train descriptors, default True
         Returns
         -------
         matched : dataframe
                   containing matched points
         """
+        idx = 0
+        if self_neighbor:
+            idx = 1
         matches = self._flann_matcher.knnMatch(descriptor, k=k)
         matched = []
         for m in matches:
-            matched.append((self.image_indices[m[1].imgIdx],
-                  m[1].queryIdx,
-                  m[1].trainIdx,
-                  m[1].distance))
+            for i in m[idx:]:
+                matched.append((self.image_indices[i.imgIdx],
+                                i.queryIdx,
+                                i.trainIdx,
+                                i.distance))
         return pd.DataFrame(matched, columns=['matched_to', 'queryIdx',
                                               'trainIdx', 'distance'])
 
