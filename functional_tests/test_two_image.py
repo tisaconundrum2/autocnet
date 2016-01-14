@@ -16,15 +16,17 @@ class TestTwoImageMatching(unittest.TestCase):
         I wish to automatically match two images to
         Generate an ISIS control network
 
-        Scenario: Match two images
-            Given a manually specified adjacency structure named two_image_adjacency.json
-            When read create an adjacency graph
-            Then extract image data and attribute nodes
-            And find features and descriptors
-            Then tag these to the graph nodes
+        Background:
+            Given that I have two manually identified overlapping images
+            Specified in two_image_adjacency.json
+
+        Scenario: Create an adjacency graph
+            Extract image data and attribute nodes
+            Then find features and descriptors
+            And tag these to the graph nodes
             Then apply a FLANN matcher
             And create a C object
-            Then output a control network
+            Output a control network
     """
 
     def test_two_image(self):
