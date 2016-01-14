@@ -8,7 +8,7 @@ from autocnet.examples import get_path
 from autocnet.fileio.io_gdal import GeoDataset
 from autocnet.fileio.io_controlnetwork import to_isis
 from autocnet.graph.network import CandidateGraph
-
+from autocnet.matcher.matcher import FlannMatcher
 
 class TestTwoImageMatching(unittest.TestCase):
     """
@@ -22,8 +22,8 @@ class TestTwoImageMatching(unittest.TestCase):
             Then extract image data and attribute nodes
             And find features and descriptors
             Then tag these to the graph nodes
-            Then apply a FLANN matcher
-            And create a C object
+            And apply a FLANN matcher
+            Then create a C object from the graph matches
             Then output a control network
     """
 
@@ -45,10 +45,18 @@ class TestTwoImageMatching(unittest.TestCase):
 
         # Step: And tag these to the graph nodes
         for node, attributes in cg.nodes_iter(data=True):
-            attributes['features'] = 'a'  # Will be our feature/descriptor data structure
+            attributes['keypoints'] = 'a'  # Will be our feature/descriptor data structure
             attributes['descriptors'] = 'b'
 
         # Step: Then apply a FLANN matcher
+        fl = FlannMatcher()
+        for node, attributes in cg.nodes_iter(data=True):
+            fl.add(attributes['descriptors'])
+        fl.train()
+
+        for node, attributes in cg.nodes_iter(data=True):
+            descriptors = attributes['descriptors']
+            attributes['matches'] = fl.query(descriptors, k=2)
 
         # Step: And create a C object
         cnet = C()

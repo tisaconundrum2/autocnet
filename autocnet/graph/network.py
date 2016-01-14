@@ -59,3 +59,4 @@ class CandidateGraph(DiGraph):
         adjacency_dict = io_json.read_json(inputfile)
         return cls(adjacency_dict)
 
+
