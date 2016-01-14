@@ -31,6 +31,7 @@ class TestCandidateGraph(unittest.TestCase):
         import numpy as np
         import scipy.misc
         print(dir(scipy.misc))
+        print(scipy.__version__)
         scipy.misc.bytescale(np.arange(100).reshape(10,10))
 
         self.assertRaises(TypeError, self.graph.add_image, [1, 2, 3])
