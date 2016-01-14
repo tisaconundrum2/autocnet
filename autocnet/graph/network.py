@@ -4,10 +4,7 @@ import networkx as nx
 from autocnet.control.control import C
 from autocnet.fileio import io_json
 
-import numpy as np
-from scipy import misc
-print(dir(misc))
-misc.bytescale(np.arange(100).reshape(10,10))
+
 
 class CandidateGraph(nx.DiGraph):
     """
