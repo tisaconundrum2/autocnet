@@ -9,7 +9,6 @@ python:
   - "3.5"
 
 before_install:
-  - sudo apt-get update
 
 install:
   # We do this conditionally because it saves us some downloading if the
