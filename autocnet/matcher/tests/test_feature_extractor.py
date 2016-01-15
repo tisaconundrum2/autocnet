@@ -15,9 +15,14 @@ class TestFeatureExtractor(unittest.TestCase):
     def setUp(self):
         self.dataset = io_gdal.GeoDataset(get_path('Mars_MGS_MOLA_ClrShade_MAP2_0.0N0.0_MERC.tif'))
         self.data_array = self.dataset.read_array()
+        self.parameters = {"nfeatures" : 10,
+                           "nOctaveLayers" : 3,
+                           "contrastThreshold" : 0.02,
+                           "edgeThreshold" : 10,
+                           "sigma" : 1.6}
 
     def test_extract_features(self):
-        features = feature_extractor.extract_features(self.data_array, 10)
+        features = feature_extractor.extract_features(self.data_array, self.parameters)
         self.assertEquals(len(features), 2)
         self.assertEqual(len(features[0]), 11)  # OpenCV +1 to
         self.assertIsInstance(features[0][0], type(cv2.KeyPoint()))
