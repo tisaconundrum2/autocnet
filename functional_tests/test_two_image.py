@@ -1,13 +1,14 @@
 import os
 import unittest
 
+import pandas as pd
 from scipy.misc import bytescale
 
-from autocnet.control import C
 from autocnet.examples import get_path
 from autocnet.fileio.io_gdal import GeoDataset
 from autocnet.fileio.io_controlnetwork import to_isis
 from autocnet.graph.network import CandidateGraph
+from autocnet.matcher import feature_extractor as fe
 from autocnet.matcher.matcher import FlannMatcher
 
 class TestTwoImageMatching(unittest.TestCase):
@@ -21,7 +22,6 @@ class TestTwoImageMatching(unittest.TestCase):
             When read create an adjacency graph
             Then extract image data and attribute nodes
             And find features and descriptors
-            Then tag these to the graph nodes
             And apply a FLANN matcher
             Then create a C object from the graph matches
             Then output a control network
@@ -33,35 +33,35 @@ class TestTwoImageMatching(unittest.TestCase):
         basepath = os.path.dirname(adjacency)
         cg = CandidateGraph.from_adjacency(adjacency)
         self.assertEqual(2, cg.number_of_nodes())
-        self.assertEqual(2, cg.number_of_edges())
+        self.assertEqual(1, cg.number_of_edges())
 
         # Step: Extract image data and attribute nodes
         for node, attributes in cg.nodes_iter(data=True):
             dataset = GeoDataset(os.path.join(basepath, node))
             attributes['handle'] = dataset
-            attributes['image'] = bytescale(dataset.read_array())
+            img =  bytescale(dataset.read_array())
+            attributes['image'] = img
 
-        # Step: Then find features and descriptors
-
-        # Step: And tag these to the graph nodes
-        for node, attributes in cg.nodes_iter(data=True):
-            attributes['keypoints'] = 'a'  # Will be our feature/descriptor data structure
-            attributes['descriptors'] = 'b'
+            # Step: Then find features and descriptors
+            attributes['keypoints'], attributes['descriptors'] = fe.extract_features(attributes['image'], 25)
+            self.assertIn(len(attributes['keypoints']), [24, 25, 26])
 
         # Step: Then apply a FLANN matcher
         fl = FlannMatcher()
         for node, attributes in cg.nodes_iter(data=True):
-            fl.add(attributes['descriptors'])
+            fl.add(attributes['descriptors'], key=node)
         fl.train()
 
         for node, attributes in cg.nodes_iter(data=True):
             descriptors = attributes['descriptors']
-            attributes['matches'] = fl.query(descriptors, k=2)
+            matches = fl.query(descriptors, k=2)
+            cg.add_matches(node, matches)
 
         # Step: And create a C object
-        cnet = C()
+        cnet = cg.to_cnet()
+        print(cnet)
         # Step: Output a control network
-        to_isis('TestTwoImageMatching.net', cnet, mode='wb',
-                networkid='TestTwoImageMatching', targetname='Moon')
+        #to_isis('TestTwoImageMatching.net', cnet, mode='wb',
+        #        networkid='TestTwoImageMatching', targetname='Moon')
 
         self.assertTrue(False)
