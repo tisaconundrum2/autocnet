@@ -82,11 +82,10 @@ class TestTwoImageMatching(unittest.TestCase):
 
         cnet.index.set_levels(new_idx, inplace=True)
 
+
         # Step: Output a control network
         to_isis('TestTwoImageMatching.net', cnet, mode='wb',
                 networkid='TestTwoImageMatching', targetname='Moon')
-
-        self.assertTrue(False)
 
     def tearDown(self):
         try:

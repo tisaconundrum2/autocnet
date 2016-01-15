@@ -38,17 +38,17 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
         multi_index = pd.MultiIndex.from_tuples(list(zip(ids, ptype, serials, mtype)),
                                     names=['Id', 'Type', 'Serial Number', 'Measure Type'])
 
-        columns = ['Random Number']
+        columns = ['x', 'y']
         self.data_length = 5
-        data = np.random.randn(self.data_length)
+        data = np.random.random((self.data_length, 2))
 
         self.creation_time =  strftime("%Y-%m-%d %H:%M:%S", gmtime())
         cnet = C(data, index=multi_index, columns=columns)
 
         io_controlnetwork.to_isis('test.net', cnet, mode='wb', targetname='Moon')
 
-        self.header_message_size = 84
-        self.point_start_byte = 65620
+        self.header_message_size = 85
+        self.point_start_byte = 65621
 
     def test_create_buffer_header(self):
         with open('test.net', 'rb') as f:
@@ -68,14 +68,14 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
             self.assertEqual('Not modified', header_protocol.lastModified)
 
             #Repeating
-            self.assertEqual([145, 99], header_protocol.pointMessageSizes)
+            self.assertEqual([199, 135], header_protocol.pointMessageSizes)
 
     def test_create_point(self):
         with open('test.net', 'rb') as f:
 
             with open('test.net', 'rb') as f:
                 f.seek(self.point_start_byte)
-                for i, length in enumerate([145, 99]):
+                for i, length in enumerate([199, 135]):
                     point_protocol = cnf.ControlPointFileEntryV0002()
                     raw_point = f.read(length)
                     point_protocol.ParseFromString(raw_point)
@@ -95,10 +95,10 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
         self.assertEqual(5, mpoints)
 
         points_bytes = find_in_dict(pvl_header, 'PointsBytes')
-        self.assertEqual(244, points_bytes)
+        self.assertEqual(334, points_bytes)
 
         points_start_byte = find_in_dict(pvl_header, 'PointsStartByte')
-        self.assertEqual(65620, points_start_byte)
+        self.assertEqual(65621, points_start_byte)
 
     def tearDown(self):
         os.remove('test.net')
