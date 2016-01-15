@@ -1,6 +1,7 @@
 import cv2
 from scipy import misc
 
+
 def extract_features(image_array, extractor_parameters):
     """
     This method finds and extracts features from an image using the given dictionary of keyword arguments. 
@@ -19,6 +20,8 @@ def extract_features(image_array, extractor_parameters):
     : tuple
       in the form ([list of OpenCV KeyPoints], [NumPy array of descriptors as geometric vectors])
     """
+
     sift = cv2.xfeatures2d.SIFT_create(**extractor_parameters)
     converted_array = misc.bytescale(image_array)
+
     return sift.detectAndCompute(converted_array, None)

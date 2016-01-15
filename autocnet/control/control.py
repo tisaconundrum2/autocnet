@@ -2,6 +2,8 @@ from time import gmtime, strftime
 
 import pandas as pd
 
+POINT_TYPE = 2
+MEASURE_TYPE = 2
 
 class CSeries(pd.Series):
     """

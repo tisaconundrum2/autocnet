@@ -144,18 +144,24 @@ class IsisStore(object):
             # Get the subset of the dataframe
             point = cnet.loc[point_id]
 
-            point_spec.id = point_id
+            try:
+                point_spec.id = point_id
+            except:
+                point_spec.id = str(point_id)
             point_spec.type = FREEPOINT  # Hard coded to free
 
             # A single extend call is cheaper than many add calls to pack points
             measure_iterable = []
 
-            for m in point.iterrows():
+            for name, measure in point.iterrows():
                 measure_spec = point_spec.Measure()
-                serialnumber = m[0][1]
-                mtype = m[0][2]
-                measure_spec.serialnumber = serialnumber
+                serial_number = name[1]
+                mtype = name[2]
+                measure_spec.serialnumber = serial_number
                 measure_spec.type = mtype
+                measure_spec.sample = measure.x
+                measure_spec.line = measure.y
+
                 measure_iterable.append(measure_spec)
             point_spec.measures.extend(measure_iterable)
 
