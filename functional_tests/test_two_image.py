@@ -11,6 +11,7 @@ from autocnet.graph.network import CandidateGraph
 from autocnet.matcher import feature_extractor as fe
 from autocnet.matcher.matcher import FlannMatcher
 
+
 class TestTwoImageMatching(unittest.TestCase):
     """
     Feature: As a user
@@ -26,6 +27,17 @@ class TestTwoImageMatching(unittest.TestCase):
             Then create a C object from the graph matches
             Then output a control network
     """
+
+    def setUp(self):
+        self.serial_numbers = {'AS15-M-0295_SML.png': '1971-07-31T01:24:11.754',
+                               'AS15-M-0296_SML.png': '1971-07-31T01:24:36.970',
+                               'AS15-M-0297_SML.png': '1971-07-31T01:25:02.243',
+                               'AS15-M-0298_SML.png': '1971-07-31T01:25:27.457',
+                               'AS15-M-0299_SML.png': '1971-07-31T01:25:52.669',
+                               'AS15-M-0300_SML.png': '1971-07-31T01:26:17.923'}
+
+        for k, v in self.serial_numbers.items():
+            self.serial_numbers[k] = 'APOLLO15/METRIC/{}'.format(v)
 
     def test_two_image(self):
         # Step: Create an adjacency graph
@@ -59,9 +71,24 @@ class TestTwoImageMatching(unittest.TestCase):
 
         # Step: And create a C object
         cnet = cg.to_cnet()
-        print(cnet)
+
+        # Step update the serial numbers
+        original_idx = cnet.index.levels
+        new_idx = [original_idx[0], original_idx[1], [], original_idx[3]]
+
+        serials = cnet.index.levels[2]
+        for value in serials:
+            new_idx[2].append(self.serial_numbers[value])
+
+        cnet.index.set_levels(new_idx, inplace=True)
+
         # Step: Output a control network
-        #to_isis('TestTwoImageMatching.net', cnet, mode='wb',
-        #        networkid='TestTwoImageMatching', targetname='Moon')
+        to_isis('TestTwoImageMatching.net', cnet, mode='wb',
+                networkid='TestTwoImageMatching', targetname='Moon')
 
         self.assertTrue(False)
+
+    def tearDown(self):
+        try:
+            os.path.remove('TestTwoImageMatching.net')
+        except: pass

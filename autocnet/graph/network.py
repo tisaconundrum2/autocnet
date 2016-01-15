@@ -84,6 +84,7 @@ class CandidateGraph(nx.Graph):
 
     def to_cnet(self):
         """
+        Generate a control network (C) object from a graph
 
         Returns
         -------
