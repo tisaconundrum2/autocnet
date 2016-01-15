@@ -72,7 +72,7 @@ class FlannMatcher(object):
         Returns
         -------
         matched : dataframe
-                  containing matched points with columns containg:
+                  containing matched points with columns containing:
                   matched image name, query index, train index, and
                   descriptor distance
         """

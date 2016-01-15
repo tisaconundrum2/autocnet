@@ -11,8 +11,8 @@ def read_json(inputfile):
 
     Returns
     =======
-    jobs : list
-           of dictionaries of jobs, one entry per image
+    jobs : dict
+           returns a dictionary 
 
     >>> inputs = readinputfile('testfiles/sampleinput.json')
     >>> k = inputs.keys()

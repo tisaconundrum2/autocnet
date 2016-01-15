@@ -51,7 +51,7 @@ class TestTwoImageMatching(unittest.TestCase):
         for node, attributes in cg.nodes_iter(data=True):
             dataset = GeoDataset(os.path.join(basepath, node))
             attributes['handle'] = dataset
-            img =  bytescale(dataset.read_array())
+            img = bytescale(dataset.read_array())
             attributes['image'] = img
 
             # Step: Then find features and descriptors
