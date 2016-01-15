@@ -55,7 +55,8 @@ class TestTwoImageMatching(unittest.TestCase):
             attributes['image'] = img
 
             # Step: Then find features and descriptors
-            attributes['keypoints'], attributes['descriptors'] = fe.extract_features(attributes['image'], 25)
+            attributes['keypoints'], attributes['descriptors'] = fe.extract_features(attributes['image'],
+                                                                                     {'nfeatures':25})
             self.assertIn(len(attributes['keypoints']), [24, 25, 26])
 
         # Step: Then apply a FLANN matcher
