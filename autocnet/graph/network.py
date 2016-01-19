@@ -65,10 +65,6 @@ class CandidateGraph(nx.Graph):
                   The pandas dataframe containing the matches
         """
 
-        #TODO: This really belongs in an outlier detection matcher class, not here.
-        # Remove erroneous self neighbors
-        matches = matches.loc[matches['matched_to'] != source_node]
-
         groups = matches.groupby('matched_to')
         for destination_node, group in groups:
             try:
@@ -78,9 +74,9 @@ class CandidateGraph(nx.Graph):
 
             if 'matches' in edge.keys():
                 df = edge['matches']
-                edge['matches'] = pd.merge(df, matches, left_on='queryIdx', right_on='trainIdx')
+                edge['matches'] = pd.merge(df, group, left_on='queryIdx', right_on='trainIdx')
             else:
-                edge['matches'] = matches
+                edge['matches'] = group
 
     def to_cnet(self):
         """
