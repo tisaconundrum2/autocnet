@@ -84,9 +84,23 @@ class CandidateGraph(nx.Graph):
                 edge['matches'] = matches
 
 
-    # deal with no edge case / fail better
-    #document
     def compute_homography(self, source_key, destination_key, outlier_algorithm=cv2.RANSAC):
+        """
+
+        Parameters
+        ----------
+        source_key : str
+                     The identifier for the source node
+        destination_key : str
+                          The identifier for the destination node
+        Returns
+        -------
+         : tuple
+           A tuple of the form (transformation matrix, bad entry mask)
+
+        """
+        #TODO: deal with no edge case / fail better
+        #TODO: off-by-one error?
         if self.has_edge(source_key, destination_key):
             try:
                 edge = self[source_key][destination_key]
@@ -98,21 +112,20 @@ class CandidateGraph(nx.Graph):
                 for i, row in edge['matches'].iterrows():
                     # Get the source and destination x,y coordinates for matches
                     source_idx = row['queryIdx_x']
-                    src_keypoints = [self.node[source_key]['keypoints'][source_idx].pt[0],
+                    src_keypoint = [self.node[source_key]['keypoints'][source_idx].pt[0],
                     self.node[source_key]['keypoints'][source_idx].pt[1]]
 
                     destination_idx = row['queryIdx_y']
-                    #print(destination_idx)
-                    #print(len(self.node[destination_key]['keypoints']))
-                    dest_keypoints = [self.node[destination_key]['keypoints'][destination_idx-1].pt[0], self.node[destination_key]['keypoints'][destination_idx-1].pt[1]]
+                    dest_keypoint = [self.node[destination_key]['keypoints'][destination_idx-1].pt[0],
+                                      self.node[destination_key]['keypoints'][destination_idx-1].pt[1]]
 
-                    source_keypoints.append(src_keypoints)
-                    destination_keypoints.append(dest_keypoints)
+                    source_keypoints.append(src_keypoint)
+                    destination_keypoints.append(dest_keypoint)
 
-                return cv2.findHomography(np.array(source_keypoints), np.array(destination_keypoints), outlier_algorithm, 5.0)
-
+                return cv2.findHomography(np.array(source_keypoints), np.array(destination_keypoints),
+                                          outlier_algorithm, 5.0)
             else:
-                return (",")
+                return ('', '')
         else:
             return ('','')
 

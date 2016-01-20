@@ -67,13 +67,13 @@ class TestTwoImageMatching(unittest.TestCase):
 
         for node, attributes in cg.nodes_iter(data=True):
             descriptors = attributes['descriptors']
-            ignoreme, matches = fl.query(descriptors, k=2)
+            matches = fl.query(descriptors, k=2)
             cg.add_matches(node, matches)
 
-        #test new
-        M, n = cg.compute_homography('AS15-M-0297_SML.png', 'AS15-M-0298_SML.png')
-        print(M) #for me
-        print(n) # for me
+        # Step: Compute Homography
+        transformation_matrix, mask = cg.compute_homography('AS15-M-0297_SML.png', 'AS15-M-0298_SML.png')
+        self.assertEquals(len(transformation_matrix), 3)
+        self.assertEquals(len(mask), 19)
 
         # Step: And create a C object
         cnet = cg.to_cnet()
@@ -87,8 +87,6 @@ class TestTwoImageMatching(unittest.TestCase):
             new_idx[2].append(self.serial_numbers[value])
 
         cnet.index.set_levels(new_idx, inplace=True)
-
-        self.assertTrue(False) #force test to fail
 
         # Step: Output a control network
         to_isis('TestTwoImageMatching.net', cnet, mode='wb',
