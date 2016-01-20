@@ -70,6 +70,11 @@ class TestTwoImageMatching(unittest.TestCase):
             ignoreme, matches = fl.query(descriptors, k=2)
             cg.add_matches(node, matches)
 
+        #test new
+        M, n = cg.compute_homography('AS15-M-0297_SML.png', 'AS15-M-0298_SML.png')
+        print(M) #for me
+        print(n) # for me
+
         # Step: And create a C object
         cnet = cg.to_cnet()
 
@@ -83,6 +88,7 @@ class TestTwoImageMatching(unittest.TestCase):
 
         cnet.index.set_levels(new_idx, inplace=True)
 
+        self.assertTrue(False) #force test to fail
 
         # Step: Output a control network
         to_isis('TestTwoImageMatching.net', cnet, mode='wb',

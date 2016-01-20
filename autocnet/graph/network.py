@@ -2,6 +2,8 @@ from collections import Hashable
 
 import networkx as nx
 import pandas as pd
+import cv2
+import numpy as np
 
 from autocnet.control.control import C, POINT_TYPE, MEASURE_TYPE
 from autocnet.fileio import io_json
@@ -68,7 +70,6 @@ class CandidateGraph(nx.Graph):
         #TODO: This really belongs in an outlier detection matcher class, not here.
         # Remove erroneous self neighbors
         matches = matches.loc[matches['matched_to'] != source_node]
-
         groups = matches.groupby('matched_to')
         for destination_node, group in groups:
             try:
@@ -81,6 +82,39 @@ class CandidateGraph(nx.Graph):
                 edge['matches'] = pd.merge(df, matches, left_on='queryIdx', right_on='trainIdx')
             else:
                 edge['matches'] = matches
+
+
+    # deal with no edge case / fail better
+    #document
+    def compute_homography(self, source_key, destination_key, outlier_algorithm=cv2.RANSAC):
+        if self.has_edge(source_key, destination_key):
+            try:
+                edge = self[source_key][destination_key]
+            except:
+                edge = self[destination_key][source_key]
+            if 'matches' in edge.keys():
+                source_keypoints = []
+                destination_keypoints = []
+                for i, row in edge['matches'].iterrows():
+                    # Get the source and destination x,y coordinates for matches
+                    source_idx = row['queryIdx_x']
+                    src_keypoints = [self.node[source_key]['keypoints'][source_idx].pt[0],
+                    self.node[source_key]['keypoints'][source_idx].pt[1]]
+
+                    destination_idx = row['queryIdx_y']
+                    #print(destination_idx)
+                    #print(len(self.node[destination_key]['keypoints']))
+                    dest_keypoints = [self.node[destination_key]['keypoints'][destination_idx-1].pt[0], self.node[destination_key]['keypoints'][destination_idx-1].pt[1]]
+
+                    source_keypoints.append(src_keypoints)
+                    destination_keypoints.append(dest_keypoints)
+
+                return cv2.findHomography(np.array(source_keypoints), np.array(destination_keypoints), outlier_algorithm, 5.0)
+
+            else:
+                return (",")
+        else:
+            return ('','')
 
     def to_cnet(self):
         """
@@ -95,7 +129,6 @@ class CandidateGraph(nx.Graph):
         point_ids = []
         serials = []
         for source, destination, attributes in self.edges_iter(data=True):
-
             for i, row in attributes['matches'].iterrows():
 
                 # Get the source and destination x,y coordinates for matches
