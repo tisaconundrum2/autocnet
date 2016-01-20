@@ -67,7 +67,7 @@ class TestTwoImageMatching(unittest.TestCase):
 
         for node, attributes in cg.nodes_iter(data=True):
             descriptors = attributes['descriptors']
-            matches = fl.query(descriptors, k=2)
+            ignoreme, matches = fl.query(descriptors, k=2)
             cg.add_matches(node, matches)
 
         # Step: And create a C object
