@@ -99,8 +99,7 @@ class CandidateGraph(nx.Graph):
            A tuple of the form (transformation matrix, bad entry mask)
 
         """
-        #TODO: deal with no edge case / fail better
-        #TODO: off-by-one error?
+        #TODO: deal with "no edge" case / fail better
         if self.has_edge(source_key, destination_key):
             try:
                 edge = self[source_key][destination_key]
@@ -110,14 +109,14 @@ class CandidateGraph(nx.Graph):
                 source_keypoints = []
                 destination_keypoints = []
                 for i, row in edge['matches'].iterrows():
-                    # Get the source and destination x,y coordinates for matches
+                    # Get the source and destination x,y coordinates for matches to feed into findHomography
                     source_idx = row['queryIdx_x']
                     src_keypoint = [self.node[source_key]['keypoints'][source_idx].pt[0],
                     self.node[source_key]['keypoints'][source_idx].pt[1]]
 
                     destination_idx = row['queryIdx_y']
-                    dest_keypoint = [self.node[destination_key]['keypoints'][destination_idx-1].pt[0],
-                                      self.node[destination_key]['keypoints'][destination_idx-1].pt[1]]
+                    dest_keypoint = [self.node[destination_key]['keypoints'][destination_idx].pt[0],
+                                      self.node[destination_key]['keypoints'][destination_idx].pt[1]]
 
                     source_keypoints.append(src_keypoint)
                     destination_keypoints.append(dest_keypoint)
