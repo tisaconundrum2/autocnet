@@ -36,7 +36,7 @@ class TestMatcher(unittest.TestCase):
 
         fmatcher.train()
 
-        ignoreme, matched = fmatcher.query(self.fd['AS15-M-0296_SML.png'][1], k=2)
+        matched = fmatcher.query(self.fd['AS15-M-0296_SML.png'][1], k=2)
         self.assertEqual(10, len(matched))
 
         # Check that self neighbors are being omitted
@@ -56,7 +56,7 @@ class TestMatcher(unittest.TestCase):
 
         fmatcher.train()
 
-        ignoreme, matched = fmatcher.query(self.fd['AS15-M-0296_SML.png'][1], k=3)
+        matched = fmatcher.query(self.fd['AS15-M-0296_SML.png'][1], k=3)
         self.assertEqual(20, len(matched))
 
         # Check that self neighbors are being omitted
