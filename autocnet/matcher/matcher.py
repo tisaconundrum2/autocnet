@@ -98,9 +98,10 @@ class MatchOutlierDetector(object):
     """
     Documentation
     """
-    def __init__(self):
-        self.ratio = 0.8# Lowe's paper value -- can be changed.
-        self.distance_epsilon = 0.000001 #maybe another way to filter self-neighbors
+
+    def __init__(self, ratio=0.8):
+        #0.8 is Lowe's paper value -- can be changed.
+        self.distance_ratio = ratio
 
     # return mask with self-neighbors set to zero. (query only takes care of literal self-matches on a keypoint basis, not self-matches for the whole image)
     # matches: a dataframe
@@ -115,16 +116,34 @@ class MatchOutlierDetector(object):
     # return mask with nodes that fail the distance ratio test set to zero
     #TODO: make more SQL-y / actually use dfs as expected
     # matches : dataframe
-    def distance_ratio(self, matches):
+    def distance_ratio_test(self, matches):
+        """
+        Compute and return a mask for the matches dataframe returned by FlannMatcher.query()
+        using the ratio test and distance_ratio set during initialization.
+
+        Parameters
+        ----------
+        matches : dataframe
+                  The pandas dataframe output by FlannMatcher.query()
+                  containing matched points with columns containing:
+                  matched image name, query index, train index, and
+                  descriptor distance
+
+        Returns
+        -------
+        mask : list
+               a list of the same size as the matches dataframe
+               with value = [1] if that entry in the df should be included
+               and [0] if that entry in the df should be excluded
+        """
         mask = []
         for key, group in matches.groupBy('queryIdx'):
             #won't work if there's only 1 match for each queryIdx
             if len(group) < 2:
                 pass
             else:
-                if group['distance'].iloc[0] < 0.8 * group['distance'].iloc[1]:
+                if group['distance'].iloc[0] < self.distance_ratio * group['distance'].iloc[1]:
                     mask.append([1])
                 else:
                     mask.append([0])
         return mask
-
