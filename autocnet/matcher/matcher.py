@@ -54,6 +54,7 @@ class FlannMatcher(object):
         """
         self._flann_matcher.train()
 
+    #consider changing this back to returning (matches, data_frame)
     def query(self, descriptor, k=3, self_neighbor=True):
         """
 
@@ -87,6 +88,43 @@ class FlannMatcher(object):
                                 i.queryIdx,
                                 i.trainIdx,
                                 i.distance))
-        return pd.DataFrame(matched, columns=['matched_to', 'queryIdx',
+        data_frame = pd.DataFrame(matched, columns=['matched_to', 'queryIdx',
                                               'trainIdx', 'distance'])
+        return data_frame
+
+#don't throw anything out, just have dataframes and masks
+#TODO: decide on a consistent mask format to output. Do we want to also accept existing masks and just mask more things?
+class MatchOutlierDetector(object):
+    """
+    Documentation
+    """
+    def __init__(self):
+        self.ratio = 0.8# Lowe's paper value -- can be changed.
+        self.distance_epsilon = 0.000001 #maybe another way to filter self-neighbors
+
+    # return mask with self-neighbors set to zero. (query only takes care of literal self-matches on a keypoint basis, not self-matches for the whole image)
+    # matches: a dataframe
+    # source_node: a string with the name of the node that was just matched.
+    #TODO: turn this into a mask-style thing. just returns a mask of bad values
+    def find_self_neighbors(self, source_node, matches):
+        mask = []
+#        filtered_matches = matches.loc[matches['matched_to'] != source_node]
+        self_matches = matches.loc[matches['matched_to'] == source_node]
+        return mask
+
+    # return mask with nodes that fail the distance ratio test set to zero
+    #TODO: make more SQL-y / actually use dfs as expected
+    # matches : dataframe
+    def distance_ratio(self, matches):
+        mask = []
+        for key, group in matches.groupBy('queryIdx'):
+            #won't work if there's only 1 match for each queryIdx
+            if len(group) < 2:
+                pass
+            else:
+                if group['distance'].iloc[0] < 0.8 * group['distance'].iloc[1]:
+                    mask.append([1])
+                else:
+                    mask.append([0])
+        return mask
 

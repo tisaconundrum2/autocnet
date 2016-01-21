@@ -67,7 +67,8 @@ class TestTwoImageMatching(unittest.TestCase):
 
         for node, attributes in cg.nodes_iter(data=True):
             descriptors = attributes['descriptors']
-            matches = fl.query(descriptors, k=2)
+            matches = fl.query(descriptors, k=3) #had to increase from 2 to test distance ratio test
+            #outlier-detection could go in here
             cg.add_matches(node, matches)
 
         # Step: Compute Homography
