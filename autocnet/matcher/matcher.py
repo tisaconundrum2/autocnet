@@ -94,28 +94,39 @@ class FlannMatcher(object):
 
 #don't throw anything out, just have dataframes and masks
 #TODO: decide on a consistent mask format to output. Do we want to also accept existing masks and just mask more things?
+#consider passing in the matches and source_node to __init__
 class MatchOutlierDetector(object):
     """
     Documentation
     """
-
     def __init__(self, ratio=0.8):
         #0.8 is Lowe's paper value -- can be changed.
         self.distance_ratio = ratio
 
     # return mask with self-neighbors set to zero. (query only takes care of literal self-matches on a keypoint basis, not self-matches for the whole image)
-    # matches: a dataframe
-    # source_node: a string with the name of the node that was just matched.
     #TODO: turn this into a mask-style thing. just returns a mask of bad values
     def find_self_neighbors(self, source_node, matches):
+        """
+        Returns a df containing self-neighbors that must be removed.
+        (temporary return val?)
+
+        Parameters
+        ----------
+        matches : dataframe
+                  The pandas dataframe output by FlannMatcher.query()
+                  containing matched points with columns containing:
+                  matched image name, query index, train index, and
+                  descriptor distance
+
+        source_node: a string used as the key of the matched node
+
+        Returns
+        -------
+        """
         mask = []
-#        filtered_matches = matches.loc[matches['matched_to'] != source_node]
         self_matches = matches.loc[matches['matched_to'] == source_node]
         return mask
 
-    # return mask with nodes that fail the distance ratio test set to zero
-    #TODO: make more SQL-y / actually use dfs as expected
-    # matches : dataframe
     def distance_ratio_test(self, matches):
         """
         Compute and return a mask for the matches dataframe returned by FlannMatcher.query()
