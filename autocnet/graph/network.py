@@ -51,7 +51,7 @@ class CandidateGraph(nx.Graph):
             adjacency_dict[n] = self.neighbors(n)
         io_json.write_json(adjacency_dict, outputfile)
 
-    def add_matches(self, source_node, matches):
+    def add_matches(self, source_node, matches): #src node = query node; destination node = train node
         """
 
         Adds match data to a node and attributes the data to the
@@ -79,10 +79,9 @@ class CandidateGraph(nx.Graph):
 
             if 'matches' in edge.keys():
                 df = edge['matches']
-                edge['matches'] = pd.merge(df, matches, left_on='queryIdx', right_on='trainIdx')
+                edge['matches'] = pd.merge(df, matches, left_on='queryIdx', right_on='trainIdx') #how do we know it does the right thing?
             else:
                 edge['matches'] = matches
-
 
     def compute_homography(self, source_key, destination_key, outlier_algorithm=cv2.RANSAC):
         """
@@ -97,9 +96,10 @@ class CandidateGraph(nx.Graph):
         -------
          : tuple
            A tuple of the form (transformation matrix, bad entry mask)
+           The returned tuple is empty if there is no edge between the source and destination nodes or
+           if it exists, but has not been populated with a matches dataframe.
 
         """
-        #TODO: deal with "no edge" case / fail better
         if self.has_edge(source_key, destination_key):
             try:
                 edge = self[source_key][destination_key]
@@ -110,11 +110,15 @@ class CandidateGraph(nx.Graph):
                 destination_keypoints = []
                 for i, row in edge['matches'].iterrows():
                     # Get the source and destination x,y coordinates for matches to feed into findHomography
-                    source_idx = row['queryIdx_x']
+                    #source_idx = row['queryIdx_x']
+                    source_idx = row['trainIdx_x']
+                    source_key = row['matched_to_x']
                     src_keypoint = [self.node[source_key]['keypoints'][source_idx].pt[0],
                     self.node[source_key]['keypoints'][source_idx].pt[1]]
 
-                    destination_idx = row['queryIdx_y']
+                    #destination_idx = row['queryIdx_y']
+                    destination_idx = row['trainIdx_y']
+                    destination_key = row['matched_to_y']
                     dest_keypoint = [self.node[destination_key]['keypoints'][destination_idx].pt[0],
                                       self.node[destination_key]['keypoints'][destination_idx].pt[1]]
 
