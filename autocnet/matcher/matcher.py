@@ -87,7 +87,7 @@ class FlannMatcher(object):
                                 i.queryIdx,
                                 i.trainIdx,
                                 i.distance))
-        return pd.DataFrame(matched, columns=['matched_to', 'queryIdx',data_frame
+        return pd.DataFrame(matched, columns=['matched_to', 'queryIdx',
                                               'trainIdx', 'distance'])
 
 #don't throw anything out, just have dataframes and masks
