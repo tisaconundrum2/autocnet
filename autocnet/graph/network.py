@@ -51,7 +51,7 @@ class CandidateGraph(nx.Graph):
             adjacency_dict[n] = self.neighbors(n)
         io_json.write_json(adjacency_dict, outputfile)
 
-    def add_matches(self, source_node, matches): #src node = query node; destination node = train node
+    def add_matches(self, source_node, matches):
         """
 
         Adds match data to a node and attributes the data to the
@@ -79,7 +79,7 @@ class CandidateGraph(nx.Graph):
 
             if 'matches' in edge.keys():
                 df = edge['matches']
-                edge['matches'] = pd.merge(df, matches, left_on='queryIdx', right_on='trainIdx') #how do we know it does the right thing?
+                edge['matches'] = pd.merge(df, matches, left_on='queryIdx', right_on='trainIdx')
             else:
                 edge['matches'] = matches
 

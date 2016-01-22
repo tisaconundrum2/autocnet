@@ -8,7 +8,6 @@ FLANN_INDEX_KDTREE = 1  # Algorithm to set centers,
 DEFAULT_FLANN_PARAMETERS = dict(algorithm=FLANN_INDEX_KDTREE,
                                 trees=3)
 
-
 class FlannMatcher(object):
     """
     A wrapper to the OpenCV Flann based matcher class that adds
@@ -55,7 +54,6 @@ class FlannMatcher(object):
         """
         self._flann_matcher.train()
 
-    #consider changing this back to returning (matches, data_frame)
     def query(self, descriptor, k=3, self_neighbor=True):
         """
 
@@ -89,9 +87,8 @@ class FlannMatcher(object):
                                 i.queryIdx,
                                 i.trainIdx,
                                 i.distance))
-        data_frame = pd.DataFrame(matched, columns=['matched_to', 'queryIdx',
+        return pd.DataFrame(matched, columns=['matched_to', 'queryIdx',data_frame
                                               'trainIdx', 'distance'])
-        return data_frame
 
 #don't throw anything out, just have dataframes and masks
 #TODO: decide on a consistent mask format to output. Do we want to also accept existing masks and just mask more things?
