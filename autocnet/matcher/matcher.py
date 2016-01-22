@@ -8,6 +8,7 @@ FLANN_INDEX_KDTREE = 1  # Algorithm to set centers,
 DEFAULT_FLANN_PARAMETERS = dict(algorithm=FLANN_INDEX_KDTREE,
                                 trees=3)
 
+
 class FlannMatcher(object):
     """
     A wrapper to the OpenCV Flann based matcher class that adds

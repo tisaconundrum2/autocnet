@@ -1,7 +1,6 @@
 import os
 import unittest
 
-import pandas as pd
 from scipy.misc import bytescale
 
 from autocnet.examples import get_path

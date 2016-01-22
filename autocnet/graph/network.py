@@ -108,19 +108,17 @@ class CandidateGraph(nx.Graph):
             if 'matches' in edge.keys():
                 source_keypoints = []
                 destination_keypoints = []
-                for i, row in edge['matches'].iterrows():
-                    # Get the source and destination x,y coordinates for matches to feed into findHomography
-                    #source_idx = row['queryIdx_x']
-                    source_idx = row['trainIdx_x']
-                    source_key = row['matched_to_x']
-                    src_keypoint = [self.node[source_key]['keypoints'][source_idx].pt[0],
-                    self.node[source_key]['keypoints'][source_idx].pt[1]]
 
-                    #destination_idx = row['queryIdx_y']
+                for i, row in edge['matches'].iterrows():
+                    source_matched_to = row['matched_to_x']
+                    source_idx = row['trainIdx_x']
+                    src_keypoint = [self.node[source_matched_to]['keypoints'][source_idx].pt[0],
+                                    self.node[source_matched_to]['keypoints'][source_idx].pt[1]]
+
+                    destination_matched_to = row['matched_to_y']
                     destination_idx = row['trainIdx_y']
-                    destination_key = row['matched_to_y']
-                    dest_keypoint = [self.node[destination_key]['keypoints'][destination_idx].pt[0],
-                                      self.node[destination_key]['keypoints'][destination_idx].pt[1]]
+                    dest_keypoint = [self.node[destination_matched_to]['keypoints'][destination_idx].pt[0],
+                                     self.node[destination_matched_to]['keypoints'][destination_idx].pt[1]]
 
                     source_keypoints.append(src_keypoint)
                     destination_keypoints.append(dest_keypoint)
