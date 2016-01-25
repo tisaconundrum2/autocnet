@@ -1,13 +1,12 @@
-from collections import Hashable
+import os
 
 import networkx as nx
 import pandas as pd
 import cv2
 import numpy as np
 
-from autocnet.control.control import C, POINT_TYPE, MEASURE_TYPE
+from autocnet.control.control import C
 from autocnet.fileio import io_json
-
 
 
 class CandidateGraph(nx.Graph):
@@ -23,18 +22,30 @@ class CandidateGraph(nx.Graph):
 
     def __init__(self,*args, **kwargs):
         super(CandidateGraph, self).__init__(*args, **kwargs)
+        self.node_counter = 0
+        node_labels = {}
 
-    def add_image(self, identifier, *args, **kwargs):
+        for node_name, node_attributes in self.nodes_iter(data=True):
+            if os.path.isabs(node_name):
+                node_attributes['image_name'] = os.path.basename(node_name)
+                node_attributes['image_path'] = node_name
+            else:
+                node_attributes['image_name'] = node_name
+                node_attributes['image_path'] = None
+
+            node_labels[node_attributes['image_name']] = self.node_counter
+            self.node_counter += 1
+
+        nx.relabel_nodes(self, node_labels, copy=False)
+
+    def add_image(self, *args, **kwargs):
         """
         Parameters
         ==========
-        identifier : object
-                     A Python hashable object to be used as the node key
         """
-        if isinstance(identifier, Hashable):
-            self.add_node(identifier, *args, **kwargs)
-        else:
-            raise TypeError('{} is not hashable and can not be a node id'.format(identifier))
+
+        self.add_node(self.node_counter, *args, **kwargs)
+        self.node_counter += 1
 
     def adjacency_to_json(self, outputfile):
         """
@@ -51,7 +62,7 @@ class CandidateGraph(nx.Graph):
             adjacency_dict[n] = self.neighbors(n)
         io_json.write_json(adjacency_dict, outputfile)
 
-    def add_matches(self, source_node, matches):
+    def add_matches(self, matches):
         """
 
         Adds match data to a node and attributes the data to the
@@ -66,22 +77,21 @@ class CandidateGraph(nx.Graph):
         matches : dataframe
                   The pandas dataframe containing the matches
         """
+        source_groups = matches.groupby('source_image')
+        for i, source_group in source_groups:
+            for j, dest_group in source_group.groupby('destination_image'):
+                source_key = dest_group['source_image'].values[0]
+                destination_key = dest_group['destination_image'].values[0]
+                try:
+                    edge = self[source_key][destination_key]
+                except:
+                    edge = self[destination_key][source_key]
 
-        #TODO: This really belongs in an outlier detection matcher class, not here.
-        # Remove erroneous self neighbors
-        matches = matches.loc[matches['matched_to'] != source_node]
-        groups = matches.groupby('matched_to')
-        for destination_node, group in groups:
-            try:
-                edge = self[source_node][destination_node]
-            except:
-                edge = self[destination_node][source_node]
-
-            if 'matches' in edge.keys():
-                df = edge['matches']
-                edge['matches'] = pd.merge(df, matches, left_on='queryIdx', right_on='trainIdx')
-            else:
-                edge['matches'] = matches
+                if 'matches' in edge.keys():
+                    df = edge['matches']
+                    edge['matches'] = pd.concat([df, dest_group])
+                else:
+                    edge['matches'] = dest_group
 
     def compute_homography(self, source_key, destination_key, outlier_algorithm=cv2.RANSAC):
         """
@@ -136,42 +146,61 @@ class CandidateGraph(nx.Graph):
 
         Returns
         -------
-        cnet : C
-               A control network object
+        merged_cnet : C
+                      A control network object
         """
-        data = []
-        point_ids = []
-        serials = []
+        merged_cnet = None
+
         for source, destination, attributes in self.edges_iter(data=True):
-            for i, row in attributes['matches'].iterrows():
+            matches = attributes['matches']
+            kp1 = self.node[source]['keypoints']
+            kp2 = self.node[destination]['keypoints']
 
-                # Get the source and destination x,y coordinates for matches
-                source_idx = row['queryIdx_x']
-                source_keypoints = (self.node[source]['keypoints'][source_idx].pt[0],
-                                    self.node[source]['keypoints'][source_idx].pt[1])
+            pt_idx = 0
+            values = []
+            for idx, row in matches.iterrows():
+                # Composite matching key (node_id, point_id)
+                m1 = (source, int(row['source_idx']))
+                m2 = (destination, int(row['destination_idx']))
 
-                destination_idx = row['queryIdx_y']
-                destination_keypoints = (self.node[destination]['keypoints'][destination_idx].pt[0],
-                                         self.node[destination]['keypoints'][destination_idx].pt[1])
+                values.append([kp1[m1[1]].pt[0],
+                               kp1[m1[1]].pt[1],
+                               m1,
+                               pt_idx,
+                               source])
 
-                data.append(source_keypoints)
-                data.append(destination_keypoints)
-                serials.append(source)
-                serials.append(destination)
-                point_ids.append(i)
-                point_ids.append(i)
+                values.append([kp2[m2[1]].pt[0],
+                               kp2[m2[1]].pt[1],
+                               m2,
+                               pt_idx,
+                               destination])
+                pt_idx += 1
 
-            point_types = [2] * len(point_ids)
-            measure_types = [2] * len(point_ids)
-            multi_index = pd.MultiIndex.from_tuples(list(zip(point_ids,point_types,
-                                                             serials, measure_types)))
+            columns = ['x', 'y', 'idx', 'pid', 'nid']
 
-            columns = ['x', 'y']
-            cnet = C(data, index=multi_index, columns=columns)
+            cnet = C(values, columns=columns)
 
-        # TODO: This method assumes a 2 image match and should be generalized to build an n-image C object
+            if merged_cnet is None:
+                merged_cnet = cnet.copy(deep=True)
+            else:
+                pid_offset = merged_cnet['pid'].max() + 1  # Get the current max point index
+                cnet[['pid']] += pid_offset
 
-        return cnet
+                # Inner merge on the dataframe identifies common points
+                common = pd.merge(merged_cnet, cnet, how='inner', on='idx', left_index=True, suffixes=['_r',
+                                                                                                      '_l'])
+
+                # Iterate over the points to be merged and merge them in.
+                for i, r in common.iterrows():
+                    new_pid = r['pid_r']
+                    update_pid = r['pid_l']
+                    cnet.loc[cnet['pid'] == update_pid, ['pid']] = new_pid  # Update the point ids
+
+                # Perform the concat
+                merged_cnet = pd.concat([merged_cnet, cnet])
+                merged_cnet.drop_duplicates(['idx', 'pid'], keep='first', inplace=True)
+
+        return merged_cnet
 
     @classmethod
     def from_adjacency(cls, inputfile):
