@@ -90,20 +90,22 @@ class FlannMatcher(object):
         return pd.DataFrame(matched, columns=['matched_to', 'queryIdx',
                                               'trainIdx', 'distance'])
 
-#don't throw anything out, just have dataframes and masks
-#TODO: decide on a consistent mask format to output. Do we want to also accept existing masks and just mask more things?
+#TODO: decide on a consistent mask format to output.
+#Do we want to also accept existing masks and just mask more things?
 #consider passing in the matches and source_node to __init__
 class MatchOutlierDetector(object):
     """
     Documentation
     """
-    def __init__(self, ratio=0.8):
+    def __init__(self, matches, ratio=0.8):
         #0.8 is Lowe's paper value -- can be changed.
         self.distance_ratio = ratio
+        self.matches = matches
+        self.mask = None #start with empty mask? I guess we could accept an input mask.
 
     # return mask with self-neighbors set to zero. (query only takes care of literal self-matches on a keypoint basis, not self-matches for the whole image)
     #TODO: turn this into a mask-style thing. just returns a mask of bad values
-    def find_self_neighbors(self, source_node, matches):
+    def self_neighbors(self, source_node):
         """
         Returns a df containing self-neighbors that must be removed.
         (temporary return val?)
@@ -122,10 +124,14 @@ class MatchOutlierDetector(object):
         -------
         """
         mask = []
-        self_matches = matches.loc[matches['matched_to'] == source_node]
+        self_matches = self.matches.loc[self.matches['matched_to'] == source_node]
+        print(self_matches)
         return mask
+        #this could maybe be return maches.source_node == matches.destination_node
 
-    def distance_ratio_test(self, matches):
+    #also add a mirroring(?) test?
+
+    def distance_ratio(self):
         """
         Compute and return a mask for the matches dataframe returned by FlannMatcher.query()
         using the ratio test and distance_ratio set during initialization.
@@ -145,14 +151,16 @@ class MatchOutlierDetector(object):
                with value = [1] if that entry in the df should be included
                and [0] if that entry in the df should be excluded
         """
-        mask = []
-        for key, group in matches.groupBy('queryIdx'):
+        #mask = []
+        mask = {}
+        for key, group in self.matches.groupBy('queryIdx'):
             #won't work if there's only 1 match for each queryIdx
             if len(group) < 2:
-                pass
+                pass #actually need to make sure that none of these are masked.
             else:
                 if group['distance'].iloc[0] < self.distance_ratio * group['distance'].iloc[1]:
                     mask.append([1])
                 else:
                     mask.append([0])
         return mask
+         #make the mask a dict between indicies of the original df (if possible) and true/false values!

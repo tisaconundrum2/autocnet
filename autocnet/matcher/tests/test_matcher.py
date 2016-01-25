@@ -65,3 +65,17 @@ class TestMatcher(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+class TestOutlierDetector(unittest.TestCase):
+
+    def setUp(self):
+        self.outliers = matcher.OutlierDetector(matches)
+
+    def test_distance_ratio(self):
+        self.assertTrue(False)
+
+    def test_self_neighbors(self):
+        self.assertTrue(False)
+
+    def tearDown(self):
+        pass
