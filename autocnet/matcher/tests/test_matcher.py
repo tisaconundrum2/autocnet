@@ -36,8 +36,10 @@ class TestMatcher(unittest.TestCase):
 
         fmatcher.train()
 
-        matched = fmatcher.query(self.fd['AS15-M-0296_SML.png'][1], k=2)
-        self.assertEqual(10, len(matched))
+        matched = fmatcher.query(self.fd['AS15-M-0296_SML.png'][1],'AS15-M-0296_SML.png', k=2)
+        matched_to = matched['source_image']
+        self.assertTrue(matched_to[matched_to == 'AS15-M-0296_SML.png'].any())
+        self.assertEqual(7, len(matched))
 
         # Check that self neighbors are being omitted
         distance = matched['distance']
@@ -56,8 +58,8 @@ class TestMatcher(unittest.TestCase):
 
         fmatcher.train()
 
-        matched = fmatcher.query(self.fd['AS15-M-0296_SML.png'][1], k=3)
-        self.assertEqual(20, len(matched))
+        matched = fmatcher.query(self.fd['AS15-M-0296_SML.png'][1], 'AS15-M-0296_SML.png', k=3)
+        self.assertEqual(12, len(matched))
 
         # Check that self neighbors are being omitted
         distance = matched['distance']

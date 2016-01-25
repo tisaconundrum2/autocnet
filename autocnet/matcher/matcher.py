@@ -54,7 +54,7 @@ class FlannMatcher(object):
         """
         self._flann_matcher.train()
 
-    def query(self, descriptor, k=3, self_neighbor=True):
+    def query(self, descriptor, query_image, k=3):
         """
 
         Parameters
@@ -62,12 +62,11 @@ class FlannMatcher(object):
         descriptor : ndarray
                      The query descriptor to search for
 
+        query_image : hashable
+                      Key of the query image
+
         k : int
             The number of nearest neighbors to search for
-
-        self_neighbor : bool
-                        If the query descriptor is also a member
-                        of the KDTree avoid self neighbor, default True.
 
         Returns
         -------
@@ -76,17 +75,29 @@ class FlannMatcher(object):
                   matched image name, query index, train index, and
                   descriptor distance
         """
-        idx = 0
-        if self_neighbor:
-            idx = 1
+
         matches = self._flann_matcher.knnMatch(descriptor, k=k)
         matched = []
         for m in matches:
-            for i in m[idx:]:
-                matched.append((self.image_indices[i.imgIdx],
-                                i.queryIdx,
-                                i.trainIdx,
-                                i.distance))
-        return pd.DataFrame(matched, columns=['matched_to', 'queryIdx',
-                                              'trainIdx', 'distance'])
+            for i in m:
+                # This checks for self neighbor and never allows them into the graph
+                if self.image_indices[i.imgIdx] == query_image:
+                    continue
+
+                # Ensure ordering in the source / destination
+                if query_image < self.image_indices[i.imgIdx]:
+                    matched.append((query_image,
+                                    i.queryIdx,
+                                    self.image_indices[i.imgIdx],
+                                    i.trainIdx,
+                                    i.distance))
+                else:
+                    matched.append((self.image_indices[i.imgIdx],
+                                    i.trainIdx,
+                                    query_image,
+                                    i.queryIdx,
+                                    i.distance))
+        return pd.DataFrame(matched, columns=['source_image', 'source_idx',
+                                              'destination_image', 'destination_idx',
+                                              'distance'])
 
