@@ -80,12 +80,24 @@ class FlannMatcher(object):
         matched = []
         for m in matches:
             for i in m:
+                # This checks for self neighbor and never allows them into the graph
                 if self.image_indices[i.imgIdx] == query_image:
                     continue
-                matched.append((self.image_indices[i.imgIdx],
-                                i.queryIdx,
-                                i.trainIdx,
-                                i.distance))
-        return pd.DataFrame(matched, columns=['matched_to', 'queryIdx',
-                                              'trainIdx', 'distance'])
+
+                # Ensure ordering in the source / destination
+                if query_image < self.image_indices[i.imgIdx]:
+                    matched.append((query_image,
+                                    i.queryIdx,
+                                    self.image_indices[i.imgIdx],
+                                    i.trainIdx,
+                                    i.distance))
+                else:
+                    matched.append((self.image_indices[i.imgIdx],
+                                    i.trainIdx,
+                                    query_image,
+                                    i.queryIdx,
+                                    i.distance))
+        return pd.DataFrame(matched, columns=['source_image', 'source_idx',
+                                              'destination_image', 'destination_idx',
+                                              'distance'])
 

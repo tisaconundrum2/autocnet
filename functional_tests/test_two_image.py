@@ -49,7 +49,7 @@ class TestTwoImageMatching(unittest.TestCase):
 
         # Step: Extract image data and attribute nodes
         for node, attributes in cg.nodes_iter(data=True):
-            dataset = GeoDataset(os.path.join(basepath, node))
+            dataset = GeoDataset(os.path.join(basepath, attributes['image_name']))
             attributes['handle'] = dataset
             img = bytescale(dataset.read_array())
             attributes['image'] = img
@@ -68,21 +68,17 @@ class TestTwoImageMatching(unittest.TestCase):
         for node, attributes in cg.nodes_iter(data=True):
             descriptors = attributes['descriptors']
             matches = fl.query(descriptors, node,  k=2)
-            cg.add_matches(node, matches)
+            cg.add_matches(matches)
 
         # Step: And create a C object
         cnet = cg.to_cnet()
 
         # Step update the serial numbers
-        original_idx = cnet.index.levels
-        new_idx = [original_idx[0], original_idx[1], [], original_idx[3]]
+        nid_to_serial = {}
+        for node, attributes in cg.nodes_iter(data=True):
+            nid_to_serial[node] = self.serial_numbers[attributes['image_name']]
 
-        serials = cnet.index.levels[2]
-        for value in serials:
-            new_idx[2].append(self.serial_numbers[value])
-
-        cnet.index.set_levels(new_idx, inplace=True)
-
+        cnet.replace({'nid': nid_to_serial}, inplace=True)
 
         # Step: Output a control network
         to_isis('TestTwoImageMatching.net', cnet, mode='wb',

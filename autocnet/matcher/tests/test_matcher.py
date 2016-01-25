@@ -37,8 +37,8 @@ class TestMatcher(unittest.TestCase):
         fmatcher.train()
 
         matched = fmatcher.query(self.fd['AS15-M-0296_SML.png'][1],'AS15-M-0296_SML.png', k=2)
-        matched_to = matched['matched_to']
-        self.assertTrue(matched_to[matched_to != 'AS15-M-0296_SML.png'].any())
+        matched_to = matched['source_image']
+        self.assertTrue(matched_to[matched_to == 'AS15-M-0296_SML.png'].any())
         self.assertEqual(7, len(matched))
 
         # Check that self neighbors are being omitted

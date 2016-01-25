@@ -29,21 +29,22 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
                    300: '1971-07-31T01:26:17.923'}
         self.serials = ['APOLLO15/METRIC/{}'.format(i) for i in serial_times.values()]
 
-        ids = ['pt1','pt1', 'pt1', 'pt2', 'pt2']
-        ptype = [2, 2, 2, 2, 2]
+
+        x = list(range(5))
+        y = list(range(5))
+        pid = [0,0,1,1,1]
+        idx = pid
         serials = [self.serials[0], self.serials[1], self.serials[2],
                    self.serials[2], self.serials[3]]
-        mtype = [2, 2, 2, 2, 2]
 
-        multi_index = pd.MultiIndex.from_tuples(list(zip(ids, ptype, serials, mtype)),
-                                    names=['Id', 'Type', 'Serial Number', 'Measure Type'])
 
-        columns = ['x', 'y']
+        columns = ['x', 'y', 'idx', 'pid', 'nid']
         self.data_length = 5
-        data = np.random.random((self.data_length, 2))
 
-        self.creation_time =  strftime("%Y-%m-%d %H:%M:%S", gmtime())
-        cnet = C(data, index=multi_index, columns=columns)
+        data = [x,y, idx, pid, serials]
+
+        self.creation_time = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        cnet = C(data, index=columns).T
 
         io_controlnetwork.to_isis('test.net', cnet, mode='wb', targetname='Moon')
 
@@ -68,18 +69,18 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
             self.assertEqual('Not modified', header_protocol.lastModified)
 
             #Repeating
-            self.assertEqual([199, 135], header_protocol.pointMessageSizes)
+            self.assertEqual([133, 197], header_protocol.pointMessageSizes)
 
     def test_create_point(self):
         with open('test.net', 'rb') as f:
 
             with open('test.net', 'rb') as f:
                 f.seek(self.point_start_byte)
-                for i, length in enumerate([199, 135]):
+                for i, length in enumerate([133, 197]):
                     point_protocol = cnf.ControlPointFileEntryV0002()
                     raw_point = f.read(length)
                     point_protocol.ParseFromString(raw_point)
-                    self.assertEqual('pt{}'.format(i+1), point_protocol.id)
+                    self.assertEqual(str(i), point_protocol.id)
                     self.assertEqual(2, point_protocol.type)
                     for m in point_protocol.measures:
                         self.assertTrue(m.serialnumber in self.serials)
@@ -95,7 +96,7 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
         self.assertEqual(5, mpoints)
 
         points_bytes = find_in_dict(pvl_header, 'PointsBytes')
-        self.assertEqual(334, points_bytes)
+        self.assertEqual(330, points_bytes)
 
         points_start_byte = find_in_dict(pvl_header, 'PointsStartByte')
         self.assertEqual(65621, points_start_byte)

@@ -11,7 +11,7 @@ class CSeries(pd.Series):
     """
     @property
     def _constructor(self):
-        return CustomSeries # pragma: no cover
+        return CSeries # pragma: no cover
 
 
 class C(pd.DataFrame):
@@ -66,7 +66,7 @@ class C(pd.DataFrame):
     @property
     def n(self):
         if not getattr(self, '_n', None):
-            self._n = len(self.index.levels[0])
+            self._n = len(self['pid'].unique())
         return self._n
 
     @property
