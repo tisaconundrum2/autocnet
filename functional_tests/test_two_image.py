@@ -70,7 +70,7 @@ class TestTwoImageMatching(unittest.TestCase):
             cg.add_matches(matches)
 
         # Step: Compute Homography
-        transformation_matrix, mask = cg.compute_homography('AS15-M-0297_SML.png', 'AS15-M-0298_SML.png')
+        transformation_matrix, mask = cg.compute_homography(0, 1)
         self.assertEquals(len(transformation_matrix), 3)
         #TODO: write better test
         #self.assertEquals(len(mask), 19)

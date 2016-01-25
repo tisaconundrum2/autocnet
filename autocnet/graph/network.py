@@ -121,19 +121,15 @@ class CandidateGraph(nx.Graph):
                 destination_keypoints = []
 
                 for i, row in edge['matches'].iterrows():
-                    source_matched_to = row['matched_to_x']
-                    source_idx = row['trainIdx_x']
-                    src_keypoint = [self.node[source_matched_to]['keypoints'][source_idx].pt[0],
-                                    self.node[source_matched_to]['keypoints'][source_idx].pt[1]]
-
-                    destination_matched_to = row['matched_to_y']
-                    destination_idx = row['trainIdx_y']
-                    dest_keypoint = [self.node[destination_matched_to]['keypoints'][destination_idx].pt[0],
-                                     self.node[destination_matched_to]['keypoints'][destination_idx].pt[1]]
+                    source_idx = row['source_idx']
+                    src_keypoint = [self.node[source_key]['keypoints'][int(source_idx)].pt[0],
+                                    self.node[source_key]['keypoints'][int(source_idx)].pt[1]]
+                    destination_idx = row['destination_idx']
+                    dest_keypoint = [self.node[destination_key]['keypoints'][int(destination_idx)].pt[0],
+                                     self.node[destination_key]['keypoints'][int(destination_idx)].pt[1]]
 
                     source_keypoints.append(src_keypoint)
                     destination_keypoints.append(dest_keypoint)
-
                 return cv2.findHomography(np.array(source_keypoints), np.array(destination_keypoints),
                                           outlier_algorithm, 5.0)
             else:
