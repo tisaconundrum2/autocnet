@@ -1,7 +1,6 @@
 import os
 import unittest
 
-import pandas as pd
 from scipy.misc import bytescale
 
 from autocnet.examples import get_path
@@ -67,8 +66,14 @@ class TestTwoImageMatching(unittest.TestCase):
 
         for node, attributes in cg.nodes_iter(data=True):
             descriptors = attributes['descriptors']
-            matches = fl.query(descriptors, node,  k=2)
+            matches = fl.query(descriptors, node,  k=3)
             cg.add_matches(matches)
+
+        # Step: Compute Homography
+        transformation_matrix, mask = cg.compute_homography(0, 1)
+        self.assertEquals(len(transformation_matrix), 3)
+        #TODO: write better test
+        #self.assertEquals(len(mask), 19)
 
         # Step: And create a C object
         cnet = cg.to_cnet()

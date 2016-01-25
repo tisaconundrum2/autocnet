@@ -24,7 +24,7 @@ class TestFeatureExtractor(unittest.TestCase):
     def test_extract_features(self):
         features = feature_extractor.extract_features(self.data_array, self.parameters)
         self.assertEquals(len(features), 2)
-        self.assertEqual(len(features[0]), 10)  # OpenCV +1 to
+        self.assertEqual(len(features[0]), 11)  # OpenCV +1 to
         self.assertIsInstance(features[0][0], type(cv2.KeyPoint()))
         self.assertIsInstance(features[1][0], np.ndarray)
 

@@ -2,6 +2,8 @@ import os
 
 import networkx as nx
 import pandas as pd
+import cv2
+import numpy as np
 
 from autocnet.control.control import C
 from autocnet.fileio import io_json
@@ -91,6 +93,49 @@ class CandidateGraph(nx.Graph):
                     edge['matches'] = pd.concat([df, dest_group])
                 else:
                     edge['matches'] = dest_group
+
+    def compute_homography(self, source_key, destination_key, outlier_algorithm=cv2.RANSAC):
+        """
+
+        Parameters
+        ----------
+        source_key : str
+                     The identifier for the source node
+        destination_key : str
+                          The identifier for the destination node
+        Returns
+        -------
+         : tuple
+           A tuple of the form (transformation matrix, bad entry mask)
+           The returned tuple is empty if there is no edge between the source and destination nodes or
+           if it exists, but has not been populated with a matches dataframe.
+
+        """
+        if self.has_edge(source_key, destination_key):
+            try:
+                edge = self[source_key][destination_key]
+            except:
+                edge = self[destination_key][source_key]
+            if 'matches' in edge.keys():
+                source_keypoints = []
+                destination_keypoints = []
+
+                for i, row in edge['matches'].iterrows():
+                    source_idx = row['source_idx']
+                    src_keypoint = [self.node[source_key]['keypoints'][int(source_idx)].pt[0],
+                                    self.node[source_key]['keypoints'][int(source_idx)].pt[1]]
+                    destination_idx = row['destination_idx']
+                    dest_keypoint = [self.node[destination_key]['keypoints'][int(destination_idx)].pt[0],
+                                     self.node[destination_key]['keypoints'][int(destination_idx)].pt[1]]
+
+                    source_keypoints.append(src_keypoint)
+                    destination_keypoints.append(dest_keypoint)
+                return cv2.findHomography(np.array(source_keypoints), np.array(destination_keypoints),
+                                          outlier_algorithm, 5.0)
+            else:
+                return ('', '')
+        else:
+            return ('','')
 
     def to_cnet(self):
         """
