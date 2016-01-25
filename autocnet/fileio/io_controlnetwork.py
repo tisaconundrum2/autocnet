@@ -1,9 +1,7 @@
-import sys
-
 import pvl
-import numpy as np
 
 from autocnet.fileio import ControlNetFileV0002_pb2 as cnf
+from autocnet.control.control import POINT_TYPE, MEASURE_TYPE
 
 #TODO: Protobuf3 should be a conditional import, if availble use it, otherwise bail
 
@@ -11,7 +9,6 @@ VERSION = 2
 HEADERSTARTBYTE = 65536
 DEFAULTUSERNAME = 'AutoControlNetGeneration'
 
-FREEPOINT = 2
 
 def to_isis(path, C, mode='w', version=VERSION,
             headerstartbyte=HEADERSTARTBYTE,
@@ -135,32 +132,27 @@ class IsisStore(object):
         """
         point_sizes = []
         point_messages = []
-
-        for point_id in cnet.index.levels[0]:
-
+        print(cnet)
+        for pid, point in cnet.groupby('pid'):
             # Instantiate the proto spec
             point_spec = cnf.ControlPointFileEntryV0002()
 
             # Get the subset of the dataframe
-            point = cnet.loc[point_id]
-
             try:
-                point_spec.id = point_id
+                point_spec.id = pid
             except:
-                point_spec.id = str(point_id)
-            point_spec.type = FREEPOINT  # Hard coded to free
+                point_spec.id = str(pid)
+            point_spec.type = POINT_TYPE
 
             # A single extend call is cheaper than many add calls to pack points
             measure_iterable = []
-
-            for name, measure in point.iterrows():
+            print(point)
+            for name, row in point.iterrows():
                 measure_spec = point_spec.Measure()
-                serial_number = name[1]
-                mtype = name[2]
-                measure_spec.serialnumber = serial_number
-                measure_spec.type = mtype
-                measure_spec.sample = measure.x
-                measure_spec.line = measure.y
+                measure_spec.serialnumber = row.nid
+                measure_spec.type = MEASURE_TYPE
+                measure_spec.sample = row.x
+                measure_spec.line = row.y
 
                 measure_iterable.append(measure_spec)
             point_spec.measures.extend(measure_iterable)

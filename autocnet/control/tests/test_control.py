@@ -14,26 +14,20 @@ from autocnet.control import control
 class TestC(unittest.TestCase):
 
     def setUp(self):
-        ids = ['pt1','pt1', 'pt1', 'pt2', 'pt2']
-        ptype = [2,2,2,2,2]
-        serials = ['a', 'b', 'c', 'b', 'c']
-        mtype = [2,2,2,2,2]
+        x = list(range(10))
+        y = list(range(10))
+        pid = [1,2,3,4,1,2,3,4,1,2]
+        nid = [1,2,1,2,1,2,1,2,1,2]
 
-        multi_index = pd.MultiIndex.from_tuples(list(zip(ids, ptype, serials, mtype)),
-                                    names=['Id', 'Type', 'Serial Number', 'Measure Type'])
+        data = np.array([x, y, pid, nid]).T
 
-
-        columns = ['Random Number']
-        self.data_length = 5
-        data = np.random.randn(self.data_length)
-
-        self.C = control.C(data, index=multi_index, columns=columns)
+        self.C = control.C(data, columns=['x', 'y', 'pid', 'nid'])
 
     def test_n_point(self):
-        self.assertEqual(self.C.n,2)
+        self.assertEqual(self.C.n,4)
 
     def test_n_measures(self):
-        self.assertEqual(self.C.m, self.data_length)
+        self.assertEqual(self.C.m, 10)
 
     def test_modified_date(self):
         self.assertEqual(self.C.modifieddate, 'Not modified')
