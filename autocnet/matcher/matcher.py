@@ -139,7 +139,7 @@ class OutlierDetector(object):
 
     def distance_ratio(self, matches, ratio=0.8):
         """
-        Compute and return a mask for the matches dataframe returned by FlannMatcher.query()
+        Compute and return a mask for the matches dataframe stored on each edge of the graph
         using the ratio test and distance_ratio set during initialization.
 
         Parameters
@@ -180,7 +180,7 @@ class OutlierDetector(object):
 
     def mirroring_test(self, matches):
         """
-        Compute and return a mask for the matches dataframe returned by FlannMatcher.query() which
+        Compute and return a mask for the matches dataframe on each edge of the graph which
         will keep only entries in which there is both a source -> destination match and a destination ->
         source match.
 
