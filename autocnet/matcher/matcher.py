@@ -148,7 +148,7 @@ class OutlierDetector(object):
                   the matches dataframe stored along the edge of the graph
                   containing matched points with columns containing:
                   matched image name, query index, train index, and
-                  descriptor distance
+                  descriptor distance. ***Will only work as expected if matches already has dropped duplicates***
 
         ratio: float
                the ratio between the first and second-best match distances
@@ -164,7 +164,7 @@ class OutlierDetector(object):
         #0.8 is Lowe's paper value -- can be changed.
         mask = []
         temp_matches = matches.drop_duplicates() #don't want to deal with duplicates...
-        for key, group in temp_matches.groupby('source_idx'): #change to searchId?
+        for key, group in temp_matches.groupby('source_idx'):
             #won't work if there's only 1 match for each queryIdx
             if len(group) < 2:
                 mask.append(True)

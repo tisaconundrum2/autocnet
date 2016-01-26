@@ -96,7 +96,6 @@ class TestOutlierDetector(unittest.TestCase):
         self.outliers = matcher.OutlierDetector()
 
     def test_distance_ratio(self):
-        #TODO: write real test
         self.assertTrue(len(self.outliers.distance_ratio(self.matches)), 13)
 
     def test_self_neighbors(self):
