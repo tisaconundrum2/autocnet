@@ -129,7 +129,6 @@ class CandidateGraph(nx.Graph):
 
                     source_keypoints.append(src_keypoint)
                     destination_keypoints.append(dest_keypoint)
-
                 return cv2.findHomography(np.array(source_keypoints), np.array(destination_keypoints),
                                           outlier_algorithm, 5.0)
             else:

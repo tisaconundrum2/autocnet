@@ -201,7 +201,3 @@ class OutlierDetector(object):
            duplicate rows.
         """
         return matches.duplicated(keep='first')
-
-
-
-
