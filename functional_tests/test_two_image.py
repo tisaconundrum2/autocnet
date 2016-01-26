@@ -1,11 +1,12 @@
 import os
 import unittest
 
+import pandas as pd
 from scipy.misc import bytescale
 
 from autocnet.examples import get_path
-from autocnet.fileio.io_gdal import GeoDataset
 from autocnet.fileio.io_controlnetwork import to_isis
+from autocnet.fileio.io_gdal import GeoDataset
 from autocnet.graph.network import CandidateGraph
 from autocnet.matcher import feature_extractor as fe
 from autocnet.matcher.matcher import FlannMatcher
@@ -42,20 +43,13 @@ class TestTwoImageMatching(unittest.TestCase):
         # Step: Create an adjacency graph
         adjacency = get_path('two_image_adjacency.json')
         basepath = os.path.dirname(adjacency)
-        cg = CandidateGraph.from_adjacency(adjacency)
+        cg = CandidateGraph.from_adjacency_file(adjacency)
         self.assertEqual(2, cg.number_of_nodes())
         self.assertEqual(1, cg.number_of_edges())
 
         # Step: Extract image data and attribute nodes
+        cg.extract_features(25)
         for node, attributes in cg.nodes_iter(data=True):
-            dataset = GeoDataset(os.path.join(basepath, attributes['image_name']))
-            attributes['handle'] = dataset
-            img = bytescale(dataset.read_array())
-            attributes['image'] = img
-
-            # Step: Then find features and descriptors
-            attributes['keypoints'], attributes['descriptors'] = fe.extract_features(attributes['image'],
-                                                                                     {'nfeatures':25})
             self.assertIn(len(attributes['keypoints']), [24, 25, 26])
 
         # Step: Then apply a FLANN matcher
@@ -66,14 +60,8 @@ class TestTwoImageMatching(unittest.TestCase):
 
         for node, attributes in cg.nodes_iter(data=True):
             descriptors = attributes['descriptors']
-            matches = fl.query(descriptors, node,  k=3)
+            matches = fl.query(descriptors, node,  k=2)
             cg.add_matches(matches)
-
-        # Step: Compute Homography
-        transformation_matrix, mask = cg.compute_homography(0, 1)
-        self.assertEquals(len(transformation_matrix), 3)
-        #TODO: write better test
-        #self.assertEquals(len(mask), 19)
 
         # Step: And create a C object
         cnet = cg.to_cnet()
