@@ -1,3 +1,4 @@
+import operator
 import os
 
 import networkx as nx
@@ -223,9 +224,17 @@ class CandidateGraph(nx.Graph):
                      The identifier for the source node
         destination_key : str
                           The identifier for the destination node
+
+        outlier_algorithm : object
+                            An openCV outlier detections algorithm, e.g. cv2.RANSAC
         Returns
         -------
-         : tuple
+        transformation_matrix : ndarray
+                                The 3x3 transformation matrix
+
+        mask : ndarray
+               Boolean array of the outliers
+
            A tuple of the form (transformation matrix, bad entry mask)
            The returned tuple is empty if there is no edge between the source and destination nodes or
            if it exists, but has not been populated with a matches dataframe.
@@ -250,14 +259,20 @@ class CandidateGraph(nx.Graph):
 
                     source_keypoints.append(src_keypoint)
                     destination_keypoints.append(dest_keypoint)
-                return cv2.findHomography(np.array(source_keypoints), np.array(destination_keypoints),
-                                          outlier_algorithm, 5.0)
+                transformation_matrix, mask = cv2.findHomography(np.array(source_keypoints),
+                                                                 np.array(destination_keypoints),
+                                                                 outlier_algorithm,
+                                                                 5.0)
+                mask = mask.astype(bool)
+                return transformation_matrix, mask
             else:
                 return ('', '')
         else:
             return ('','')
 
-    def to_cnet(self):
+
+
+    def to_cnet(self, clean_keys=[]):
         """
         Generate a control network (C) object from a graph
 
@@ -265,11 +280,20 @@ class CandidateGraph(nx.Graph):
         -------
         merged_cnet : C
                       A control network object
+
+        clean_keys : list
+                     of strings identifying the masking arrays to use, e.g. ratio, symmetry
         """
         merged_cnet = None
 
         for source, destination, attributes in self.edges_iter(data=True):
             matches = attributes['matches']
+
+            # Merge all of the masks
+            if clean_keys:
+                mask = np.array(list(map(operator.mul, *[attributes[i] for i in clean_keys])))
+                matches = matches[mask]
+
             kp1 = self.node[source]['keypoints']
             kp2 = self.node[destination]['keypoints']
 
