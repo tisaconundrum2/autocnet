@@ -177,7 +177,6 @@ class CandidateGraph(nx.Graph):
         matches : dataframe
                   The pandas dataframe containing the matches
         """
-
         source_groups = matches.groupby('source_image')
         for i, source_group in source_groups:
             for j, dest_group in source_group.groupby('destination_image'):

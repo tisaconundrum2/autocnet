@@ -10,6 +10,7 @@ from autocnet.fileio.io_gdal import GeoDataset
 from autocnet.graph.network import CandidateGraph
 from autocnet.matcher import feature_extractor as fe
 from autocnet.matcher.matcher import FlannMatcher
+from autocnet.matcher.matcher import OutlierDetector
 
 
 class TestTwoImageMatching(unittest.TestCase):
@@ -60,7 +61,8 @@ class TestTwoImageMatching(unittest.TestCase):
 
         for node, attributes in cg.nodes_iter(data=True):
             descriptors = attributes['descriptors']
-            matches = fl.query(descriptors, node,  k=2)
+            matches = fl.query(descriptors, node, k=3) #had to increase from 2 to test distance ratio test
+            detectme = OutlierDetector()
             cg.add_matches(matches)
 
         # Step: And create a C object
