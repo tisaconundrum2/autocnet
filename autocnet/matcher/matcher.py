@@ -1,12 +1,80 @@
 import cv2
-import numpy as np
 import pandas as pd
-from autocnet.graph.network import CandidateGraph
 
+import numpy as np
+from skimage.feature import match_template
+from scipy.misc import imresize
 
 FLANN_INDEX_KDTREE = 1  # Algorithm to set centers,
 DEFAULT_FLANN_PARAMETERS = dict(algorithm=FLANN_INDEX_KDTREE,
                                 trees=3)
+
+
+def pattern_match(template, image, upsampling=10,
+                  func=match_template):
+    """
+    Parameters
+    ----------
+    template : ndarray
+               The input search template used to 'query' the destination
+               image
+
+    image : ndarray
+            The image or sub-image to be searched
+
+    upsampling : int
+                 The multiplier to upsample the template and image.
+
+    func : object
+           The function to be used to perform the template based matching
+
+    Returns
+    -------
+
+    x : float
+        The x offset
+
+    y : float
+        The y offset
+
+    strength : float
+               The strength of teh correlation in the range [-1, 1].
+
+
+
+    """
+    if upsampling < 1:
+        raise ValueError
+
+    u_template = imresize(template, (template.shape[0] * upsampling,
+                                   template.shape[1] * upsampling),
+                        interp='bicubic')
+
+    u_image = imresize(image, (image.shape[0] * upsampling,
+                             image.shape[1] * upsampling),
+                     interp='bicubic')
+
+    # Find the the upper left origin of the template in the image
+    match = func(u_image, u_template)
+    y, x = np.unravel_index(np.argmax(match), match.shape)
+
+    # Resample the match back to the native image resolution
+    x /= upsampling
+    y /= upsampling
+
+    # Offset from the UL origin to the image center
+    x += (template.shape[0] / 2)
+    y += (template.shape[0] / 2)
+
+    # Compute the offset to adjust the image match point location
+    ideal_center = image.shape[0] / 2
+    x = ideal_center - x
+    y = ideal_center - y
+
+    # Find the maximum correlation
+    strength = np.max(match)
+
+    return x, y, strength
 
 class FlannMatcher(object):
     """
