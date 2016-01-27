@@ -77,6 +77,8 @@ class TestTwoImageMatching(unittest.TestCase):
             self.assertIn(len(matches.loc[mask]), range(75,101))
 
             cg.compute_homographies(clean_keys=['symmetry', 'ratio'])
+            cg.compute_subpixel_offsets()
+
 
         # Step: And create a C object
         cnet = cg.to_cnet(clean_keys=['symmetry', 'ratio', 'ransac'])
