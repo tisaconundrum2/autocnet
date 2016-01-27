@@ -8,8 +8,8 @@ import sys
 sys.path.insert(0, os.path.abspath('..'))
 
 from .. import feature_extractor
-
 from autocnet.fileio import io_gdal
+
 
 class TestFeatureExtractor(unittest.TestCase):
     def setUp(self):
