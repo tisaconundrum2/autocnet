@@ -80,6 +80,7 @@ def to_isis(path, C, mode='w', version=VERSION,
 
             store.write(header)
 
+
 class IsisStore(object):
     """
     Class to manage IO of an ISIS control network (version 2).

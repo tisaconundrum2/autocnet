@@ -1,5 +1,3 @@
-from functools import reduce
-import operator as op
 import os
 
 import networkx as nx
@@ -14,6 +12,7 @@ from autocnet.fileio import io_json
 from autocnet.fileio.io_gdal import GeoDataset
 from autocnet.matcher import feature_extractor as fe # extract features from image
 from autocnet.matcher import outlier_detector as od
+
 
 class CandidateGraph(nx.Graph):
     """
@@ -252,14 +251,46 @@ class CandidateGraph(nx.Graph):
         """
         Generate a control network (C) object from a graph
 
+        Parameters
+        ----------
+        clean_keys : list
+             of strings identifying the masking arrays to use, e.g. ratio, symmetry
+
         Returns
         -------
         merged_cnet : C
                       A control network object
-
-        clean_keys : list
-                     of strings identifying the masking arrays to use, e.g. ratio, symmetry
         """
+
+        def _validate_cnet(cnet):
+            """
+            Once the control network is aggregated from graph edges,
+            ensure that a given correspondence in a given image does
+            not match multiple correspondences in a different image.
+
+            Parameters
+            ----------
+            cnet : C
+                   control network object
+
+            Returns
+            -------
+             : C
+               the cleaned control network
+            """
+
+            mask = np.zeros(len(cnet), dtype=bool)
+            counter = 0
+            for i, group in cnet.groupby('pid'):
+                group_size = len(group)
+                if len(group) != len(group['nid'].unique()):
+                    mask[counter: counter + group_size] = False
+                else:
+                    mask[counter: counter + group_size] = True
+                counter += group_size
+
+            return cnet[mask]
+
         merged_cnet = None
 
         for source, destination, attributes in self.edges_iter(data=True):
@@ -316,6 +347,9 @@ class CandidateGraph(nx.Graph):
                 # Perform the concat
                 merged_cnet = pd.concat([merged_cnet, cnet])
                 merged_cnet.drop_duplicates(['idx', 'pid'], keep='first', inplace=True)
+
+        # Final validation to remove any correspondence with multiple correspondences in the same image
+        merged_cnet = _validate_cnet(merged_cnet)
 
         return merged_cnet
 
