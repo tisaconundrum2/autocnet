@@ -1,16 +1,14 @@
 import os
-import unittest
 
+import unittest
+import numpy as np
 import pandas as pd
-from scipy.misc import bytescale
 
 from autocnet.examples import get_path
 from autocnet.fileio.io_controlnetwork import to_isis
-from autocnet.fileio.io_gdal import GeoDataset
 from autocnet.graph.network import CandidateGraph
-from autocnet.matcher import feature_extractor as fe
 from autocnet.matcher.matcher import FlannMatcher
-from autocnet.matcher.matcher import OutlierDetector
+from autocnet.matcher import outlier_detector as od
 
 
 class TestTwoImageMatching(unittest.TestCase):
@@ -43,15 +41,14 @@ class TestTwoImageMatching(unittest.TestCase):
     def test_two_image(self):
         # Step: Create an adjacency graph
         adjacency = get_path('two_image_adjacency.json')
-        basepath = os.path.dirname(adjacency)
         cg = CandidateGraph.from_adjacency_file(adjacency)
         self.assertEqual(2, cg.number_of_nodes())
         self.assertEqual(1, cg.number_of_edges())
 
         # Step: Extract image data and attribute nodes
-        cg.extract_features(25)
+        cg.extract_features(50)
         for node, attributes in cg.nodes_iter(data=True):
-            self.assertIn(len(attributes['keypoints']), [24, 25, 26])
+            self.assertIn(len(attributes['keypoints']), [49, 50, 51])
 
         # Step: Then apply a FLANN matcher
         fl = FlannMatcher()
@@ -61,12 +58,25 @@ class TestTwoImageMatching(unittest.TestCase):
 
         for node, attributes in cg.nodes_iter(data=True):
             descriptors = attributes['descriptors']
-            matches = fl.query(descriptors, node, k=3) #had to increase from 2 to test distance ratio test
-            detectme = OutlierDetector()
+            matches = fl.query(descriptors, node, k=5)
             cg.add_matches(matches)
 
+        for source, destination, attributes in cg.edges_iter(data=True):
+            matches = attributes['matches']
+            # Perform the symmetry check
+            symmetry_mask = od.mirroring_test(matches)
+            self.assertIn(symmetry_mask.sum(), range(45, 50))
+            attributes['symmetry'] = symmetry_mask
+
+            # Perform the ratio test
+            ratio_mask = od.distance_ratio(matches, ratio=0.95)
+            self.assertIn(ratio_mask.sum(), range(30,45))
+            attributes['ratio'] = ratio_mask
+
+            mask = np.array(ratio_mask * symmetry_mask)
+            self.assertIn(len(matches.loc[mask]), range(4,10))
         # Step: And create a C object
-        cnet = cg.to_cnet()
+        cnet = cg.to_cnet(clean_keys=['symmetry', 'ratio'])
 
         # Step update the serial numbers
         nid_to_serial = {}

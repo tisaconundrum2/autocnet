@@ -8,8 +8,8 @@ import sys
 sys.path.insert(0, os.path.abspath('..'))
 
 from .. import feature_extractor
-
 from autocnet.fileio import io_gdal
+
 
 class TestFeatureExtractor(unittest.TestCase):
     def setUp(self):
@@ -24,7 +24,7 @@ class TestFeatureExtractor(unittest.TestCase):
     def test_extract_features(self):
         features = feature_extractor.extract_features(self.data_array, self.parameters)
         self.assertEquals(len(features), 2)
-        self.assertEqual(len(features[0]), 11)  # OpenCV +1 to
+        self.assertIn(len(features[0]), range(8,12))
         self.assertIsInstance(features[0][0], type(cv2.KeyPoint()))
         self.assertIsInstance(features[1][0], np.ndarray)
 
