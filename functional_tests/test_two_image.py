@@ -70,12 +70,11 @@ class TestTwoImageMatching(unittest.TestCase):
 
             # Perform the ratio test
             ratio_mask = od.distance_ratio(matches, ratio=0.95)
-            self.assertIn(ratio_mask.sum(), range(30,40))
+            self.assertIn(ratio_mask.sum(), range(30,45))
             attributes['ratio'] = ratio_mask
 
             mask = np.array(ratio_mask * symmetry_mask)
             self.assertIn(len(matches.loc[mask]), range(4,10))
-
         # Step: And create a C object
         cnet = cg.to_cnet(clean_keys=['symmetry', 'ratio'])
 

@@ -56,7 +56,7 @@ def distance_ratio(matches, ratio=0.8):
         group_size = len(group)
         # If we can not perform the ratio check because all matches are symmetrical
         if len(group['destination_idx'].unique()) == 1:
-            mask[counter:counter + group_size] = False
+            mask[counter:counter + group_size] = True
             counter += group_size
         else:
             # Otherwise, we can perform the ratio test
@@ -111,3 +111,4 @@ def mirroring_test(matches):
     duplicates = matches.duplicated(keep='first').values
     duplicates.astype(bool, copy=False)
     return duplicates
+

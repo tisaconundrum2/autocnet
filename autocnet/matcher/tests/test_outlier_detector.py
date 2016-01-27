@@ -39,7 +39,6 @@ class TestOutlierDetector(unittest.TestCase):
         self.assertTrue(len(outlier_detector.distance_ratio(self.matches)), 13)
 
     def test_self_neighbors(self):
-        print(self.matches[outlier_detector.self_neighbors(self.matches)])
         # returned mask should be same length as input df
         self.assertEquals(len(outlier_detector.self_neighbors(self.matches)), len(self.matches))
 

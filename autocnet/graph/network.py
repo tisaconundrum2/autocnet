@@ -203,9 +203,17 @@ class CandidateGraph(nx.Graph):
                      The identifier for the source node
         destination_key : str
                           The identifier for the destination node
+
+        outlier_algorithm : object
+                            An openCV outlier detections algorithm, e.g. cv2.RANSAC
         Returns
         -------
-         : tuple
+        transformation_matrix : ndarray
+                                The 3x3 transformation matrix
+
+        mask : ndarray
+               Boolean array of the outliers
+
            A tuple of the form (transformation matrix, bad entry mask)
            The returned tuple is empty if there is no edge between the source and destination nodes or
            if it exists, but has not been populated with a matches dataframe.
@@ -230,12 +238,18 @@ class CandidateGraph(nx.Graph):
 
                     source_keypoints.append(src_keypoint)
                     destination_keypoints.append(dest_keypoint)
-                return cv2.findHomography(np.array(source_keypoints), np.array(destination_keypoints),
-                                          outlier_algorithm, 5.0)
+                transformation_matrix, mask = cv2.findHomography(np.array(source_keypoints),
+                                                                 np.array(destination_keypoints),
+                                                                 outlier_algorithm,
+                                                                 5.0)
+                mask = mask.astype(bool)
+                return transformation_matrix, mask
             else:
                 return ('', '')
         else:
             return ('','')
+
+
 
     def to_cnet(self, clean_keys=[]):
         """

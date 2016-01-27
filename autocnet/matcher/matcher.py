@@ -13,6 +13,8 @@ DEFAULT_FLANN_PARAMETERS = dict(algorithm=FLANN_INDEX_KDTREE,
 def pattern_match(template, image, upsampling=10,
                   func=match_template):
     """
+    Call an arbitrary pattern matcher
+
     Parameters
     ----------
     template : ndarray
@@ -38,7 +40,7 @@ def pattern_match(template, image, upsampling=10,
         The y offset
 
     strength : float
-               The strength of teh correlation in the range [-1, 1].
+               The strength of the correlation in the range [-1, 1].
 
 
 
@@ -63,13 +65,15 @@ def pattern_match(template, image, upsampling=10,
     y /= upsampling
 
     # Offset from the UL origin to the image center
-    x += (template.shape[0] / 2)
+    x += (template.shape[1] / 2)
     y += (template.shape[0] / 2)
 
     # Compute the offset to adjust the image match point location
-    ideal_center = image.shape[0] / 2
-    x = ideal_center - x
-    y = ideal_center - y
+    ideal_y = image.shape[0] / 2
+    ideal_x = image.shape[1] / 2
+
+    x = ideal_x - x
+    y = ideal_y - y
 
     # Find the maximum correlation
     strength = np.max(match)
