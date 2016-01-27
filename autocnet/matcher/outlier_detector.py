@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 
 
@@ -112,3 +113,38 @@ def mirroring_test(matches):
     duplicates.astype(bool, copy=False)
     return duplicates
 
+
+def compute_homography(kp1, kp2, outlier_algorithm=cv2.RANSAC, reproj_threshold=5.0):
+    """
+    Given two arrays of keypoints compute a homography
+
+    Parameters
+    ----------
+    kp1 : ndarray
+          (n, 2) of coordinates from the source image
+
+    kp2 : ndarray
+          (n, 2) of coordinates from the destination image
+
+    outlier_algorithm : object
+                        The openCV algorithm to use for outlier detection
+
+    reproj_threshold : float
+                       The RANSAC reprojection threshold
+
+
+    Returns
+    -------
+    transformation_matrix : ndarray
+                            The 3x3 transformation matrix
+
+    mask : ndarray
+           Boolean array of the outliers
+    """
+
+    transformation_matrix, mask = cv2.findHomography(kp1,
+                                                     kp2,
+                                                     outlier_algorithm,
+                                                     reproj_threshold)
+    mask = mask.astype(bool)
+    return transformation_matrix, mask
