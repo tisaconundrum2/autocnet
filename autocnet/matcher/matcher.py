@@ -41,9 +41,6 @@ def pattern_match(template, image, upsampling=10,
 
     strength : float
                The strength of the correlation in the range [-1, 1].
-
-
-
     """
     if upsampling < 1:
         raise ValueError
