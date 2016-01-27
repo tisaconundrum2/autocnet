@@ -1,2 +1,4 @@
-{"AS15-M-0297_SML.png": ["AS15-M-0298_SML.png"], 
-"AS15-M-0298_SML.png": ["AS15-M-0297_SML.png"]}
+{"autocnet/examples/Apollo15/AS15-M-0297_SML.png"
+ : ["autocnet/examples/Apollo15/AS15-M-0298_SML.png"], 
+ "autocnet/examples/Apollo15/AS15-M-0298_SML.png"
+ : ["autocnet/examples/Apollo15/AS15-M-0297_SML.png"]}
