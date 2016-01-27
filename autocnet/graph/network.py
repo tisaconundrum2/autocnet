@@ -1,3 +1,4 @@
+import operator
 import os
 
 import networkx as nx
@@ -236,7 +237,7 @@ class CandidateGraph(nx.Graph):
         else:
             return ('','')
 
-    def to_cnet(self):
+    def to_cnet(self, clean_keys=[]):
         """
         Generate a control network (C) object from a graph
 
@@ -244,11 +245,20 @@ class CandidateGraph(nx.Graph):
         -------
         merged_cnet : C
                       A control network object
+
+        clean_keys : list
+                     of strings identifying the masking arrays to use, e.g. ratio, symmetry
         """
         merged_cnet = None
 
         for source, destination, attributes in self.edges_iter(data=True):
             matches = attributes['matches']
+
+            # Merge all of the masks
+            if clean_keys:
+                mask = np.array(list(map(operator.mul, *[attributes[i] for i in clean_keys])))
+                matches = matches[mask]
+
             kp1 = self.node[source]['keypoints']
             kp2 = self.node[destination]['keypoints']
 

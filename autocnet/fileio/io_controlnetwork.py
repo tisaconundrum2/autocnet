@@ -132,7 +132,6 @@ class IsisStore(object):
         """
         point_sizes = []
         point_messages = []
-        print(cnet)
         for pid, point in cnet.groupby('pid'):
             # Instantiate the proto spec
             point_spec = cnf.ControlPointFileEntryV0002()
@@ -146,7 +145,6 @@ class IsisStore(object):
 
             # A single extend call is cheaper than many add calls to pack points
             measure_iterable = []
-            print(point)
             for name, row in point.iterrows():
                 measure_spec = point_spec.Measure()
                 measure_spec.serialnumber = row.nid
