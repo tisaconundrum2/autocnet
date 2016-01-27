@@ -44,7 +44,7 @@ class TestTwoImageMatching(unittest.TestCase):
         # Step: Create an adjacency graph
         adjacency = get_path('two_image_adjacency.json')
         basepath = os.path.dirname(adjacency)
-        cg = CandidateGraph.from_adjacency_file(adjacency)
+        cg = CandidateGraph.from_adjacency(adjacency)
         self.assertEqual(2, cg.number_of_nodes())
         self.assertEqual(1, cg.number_of_edges())
 

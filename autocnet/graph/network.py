@@ -54,15 +54,15 @@ class CandidateGraph(nx.Graph):
         nx.relabel_nodes(self, node_labels, copy=False)
 
     @classmethod
-    def from_adjacency_file(cls, inputfile):
+    def from_adjacency(cls, input_adjacency):
         """
-        Instantiate the class using an adjacency file. This file must contain relative or
+        Instantiate the class using an adjacency dict or file. The input must contain relative or
         absolute paths to image files.
 
         Parameters
         ----------
-        inputfile : str
-                    The input file containing the graph representation
+        input_adjacency : dict or str
+                          An adjacency dictionary or the name of a file containing an adjacency dictionary.
 
         Returns
         -------
@@ -73,19 +73,20 @@ class CandidateGraph(nx.Graph):
         --------
         >>> from autocnet.examples import get_path
         >>> inputfile = get_path('adjacency.json')
-        >>> candidate_graph = network.CandidateGraph.from_adjacency_file(inputfile)
+        >>> candidate_graph = network.CandidateGraph.from_adjacency(inputfile)
         """
-        adjacency_dict = io_json.read_json(inputfile)
-        return cls(adjacency_dict)
+        if not isinstance(input_adjacency, dict):
+           input_adjacency = io_json.read_json(input_adjacency)
+        return cls(input_adjacency)
 
-    def get_name(self, nodeIndex):
+    def get_name(self, node_index):
         """
         Get the image name for the given node.
 
         Parameters
         ----------
-        nodeIndex : int
-                    The index of the node.
+        node_index : int
+                     The index of the node.
         
         Returns
         -------
@@ -94,16 +95,34 @@ class CandidateGraph(nx.Graph):
 
 
         """
-        return self.node[nodeIndex]['image_name']
+        return self.node[node_index]['image_name']
 
-    def get_keypoints(self, nodeIndex):
+    def get_node(self, node_name):
+        """
+        Get the node with the given name.
+
+        Parameters
+        ----------
+        node_name : str
+                    The name of the node.
+        
+        Returns
+        -------
+         : object
+           The node with the given image name.
+
+
+        """
+        return self.node[self.node_name_map[node_name]]
+
+    def get_keypoints(self, nodekey):
         """
         Get the list of keypoints for the given node.
         
         Parameters
         ----------
-        nodeIndex : int
-                    The index of the node.
+        nodeIndex : int or string
+                    The key for the node, by index or name.
         
         Returns
         -------
@@ -111,7 +130,9 @@ class CandidateGraph(nx.Graph):
            The list of keypoints for the given node.
         
         """
-        return self.node[nodeIndex]['keypoints']
+        if isinstance(nodekey, str):
+            return self.get_node(nodekey)['keypoints']
+        return self.node[nodekey]['keypoints']
 
     def add_image(self, *args, **kwargs):
         """
