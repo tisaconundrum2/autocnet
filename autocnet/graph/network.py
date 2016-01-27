@@ -1,4 +1,5 @@
-import operator
+from functools import reduce
+import operator as op
 import os
 
 import networkx as nx
@@ -12,6 +13,7 @@ from autocnet.control.control import C
 from autocnet.fileio import io_json
 from autocnet.fileio.io_gdal import GeoDataset
 from autocnet.matcher import feature_extractor as fe # extract features from image
+from autocnet.matcher import outlier_detector as od
 
 class CandidateGraph(nx.Graph):
     """
@@ -185,7 +187,7 @@ class CandidateGraph(nx.Graph):
                 destination_key = dest_group['destination_image'].values[0]
                 try:
                     edge = self[source_key][destination_key]
-                except:
+                except: # pragma: no cover
                     edge = self[destination_key][source_key]
 
                 if 'matches' in edge.keys():
@@ -194,18 +196,17 @@ class CandidateGraph(nx.Graph):
                 else:
                     edge['matches'] = dest_group
 
-    def compute_homography(self, source_key, destination_key, outlier_algorithm=cv2.RANSAC):
+    def compute_homographies(self, outlier_algorithm=cv2.RANSAC, clean_keys=[]):
         """
-
+        For each edge in the (sub) graph, compute the homography
         Parameters
         ----------
-        source_key : str
-                     The identifier for the source node
-        destination_key : str
-                          The identifier for the destination node
-
         outlier_algorithm : object
                             An openCV outlier detections algorithm, e.g. cv2.RANSAC
+
+        clean_keys : list
+                     of string keys to masking arrays
+                     (created by calling outlier detection)
         Returns
         -------
         transformation_matrix : ndarray
@@ -213,43 +214,39 @@ class CandidateGraph(nx.Graph):
 
         mask : ndarray
                Boolean array of the outliers
-
-           A tuple of the form (transformation matrix, bad entry mask)
-           The returned tuple is empty if there is no edge between the source and destination nodes or
-           if it exists, but has not been populated with a matches dataframe.
-
         """
-        if self.has_edge(source_key, destination_key):
-            try:
-                edge = self[source_key][destination_key]
-            except:
-                edge = self[destination_key][source_key]
-            if 'matches' in edge.keys():
-                source_keypoints = []
-                destination_keypoints = []
 
-                for i, row in edge['matches'].iterrows():
-                    source_idx = row['source_idx']
-                    src_keypoint = [self.node[source_key]['keypoints'][int(source_idx)].pt[0],
-                                    self.node[source_key]['keypoints'][int(source_idx)].pt[1]]
-                    destination_idx = row['destination_idx']
-                    dest_keypoint = [self.node[destination_key]['keypoints'][int(destination_idx)].pt[0],
-                                     self.node[destination_key]['keypoints'][int(destination_idx)].pt[1]]
+        for source, destination, attributes in self.edges_iter(data=True):
+            matches = attributes['matches']
 
-                    source_keypoints.append(src_keypoint)
-                    destination_keypoints.append(dest_keypoint)
-                transformation_matrix, mask = cv2.findHomography(np.array(source_keypoints),
-                                                                 np.array(destination_keypoints),
-                                                                 outlier_algorithm,
-                                                                 5.0)
-                mask = mask.astype(bool)
-                return transformation_matrix, mask
+            if clean_keys:
+                mask = np.prod([attributes[i] for i in clean_keys], axis=0, dtype=np.bool)
+                matches = matches[mask]
+
+                full_mask = np.where(mask == True)
+
+            s_coords = np.empty((len(matches), 2))
+            d_coords = np.empty((len(matches), 2))
+
+            for i, (idx, row) in enumerate(matches.iterrows()):
+                s_idx = int(row['source_idx'])
+                d_idx = int(row['destination_idx'])
+
+                s_coords[i] = self.node[source]['keypoints'][s_idx].pt
+                d_coords[i] = self.node[destination]['keypoints'][d_idx].pt
+
+            transformation_matrix, ransac_mask = od.compute_homography(s_coords,
+                                                                       d_coords)
+
+            ransac_mask = ransac_mask.ravel()
+            # Convert the truncated RANSAC mask back into a full length mask
+            if clean_keys:
+                mask[full_mask] = ransac_mask
             else:
-                return ('', '')
-        else:
-            return ('','')
+                mask = ransac_mask
 
-
+            attributes['homography'] = transformation_matrix
+            attributes['ransac'] = mask
 
     def to_cnet(self, clean_keys=[]):
         """
@@ -270,7 +267,7 @@ class CandidateGraph(nx.Graph):
 
             # Merge all of the masks
             if clean_keys:
-                mask = np.array(list(map(operator.mul, *[attributes[i] for i in clean_keys])))
+                mask = np.prod([attributes[i] for i in clean_keys], axis=0, dtype=np.bool)
                 matches = matches[mask]
 
             kp1 = self.node[source]['keypoints']
