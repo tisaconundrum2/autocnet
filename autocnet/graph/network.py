@@ -249,24 +249,31 @@ class CandidateGraph(nx.Graph):
             attributes['homography'] = transformation_matrix
             attributes['ransac'] = mask
 
-    # TODO: finish me!!!
     def compute_subpixel_offsets(self):
+        """
+        For the entire graph, compute the subpixel offsets using pattern-matching and add the result
+        as an attribute to each edge of the graph.
+
+        Returns
+        -------
+        subpixel_offsets : ndarray
+                           A numpy array containing all the subpixel offsets for the entire graph.
+        """
+        subpixel_offsets = []
         for source, destination, attributes in self.edges_iter(data=True): #for each edge
             matches = attributes['matches'] #grab the matches
             src_image = self.node[source]['image']
             dest_image = self.node[destination]['image']
-            tmp_lst = []
+            edge_offsets = []
             for i, (idx, row) in enumerate(matches.iterrows()): #for each edge, calculate this for each keypoint pair
                 s_idx = int(row['source_idx'])
                 d_idx = int(row['destination_idx'])
-
                 src_keypoint = self.node[source]['keypoints'][s_idx]
                 dest_keypoint = self.node[destination]['keypoints'][d_idx]
-
-                tmp_lst.append(sp.subpixel_offset(src_keypoint, dest_keypoint, src_image, dest_image))
-            print(tmp_lst)
-        return
-
+                edge_offsets.append(sp.subpixel_offset(src_keypoint, dest_keypoint, src_image, dest_image))
+            attributes['subpixel_offsets'] = np.array(edge_offsets)
+            subpixel_offsets.append(np.array(edge_offsets))
+        return subpixel_offsets
 
     def to_cnet(self, clean_keys=[]):
         """
