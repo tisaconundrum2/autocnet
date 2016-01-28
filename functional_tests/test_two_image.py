@@ -77,6 +77,10 @@ class TestTwoImageMatching(unittest.TestCase):
 
         cg.compute_homographies(clean_keys=['symmetry', 'ratio'])
 
+        #compute subpixel offsets for the entire graph
+        offsets = cg.compute_subpixel_offsets()
+        self.assertEqual(len(offsets), cg.number_of_edges())
+
         # Step: And create a C object
         cnet = cg.to_cnet(clean_keys=['symmetry', 'ratio', 'ransac'])
         # Step update the serial numbers
