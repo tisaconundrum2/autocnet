@@ -12,7 +12,8 @@ from autocnet.examples import get_path
 
 class TestOutlierDetector(unittest.TestCase):
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         # actually set up everything for matches
         im1 = cv2.imread(get_path('AS15-M-0296_SML.png'))
         im2 = cv2.imread(get_path('AS15-M-0297_SML.png'))
