@@ -12,9 +12,10 @@ from .. import network
 
 
 class TestCandidateGraph(unittest.TestCase):
-    
-    def setUp(self):
-        self.graph = network.CandidateGraph.from_adjacency_file(get_path('adjacency.json'))
+
+    @classmethod
+    def setUpClass(cls):
+        cls.graph = network.CandidateGraph.from_adjacency_file(get_path('adjacency.json'))
 
     def test_get_name(self):
         node_number = self.graph.node_name_map['AS15-M-0297_SML.png']
@@ -28,6 +29,10 @@ class TestCandidateGraph(unittest.TestCase):
     def test_to_json_file(self):
         self.graph.to_json_file('test_graph_to_json.json')
         self.assertTrue(os.path.exists('test_graph_to_json.json'))
+        try:
+            os.remove('test_graph_to_json.json')
+        except:
+            pass
 
     def test_extract_features(self):
         # also tests get_geodataset() and get_keypoints
@@ -42,7 +47,4 @@ class TestCandidateGraph(unittest.TestCase):
         self.assertEquals(self.graph.get_keypoints(node_number), node['keypoints'])
 
     def tearDown(self):
-        try:
-            os.remove('test_graph_to_json.json')
-        except:
-            pass
+        pass

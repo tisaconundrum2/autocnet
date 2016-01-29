@@ -149,6 +149,7 @@ def compute_homography(kp1, kp2, outlier_algorithm=cv2.RANSAC, reproj_threshold=
     mask = mask.astype(bool)
     return transformation_matrix, mask
 
+
 def homography_test(kp1, kp2, homography, threshold=3.0):
     """
     Utilize the transformation matrix (homography) to check whether

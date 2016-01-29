@@ -75,14 +75,14 @@ class TestTwoImageMatching(unittest.TestCase):
             mask = np.array(ratio_mask * symmetry_mask)
             self.assertIn(len(matches.loc[mask]), range(75,101))
 
+        # Step: Compute the homographies and apply RANSAC
         cg.compute_homographies(clean_keys=['symmetry', 'ratio'])
 
-        #compute subpixel offsets for the entire graph
-        offsets = cg.compute_subpixel_offsets()
-        self.assertEqual(len(offsets), cg.number_of_edges())
+        # Step: Compute subpixel offsets for candidate points
+        cg.compute_subpixel_offsets(clean_keys=['symmetry', 'ratio', 'ransac'])
 
         # Step: And create a C object
-        cnet = cg.to_cnet(clean_keys=['symmetry', 'ratio', 'ransac'])
+        cnet = cg.to_cnet(clean_keys=['symmetry', 'ratio', 'ransac', 'subpixel'])
         # Step update the serial numbers
         nid_to_serial = {}
         for node, attributes in cg.nodes_iter(data=True):
