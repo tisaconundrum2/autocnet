@@ -16,7 +16,7 @@ class TestFeatureExtractor(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         self.dataset = io_gdal.GeoDataset(get_path('AS15-M-0295_SML.png'))
-        self.data_array = self.dataset.read_array()
+        self.data_array = self.dataset.read_array(dtype='uint8')
         self.parameters = {"nfeatures" : 10,
                            "nOctaveLayers" : 3,
                            "contrastThreshold" : 0.02,

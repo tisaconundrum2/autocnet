@@ -36,7 +36,7 @@ class TestCandidateGraph(unittest.TestCase):
 
     def test_extract_features(self):
         # also tests get_geodataset() and get_keypoints
-        self.graph.extract_features(10)
+        self.graph.extract_features(extractor_parameters={'nfeatures':10})
         node_number = self.graph.node_name_map['AS15-M-0297_SML.png']
         node = self.graph.node[node_number]
         self.assertEquals(len(node['image']), 1012)

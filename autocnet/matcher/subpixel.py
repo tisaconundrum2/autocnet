@@ -1,18 +1,17 @@
-import pandas as pd
 from autocnet.matcher import matcher
 
-from scipy.misc import imresize
-
 # TODO: look into KeyPoint.size and perhaps use to determine an appropriately-sized search/template.
-# TODO: do not allow even sizes
 
-"""
-Uses a pattern-matcher on subsets of two images determined from the passed-in keypoints and optional sizes to
-compute an x and y offset from the search keypoint to the template keypoint and an associated strength.
 
-Parameters
-----------
-    template_kp : KeyPoint
+def subpixel_offset(template_kp, search_kp, template_img, search_img,
+                    template_size=9, search_size=27, upsampling=10):
+    """
+    Uses a pattern-matcher on subsets of two images determined from the passed-in keypoints and optional sizes to
+    compute an x and y offset from the search keypoint to the template keypoint and an associated strength.
+
+    Parameters
+    ----------
+        template_kp : KeyPoint
                   The KeyPoint to match the search_kp to.
     search_kp : KeyPoint
                 The KeyPoint to match to the template_kp
@@ -33,14 +32,15 @@ Parameters
       The returned tuple is of form: (x_offset, y_offset, strength). The offsets are from the search to the template
       keypoint.
     """
-def subpixel_offset(template_kp, search_kp, template_img, search_img, template_size=9, search_size=27, upsampling=10):
+    if template_size % 2 == 0 or search_size %2 == 0:
+        raise ValueError('The search and template images must have an odd number of lines and samples')
     # Get the x,y coordinates
     temp_x, temp_y = map(int, template_kp.pt)
     search_x, search_y = map(int, search_kp.pt)
 
     # Convert desired template and search sizes to offsets to get the bounding box
-    t = int(template_size/2) #index offset for template
-    s = int(search_size/2) #index offset for search
+    t = int(template_size/2)  # index offset for template
+    s = int(search_size/2)  # index offset for search
 
     template = template_img[temp_y-t:temp_y+t, temp_x-t:temp_x+t]
     search = search_img[search_y-s:search_y+s, search_x-s:search_x+s]
