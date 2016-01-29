@@ -27,13 +27,12 @@ install:
   - conda info -a
 
   # Create a virtual env and install dependencies
-  - conda create -y -q -n test-env python=$TRAVIS_PYTHON_VERSION nose numpy pillow scipy pandas networkx scikit-image
+  - conda create -y -q -n test-env python=$TRAVIS_PYTHON_VERSION nose numpy pillow scipy pandas networkx scikit-image gdal
   # Activate the env
   - source activate test-env
 
   # Install the non-conda packages if required, requirements.txt duplicates are ignored
   - conda install -c https://conda.anaconda.org/jlaura opencv3=3.0.0
-  - conda install -c https://conda.anaconda.org/osgeo gdal=1.11.2
   - conda install -c https://conda.anaconda.org/osgeo proj4
   - pip install -r requirements.txt
   - pip install coverage
