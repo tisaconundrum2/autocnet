@@ -49,6 +49,11 @@ class TestTwoImageMatching(unittest.TestCase):
         for node, attributes in cg.nodes_iter(data=True):
             self.assertIn(len(attributes['keypoints']), range(490, 511))
 
+        # Step: apply ANMS
+        for node, attributes in cg.nodes_iter(data=True):
+            print(od.adaptive_non_max_suppression(attributes['keypoints']))
+        self.assertTrue(False)
+
         # Step: Then apply a FLANN matcher
         fl = FlannMatcher()
         for node, attributes in cg.nodes_iter(data=True):

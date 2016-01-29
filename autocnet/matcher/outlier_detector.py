@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import pandas as pd
 
 
 def self_neighbors(matches):
@@ -148,5 +149,29 @@ def compute_homography(kp1, kp2, outlier_algorithm=cv2.RANSAC, reproj_threshold=
                                                      reproj_threshold)
     mask = mask.astype(bool)
     return transformation_matrix, mask
+
+
+# TODO: document me
+# right now, this is going to work on the un-merged dataframes... NOPE. I confused what was where again. Need the
+# graph for keypoint information...
+def adaptive_non_max_suppression(keypoints, n=20, robust=0.9):
+    minimum_suppression_radius = {}
+    for i, kp1 in enumerate(keypoints):
+        x1, y1 = kp1.pt
+        temp = []
+        for kp2 in keypoints: #includes kp1 for now
+            if kp1.response < robust*kp2.response:
+                x2, y2 = kp2.pt
+                temp.append(np.sqrt((x2-x1)**2 + (y2-y1)**2))
+        if(len(temp) > 0):
+            minimum_suppression_radius[i] = np.min(np.array(temp))
+        else:
+            minimum_suppression_radius[i] = [np.nan]
+    df = pd.DataFrame(list(minimum_suppression_radius.items()), columns=['keypoint_number', 'radius'])
+    new_df = df.sort_values(by='radius', ascending=False).head(n)
+    return new_df
+
+
+
 
 
