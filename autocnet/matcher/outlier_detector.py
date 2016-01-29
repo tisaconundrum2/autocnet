@@ -150,11 +150,27 @@ def compute_homography(kp1, kp2, outlier_algorithm=cv2.RANSAC, reproj_threshold=
     mask = mask.astype(bool)
     return transformation_matrix, mask
 
+# TODO: CITATION and better design?
+def adaptive_non_max_suppression(keypoints, n=100, robust=0.9):
+    """
+    Select the top n keypoints, using Adaptive Non-Maximal Suppression
+    to rank the keypoints in order of largest minimum suppression
+    radius. A mask with only the positions of the top n keypoints set to 1 (and all else set to 0) is returned.
 
-# TODO: document me
-# right now, this is going to work on the un-merged dataframes... NOPE. I confused what was where again. Need the
-# graph for keypoint information...
-def adaptive_non_max_suppression(keypoints, n=20, robust=0.9):
+    Parameters
+    ----------
+    keypoints : list
+               List of KeyPoint objects from a node of the graph or equivalently, for 1 image.
+
+    n : int
+        The number of top-ranked keypoints to return.
+
+    Returns
+    -------
+    keypoint_mask : list
+                    A list containing a 1 in the positions of the top n selected keypoints and 0 in the positions
+                    of all the other keypoints.
+    """
     minimum_suppression_radius = {}
     for i, kp1 in enumerate(keypoints):
         x1, y1 = kp1.pt
@@ -166,10 +182,13 @@ def adaptive_non_max_suppression(keypoints, n=20, robust=0.9):
         if(len(temp) > 0):
             minimum_suppression_radius[i] = np.min(np.array(temp))
         else:
-            minimum_suppression_radius[i] = [np.nan]
-    df = pd.DataFrame(list(minimum_suppression_radius.items()), columns=['keypoint_number', 'radius'])
-    new_df = df.sort_values(by='radius', ascending=False).head(n)
-    return new_df
+            minimum_suppression_radius[i] = np.nan
+    df = pd.DataFrame(list(minimum_suppression_radius.items()), columns=['keypoint', 'radius'])
+    top_n = df.sort_values(by='radius', ascending=False).head(n)
+    temp_df = df.mask(df.radius < top_n.radius.min(), other=np.nan)
+    temp_df = temp_df.where(np.isnan(temp_df.keypoint), other=1)
+    temp_df = temp_df.mask(np.isnan(temp_df.keypoint), other=0)
+    return list(temp_df.radius)
 
 
 
