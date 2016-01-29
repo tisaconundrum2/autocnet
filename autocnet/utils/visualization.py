@@ -148,7 +148,7 @@ def plotAdjacencyGraphMatches(imageName1,
                  'ro', 
                  featurePointSize)
     ax2 = fig.add_subplot(rows, columns, 2)
-    ax1.axis('off')
+    ax2.axis('off')
     ax2.margins(tight=True)
     plotFeatures(imageName2, 
                  graph.get_keypoints(imageName2), 
