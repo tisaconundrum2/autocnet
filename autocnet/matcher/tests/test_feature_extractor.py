@@ -12,8 +12,10 @@ from autocnet.fileio import io_gdal
 
 
 class TestFeatureExtractor(unittest.TestCase):
-    def setUp(self):
-        self.dataset = io_gdal.GeoDataset(get_path('Mars_MGS_MOLA_ClrShade_MAP2_0.0N0.0_MERC.tif'))
+
+    @classmethod
+    def setUpClass(self):
+        self.dataset = io_gdal.GeoDataset(get_path('AS15-M-0295_SML.png'))
         self.data_array = self.dataset.read_array()
         self.parameters = {"nfeatures" : 10,
                            "nOctaveLayers" : 3,

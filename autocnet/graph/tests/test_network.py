@@ -41,7 +41,6 @@ class TestCandidateGraph(unittest.TestCase):
         self.assertIsInstance(node['descriptors'][0], np.ndarray)
         self.assertEquals(self.graph.get_keypoints(node_number), node['keypoints'])
 
-
     def tearDown(self):
         try:
             os.remove('test_graph_to_json.json')
