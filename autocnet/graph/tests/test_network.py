@@ -15,7 +15,7 @@ class TestCandidateGraph(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.graph = network.CandidateGraph.from_adjacency_file(get_path('adjacency.json'))
+        cls.graph = network.CandidateGraph.from_adjacency(get_path('adjacency.json'))
 
     def test_get_name(self):
         node_number = self.graph.node_name_map['AS15-M-0297_SML.png']
