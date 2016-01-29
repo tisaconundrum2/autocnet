@@ -32,7 +32,7 @@ install:
   - source activate test-env
 
   # Install the non-conda packages if required, requirements.txt duplicates are ignored
-  - conda install gdal=2.0.0
+  - conda install gdal=1.11.2
   - conda install -c https://conda.anaconda.org/jlaura opencv3=3.0.0
   - conda install -c osgeo proj4
   - conda upgrade numpy
