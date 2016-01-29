@@ -33,7 +33,7 @@ install:
 
   # Install the non-conda packages if required, requirements.txt duplicates are ignored
   - conda install -c https://conda.anaconda.org/jlaura opencv3=3.0.0
-  - conda install -c https://conda.anaconda.org/osgeo gdal
+  - conda install -c https://conda.anaconda.org/osgeo gdal=1.11.2
   - conda install -c https://conda.anaconda.org/osgeo proj4
   - pip install -r requirements.txt
   - pip install coverage
