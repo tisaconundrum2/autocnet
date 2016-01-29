@@ -128,6 +128,8 @@ class GeoDataset(object):
         """
         self.file_name = file_name
         self.dataset = gdal.Open(file_name)
+        if self.dataset is None:
+          raise IOError('File not found :', file_name)
     
     def __repr__(self):
         return os.path.basename(self.file_name)
