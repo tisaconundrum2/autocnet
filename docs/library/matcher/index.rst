@@ -5,3 +5,6 @@
 
    feature_extractor
    matcher
+   outlier_detector
+   subpixel
+   

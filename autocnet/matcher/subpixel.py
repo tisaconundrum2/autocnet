@@ -6,12 +6,13 @@ from scipy.misc import imresize
 # TODO: look into KeyPoint.size and perhaps use to determine an appropriately-sized search/template.
 # TODO: do not allow even sizes
 
-"""
-Uses a pattern-matcher on subsets of two images determined from the passed-in keypoints and optional sizes to
-compute an x and y offset from the search keypoint to the template keypoint and an associated strength.
+def subpixel_offset(template_kp, search_kp, template_img, search_img, template_size=9, search_size=27, upsampling=10):
+    """
+    Uses a pattern-matcher on subsets of two images determined from the passed-in keypoints and optional sizes to
+    compute an x and y offset from the search keypoint to the template keypoint and an associated strength.
 
-Parameters
-----------
+    Parameters
+    ----------
     template_kp : KeyPoint
                   The KeyPoint to match the search_kp to.
     search_kp : KeyPoint
@@ -33,7 +34,6 @@ Parameters
       The returned tuple is of form: (x_offset, y_offset, strength). The offsets are from the search to the template
       keypoint.
     """
-def subpixel_offset(template_kp, search_kp, template_img, search_img, template_size=9, search_size=27, upsampling=10):
     # Get the x,y coordinates
     temp_x, temp_y = map(int, template_kp.pt)
     search_x, search_y = map(int, search_kp.pt)
