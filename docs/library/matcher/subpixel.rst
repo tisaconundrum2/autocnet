@@ -8,4 +8,3 @@ The :mod:`matcher.subpixel` module
 .. automodule:: autocnet.matcher.subpixel
    :synopsis:
    :members:
-
