@@ -27,7 +27,7 @@ install:
   - conda info -a
 
   # Create a virtual env and install dependencies
-  - conda create -y -q -n test-env python=$TRAVIS_PYTHON_VERSION nose gdal numpy pillow scipy pandas networkx scikit-image
+  - conda create -y -q -n test-env python=$TRAVIS_PYTHON_VERSION nose gdal=1.11.2 numpy pillow scipy pandas networkx scikit-image
   # Activate the env
   - source activate test-env
 
