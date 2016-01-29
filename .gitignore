@@ -1,6 +1,5 @@
 #iPython
 /.ipynb*
-/.ipynb*/
 
 #PyCharm
 /.idea
