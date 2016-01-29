@@ -14,14 +14,14 @@ from autocnet.fileio import io_gdal
 class TestFeatureExtractor(unittest.TestCase):
 
     @classmethod
-    def setUpClass(self):
-        self.dataset = io_gdal.GeoDataset(get_path('AS15-M-0295_SML.png'))
-        self.data_array = self.dataset.read_array(dtype='uint8')
-        self.parameters = {"nfeatures" : 10,
-                           "nOctaveLayers" : 3,
-                           "contrastThreshold" : 0.02,
-                           "edgeThreshold" : 10,
-                           "sigma" : 1.6}
+    def setUpClass(cls):
+        cls.dataset = io_gdal.GeoDataset(get_path('AS15-M-0295_SML.png'))
+        cls.data_array = cls.dataset.read_array(dtype='uint8')
+        cls.parameters = {"nfeatures": 10,
+                          "nOctaveLayers": 3,
+                          "contrastThreshold": 0.02,
+                          "edgeThreshold": 10,
+                          "sigma": 1.6}
 
     def test_extract_features(self):
         features = feature_extractor.extract_features(self.data_array, self.parameters)

@@ -298,7 +298,8 @@ class CandidateGraph(nx.Graph):
             attributes['homography'] = transformation_matrix
             attributes['ransac'] = mask
 
-    def compute_subpixel_offsets(self, clean_keys=[], threshold=0.8, upsampling=10):
+    def compute_subpixel_offsets(self, clean_keys=[], threshold=0.8, upsampling=10,
+                                 template_size=9, search_size=27):
         """
         For the entire graph, compute the subpixel offsets using pattern-matching and add the result
         as an attribute to each edge of the graph.
@@ -313,6 +314,16 @@ class CandidateGraph(nx.Graph):
                     On the range [-1, 1].  Values less than or equal to
                     this threshold are masked and can be considered
                     outliers
+
+        upsampling : int
+                     The multiplier to the template and search shapes to upsample
+                     for subpixel accuracy
+
+        template_size : int
+                        The size of the template in pixels, must be odd
+
+        search_size : int
+                      The size of the search
         """
 
         for source, destination, attributes in self.edges_iter(data=True):
@@ -336,11 +347,18 @@ class CandidateGraph(nx.Graph):
             for i, (idx, row) in enumerate(matches.iterrows()):
                 s_idx = int(row['source_idx'])
                 d_idx = int(row['destination_idx'])
-                src_keypoint = self.node[source]['keypoints'][s_idx]
-                dest_keypoint = self.node[destination]['keypoints'][d_idx]
 
-                # Compute the subpixel offset
-                edge_offsets[i] = sp.subpixel_offset(src_keypoint, dest_keypoint, src_image, dest_image, upsampling=upsampling)
+                s_node = self.node[source]
+                d_node = self.node[destination]
+
+                s_keypoint = s_node['keypoints'][s_idx].pt
+                d_keypoint = d_node['keypoints'][d_idx].pt
+
+                # Get the template and search windows
+                s_template = sp.clip_roi(src_image, s_keypoint, template_size)
+                d_search = sp.clip_roi(dest_image, d_keypoint, search_size)
+
+                edge_offsets[i] = sp.subpixel_offset(s_template, d_search, upsampling=upsampling)
 
             # Compute the mask for correlations less than the threshold
             threshold_mask = edge_offsets[edge_offsets[:,-1] >= threshold]
