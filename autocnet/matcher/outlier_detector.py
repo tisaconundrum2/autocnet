@@ -148,3 +148,5 @@ def compute_homography(kp1, kp2, outlier_algorithm=cv2.RANSAC, reproj_threshold=
                                                      reproj_threshold)
     mask = mask.astype(bool)
     return transformation_matrix, mask
+
+

@@ -258,7 +258,6 @@ class CandidateGraph(nx.Graph):
 
             transformation_matrix, ransac_mask = od.compute_homography(s_coords,
                                                                        d_coords)
-
             ransac_mask = ransac_mask.ravel()
             # Convert the truncated RANSAC mask back into a full length mask
             if clean_keys:
@@ -266,34 +265,78 @@ class CandidateGraph(nx.Graph):
             else:
                 mask = ransac_mask
 
+            # Compute the error in the homography
+            s_trans = np.hstack((s_coords[::-1],np.ones(s_coords.shape[0]).reshape(-1,1))).T
+            s_trans = np.dot(transformation_matrix, s_trans).T
+
+            #Normalize the error
+            for i in range(3):
+                s_trans[i] /= s_trans[2]
+
+            d_trans = np.hstack((d_coords[::-1], np.ones(d_coords.shape[0]).reshape(-1,1)))
+
+            attributes['homography_error'] = np.sqrt(np.sum((d_trans - s_trans)**2, axis=1))
             attributes['homography'] = transformation_matrix
             attributes['ransac'] = mask
 
-    def compute_subpixel_offsets(self):
+    def compute_subpixel_offsets(self, clean_keys=[], threshold=0.8, upsampling=10):
         """
         For the entire graph, compute the subpixel offsets using pattern-matching and add the result
         as an attribute to each edge of the graph.
 
-        Returns
-        -------
-        subpixel_offsets : ndarray
-                           A numpy array containing all the subpixel offsets for the entire graph.
+        Parameters
+        ----------
+        clean_keys : list
+             of string keys to masking arrays
+             (created by calling outlier detection)
+
+        threshold : float
+                    On the range [-1, 1].  Values less than or equal to
+                    this threshold are masked and can be considered
+                    outliers
         """
-        subpixel_offsets = []
-        for source, destination, attributes in self.edges_iter(data=True): #for each edge
-            matches = attributes['matches'] #grab the matches
+
+        for source, destination, attributes in self.edges_iter(data=True):
+            matches = attributes['matches']
+
+            full_offsets = np.zeros((len(matches), 3))
+
+            # Build up a composite mask from all of the user specified masks
+            if clean_keys:
+                mask = np.prod([attributes[i] for i in clean_keys], axis=0, dtype=np.bool)
+                matches = matches[mask]
+                full_mask = np.where(mask == True)
+
             src_image = self.node[source]['image']
             dest_image = self.node[destination]['image']
-            edge_offsets = []
-            for i, (idx, row) in enumerate(matches.iterrows()): #for each edge, calculate this for each keypoint pair
+
+            # Preallocate the numpy array to avoid appending and type conversion
+            edge_offsets = np.empty((len(matches),3))
+
+            # for each edge, calculate this for each keypoint pair
+            for i, (idx, row) in enumerate(matches.iterrows()):
                 s_idx = int(row['source_idx'])
                 d_idx = int(row['destination_idx'])
                 src_keypoint = self.node[source]['keypoints'][s_idx]
                 dest_keypoint = self.node[destination]['keypoints'][d_idx]
-                edge_offsets.append(sp.subpixel_offset(src_keypoint, dest_keypoint, src_image, dest_image))
-            attributes['subpixel_offsets'] = np.array(edge_offsets)
-            subpixel_offsets.append(np.array(edge_offsets))
-        return subpixel_offsets
+
+                # Compute the subpixel offset
+                edge_offsets[i] = sp.subpixel_offset(src_keypoint, dest_keypoint, src_image, dest_image, upsampling=upsampling)
+
+            # Compute the mask for correlations less than the threshold
+            threshold_mask = edge_offsets[edge_offsets[:,-1] >= threshold]
+
+            # Convert the truncated mask back into a full length mask
+            if clean_keys:
+                mask[full_mask] = threshold_mask
+                full_offsets[full_mask] = edge_offsets
+            else:
+                mask = threshold_mask
+
+            attributes['subpixel_offsets'] = pd.DataFrame(full_offsets, columns=['x_offset',
+                                                                                 'y_offset',
+                                                                                 'correlation'])
+            attributes['subpixel'] = mask
 
     def to_cnet(self, clean_keys=[]):
         """
@@ -349,12 +392,15 @@ class CandidateGraph(nx.Graph):
                 mask = np.prod([attributes[i] for i in clean_keys], axis=0, dtype=np.bool)
                 matches = matches[mask]
 
+            if 'subpixel' in clean_keys:
+                offsets = attributes['subpixel_offsets'][attributes['subpixel']]
+                print(offsets)
             kp1 = self.node[source]['keypoints']
             kp2 = self.node[destination]['keypoints']
 
             pt_idx = 0
             values = []
-            for idx, row in matches.iterrows():
+            for i, (idx, row) in enumerate(matches.iterrows()):
                 # Composite matching key (node_id, point_id)
                 m1 = (source, int(row['source_idx']))
                 m2 = (destination, int(row['destination_idx']))
@@ -365,8 +411,17 @@ class CandidateGraph(nx.Graph):
                                pt_idx,
                                source])
 
-                values.append([kp2[m2[1]].pt[0],
-                               kp2[m2[1]].pt[1],
+                kp2x = kp2[m2[1]].pt[0]
+                kp2y = kp2[m2[1]].pt[1]
+
+                if 'subpixel' in clean_keys:
+                    print(idx)
+                    print(kp2x, kp2y)
+                    kp2x += offsets['x_offset'].values[i]
+                    kp2y += offsets['y_offset'].values[i]
+                    print(kp2x, kp2y)
+                values.append([kp2x,
+                               kp2y,
                                m2,
                                pt_idx,
                                destination])

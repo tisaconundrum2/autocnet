@@ -1,6 +1,8 @@
 import pandas as pd
 from autocnet.matcher import matcher
 
+from scipy.misc import imresize
+
 # TODO: look into KeyPoint.size and perhaps use to determine an appropriately-sized search/template.
 # TODO: do not allow even sizes
 
@@ -31,7 +33,7 @@ Parameters
       The returned tuple is of form: (x_offset, y_offset, strength). The offsets are from the search to the template
       keypoint.
     """
-def subpixel_offset(template_kp, search_kp, template_img, search_img, template_size=9, search_size=27):
+def subpixel_offset(template_kp, search_kp, template_img, search_img, template_size=9, search_size=27, upsampling=10):
     # Get the x,y coordinates
     temp_x, temp_y = map(int, template_kp.pt)
     search_x, search_y = map(int, search_kp.pt)
@@ -46,7 +48,7 @@ def subpixel_offset(template_kp, search_kp, template_img, search_img, template_s
     results = (None, None, None)
 
     try:
-        results = matcher.pattern_match(template, search)
+        results = matcher.pattern_match(template, search, upsampling=upsampling)
     except ValueError:
         # the match fails if the template or search point is near an edge of the image
         # TODO: come up with a better solution?

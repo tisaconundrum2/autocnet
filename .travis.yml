@@ -27,19 +27,24 @@ install:
   - conda info -a
 
   # Create a virtual env and install dependencies
-  - conda create -y -q -n test-env python=$TRAVIS_PYTHON_VERSION nose gdal numpy pillow scipy pandas networkx scikit-image
+  - conda create -y -q -n test-env python=$TRAVIS_PYTHON_VERSION nose numpy pillow scipy pandas networkx scikit-image
   # Activate the env
   - source activate test-env
 
   # Install the non-conda packages if required, requirements.txt duplicates are ignored
   - conda install -c https://conda.anaconda.org/jlaura opencv3=3.0.0
+  - conda install -c https://conda.anaconda.org/osgeo gdal
   - conda install -c osgeo proj4
+  - conda upgrade numpy
   - pip install -r requirements.txt
   - pip install coverage
   - pip install coveralls
 
 script:
   - nosetests --with-coverage --cover-package=autocnet
+
+after_success:
+  - coveralls
 
 notifications:
     email:
@@ -50,6 +55,3 @@ notifications:
             - jwbacker@usgs.gov
         on_success: always
         on_failure: always
-
-after_success:
-  - coveralls

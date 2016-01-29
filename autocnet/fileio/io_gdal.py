@@ -1,10 +1,12 @@
 import os
 
 import numpy as np
-from osgeo import gdal
-from osgeo import osr
+import gdal
+import osr
 
 from autocnet.fileio import extract_metadata
+
+gdal.UseExceptions()
 
 NP2GDAL_CONVERSION = {
   "uint8": 1,
