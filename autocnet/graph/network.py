@@ -5,7 +5,8 @@ import pandas as pd
 import cv2
 import numpy as np
 
-from scipy.misc import bytescale # store image array
+from scipy.misc import bytescale, imresize
+
 
 from autocnet.control.control import C
 from autocnet.fileio import io_json
@@ -151,41 +152,59 @@ class CandidateGraph(nx.Graph):
         #self.node_labels[self.node[self.node_counter]['image_name']] = self.node_counter
         self.node_counter += 1
 
-    def get_geodataset(self, nodeIndex):
+    def get_geodataset(self, nodeindex):
         """
         Constructs a GeoDataset object from the given node image and assigns the 
         dataset and its NumPy array to the 'handle' and 'image' node attributes.
 
         Parameters
         ----------
-        nodeIndex : int
+        nodeindex : int
                     The index of the node.
 
         """
-        self.node[nodeIndex]['handle'] = GeoDataset(self.node[nodeIndex]['image_path'])
-        self.node[nodeIndex]['image'] = bytescale(self.node[nodeIndex]['handle'].read_array())
+        self.node[nodeindex]['handle'] = GeoDataset(self.node[nodeindex]['image_path'])
 
-    def extract_features(self, nfeatures) :
+    def get_array(self, nodeindex, downsampling=1):
+        """
+        Downsample the input image file by some amount using bicubic interpolation
+        in order to reduce data sizes for visualization and analysis, e.g. feature detection
+
+        Parameters
+        ----------
+        nodeindex : hashable
+                    The index into the node containing a geodataset object
+
+        downsampling : int
+                       [1, infinity] downsampling
+        """
+
+        array = self.node[nodeindex]['handle'].read_array()
+        newx_size = int(array.shape[0] / downsampling)
+        newy_size = int(array.shape[1] / downsampling)
+
+        resized_array = imresize(array, (newx_size, newy_size), interp='bicubic')
+        self.node[nodeindex]['image'] = bytescale(resized_array)
+        self.node[nodeindex]['image_downsampling'] = downsampling
+
+    def extract_features(self, extractor_parameters={}, downsampling=1):
         """
         Extracts features from each image in the graph and uses the result to assign the
         node attributes for 'handle', 'image', 'keypoints', and 'descriptors'.
 
         Parameters
         ----------
-        nfeatures : int
-                    The number of features to be extracted.
+        extractor_parameters : dict
+                               A dictionary containing OpenCV SIFT parameters names and values.
 
+        downsampling : int
+                       The divisor to image_size to down sample the input image.
         """
-        # Loop through the nodes (i.e. images) on the graph and fill in their attributes.
-        # These attributes are...
-        #      geo dataset (handle and image)
-        #      features (keypoints and descriptors)
         for node, attributes in self.nodes_iter(data=True):
-        
             self.get_geodataset(node)
-            extraction_params = {'nfeatures' : nfeatures}
-            attributes['keypoints'], attributes['descriptors'] = fe.extract_features(attributes['image'], 
-                                                                                     extraction_params)
+            self.get_array(node, downsampling=downsampling)
+            attributes['keypoints'], attributes['descriptors'] = fe.extract_features(attributes['image'],
+                                                                                     extractor_parameters)
 
     def add_matches(self, matches):
         """
@@ -279,7 +298,8 @@ class CandidateGraph(nx.Graph):
             attributes['homography'] = transformation_matrix
             attributes['ransac'] = mask
 
-    def compute_subpixel_offsets(self, clean_keys=[], threshold=0.8, upsampling=10):
+    def compute_subpixel_offsets(self, clean_keys=[], threshold=0.8, upsampling=10,
+                                 template_size=9, search_size=27):
         """
         For the entire graph, compute the subpixel offsets using pattern-matching and add the result
         as an attribute to each edge of the graph.
@@ -294,6 +314,16 @@ class CandidateGraph(nx.Graph):
                     On the range [-1, 1].  Values less than or equal to
                     this threshold are masked and can be considered
                     outliers
+
+        upsampling : int
+                     The multiplier to the template and search shapes to upsample
+                     for subpixel accuracy
+
+        template_size : int
+                        The size of the template in pixels, must be odd
+
+        search_size : int
+                      The size of the search
         """
 
         for source, destination, attributes in self.edges_iter(data=True):
@@ -317,11 +347,18 @@ class CandidateGraph(nx.Graph):
             for i, (idx, row) in enumerate(matches.iterrows()):
                 s_idx = int(row['source_idx'])
                 d_idx = int(row['destination_idx'])
-                src_keypoint = self.node[source]['keypoints'][s_idx]
-                dest_keypoint = self.node[destination]['keypoints'][d_idx]
 
-                # Compute the subpixel offset
-                edge_offsets[i] = sp.subpixel_offset(src_keypoint, dest_keypoint, src_image, dest_image, upsampling=upsampling)
+                s_node = self.node[source]
+                d_node = self.node[destination]
+
+                s_keypoint = s_node['keypoints'][s_idx].pt
+                d_keypoint = d_node['keypoints'][d_idx].pt
+
+                # Get the template and search windows
+                s_template = sp.clip_roi(src_image, s_keypoint, template_size)
+                d_search = sp.clip_roi(dest_image, d_keypoint, search_size)
+
+                edge_offsets[i] = sp.subpixel_offset(s_template, d_search, upsampling=upsampling)
 
             # Compute the mask for correlations less than the threshold
             threshold_mask = edge_offsets[edge_offsets[:,-1] >= threshold]
@@ -394,7 +431,6 @@ class CandidateGraph(nx.Graph):
 
             if 'subpixel' in clean_keys:
                 offsets = attributes['subpixel_offsets'][attributes['subpixel']]
-                print(offsets)
             kp1 = self.node[source]['keypoints']
             kp2 = self.node[destination]['keypoints']
 
@@ -415,11 +451,8 @@ class CandidateGraph(nx.Graph):
                 kp2y = kp2[m2[1]].pt[1]
 
                 if 'subpixel' in clean_keys:
-                    print(idx)
-                    print(kp2x, kp2y)
                     kp2x += offsets['x_offset'].values[i]
                     kp2y += offsets['y_offset'].values[i]
-                    print(kp2x, kp2y)
                 values.append([kp2x,
                                kp2y,
                                m2,
