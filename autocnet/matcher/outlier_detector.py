@@ -153,7 +153,7 @@ def compute_homography(kp1, kp2, outlier_algorithm=cv2.RANSAC, reproj_threshold=
 # TODO: CITATION and better design?
 def adaptive_non_max_suppression(keypoints, n=100, robust=0.9):
     """
-    Select the top n keypoints, using Adaptive Non-Maximal Suppression
+    Select the top n keypoints, using Adaptive Non-Maximal Suppression (see: Brown (2005) [Brown2005]_)
     to rank the keypoints in order of largest minimum suppression
     radius. A mask with only the positions of the top n keypoints set to 1 (and all else set to 0) is returned.
 
