@@ -504,4 +504,26 @@ class CandidateGraph(nx.Graph):
             adjacency_dict[n] = self.neighbors(n)
         io_json.write_json(adjacency_dict, outputfile)
 
+    # This could easily be changed to return the image name instead of the node if desired
+    def island_nodes(self):
+        """
+        Finds single nodes that are completely disconnected from the rest of the graph
 
+        Returns
+        -------
+        : list
+          A list of disconnected nodes, nodes of degree zero, island nodes, etc.
+        """
+        return nx.isolates(self)
+
+    # This could also easily be changed to return image names
+    def connected_subgraphs(self):
+        """
+        Finds and returns a list of each connected subgraph of nodes. Each subgraph is a set.
+
+        Returns
+        -------
+       : list
+          A list of connected sub-graphs of nodes, with the largest sub-graph first. Each subgraph is a set.
+        """
+        return sorted(nx.connected_components(self), key=len, reverse=True)
