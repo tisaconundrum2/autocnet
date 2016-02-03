@@ -295,7 +295,7 @@ class Mock(MagicMock):
 
 # All imported libraries should be added to this mock modules list.
 MOCK_MODULES = ['proj4', 'numpy', 'pandas', 'scipy', 'osgeo', 'cv2',
-                'scikit-image', 'skimage']
+                'scikit-image', 'skimage', 'skimage.feature', 'scipy', 'scipy.misc']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # NumpyDoc Options
