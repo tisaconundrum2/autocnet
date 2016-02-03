@@ -46,5 +46,14 @@ class TestCandidateGraph(unittest.TestCase):
         self.assertIsInstance(node['descriptors'][0], np.ndarray)
         self.assertEquals(self.graph.get_keypoints(node_number), node['keypoints'])
 
+    def test_island_nodes(self):
+        self.assertEqual(len(self.graph.island_nodes()), 1)
+
+    def test_connected_subgraphs(self):
+        subgraph_list = self.graph.connected_subgraphs()
+        self.assertEqual(len(subgraph_list), 2)
+        island = self.graph.island_nodes()[0]
+        self.assertTrue(island in subgraph_list[1])
+
     def tearDown(self):
         pass
