@@ -12,8 +12,10 @@ def clip_roi(img, center, img_size):
 
     Parameters
     ----------
-    img : ndarray or file handle
-          The input image to be clipped
+    img : ndarray or object
+          The input image to be clipped or an object
+          with a read_array method that takes a pixels
+          argument in the form [xstart, ystart, xstop, ystop]
 
     center : tuple
              (y,x) coordinates to center the roi
@@ -29,13 +31,21 @@ def clip_roi(img, center, img_size):
     if img_size % 2 == 0:
             raise ValueError('Image size must be odd.')
 
-    i = (img_size - 1) / 2
+    i = int((img_size - 1) / 2)
 
     y, x = map(int, center)
 
+    y_start = y - i
+    y_stop = y + i
+    x_start = x - i
+    x_stop = x + i
+
     if isinstance(img, np.ndarray):
-        clipped_img = img[y - i:y + i,
-                          x - i:x + i]
+        clipped_img = img[y_start:y_stop,
+                          x_start:x_stop]
+    else:
+        clipped_img = img.read_array(pixels=[x_start, y_start,
+                                             x_stop, y_stop])
 
     return clipped_img
 
