@@ -192,10 +192,10 @@ class GeoDataset(object):
         if not getattr(self, '_xy_extent', None):
             geotransform = self.geotransform
             minx = geotransform[0]
-            maxy = geotransform[3]
+            miny = geotransform[3]
 
             maxx = minx + geotransform[1] * self.dataset.RasterXSize
-            miny = maxy + geotransform[5] * self.dataset.RasterYSize
+            maxy = miny + geotransform[5] * self.dataset.RasterYSize
 
             self._xy_extent = [(minx, miny), (maxx, maxy)]
 
@@ -328,7 +328,7 @@ class GeoDataset(object):
                The image band number to be extracted as a NumPy array. Default band=1.
 
         pixels : list
-                 [start, ystart, xstop, ystop]. Default pixels=None.
+                 [xstart, ystart, xstop, ystop]. Default pixels=None.
 
         dtype : str
                 The NumPy dtype for the output array. Default dtype='float32'.
@@ -346,10 +346,24 @@ class GeoDataset(object):
         if not pixels:
             array = band.ReadAsArray().astype(dtype)
         else:
-            xstart = pixels[0][0]
-            ystart = pixels[0][1]
-            xextent = pixels[1][0] - xstart
-            yextent = pixels[1][1] - ystart
+            xstart = pixels[0]
+            if xstart < 0:
+                xstart = 0
+
+            ystart = pixels[1]
+            if ystart < 0:
+                ystart = 0
+
+            xmax, ymax = map(int, self.xy_extent[1])
+            if pixels[2] > xmax:
+                xextent = xmax - xstart
+            else:
+                xextent = pixels[2] - xstart
+
+            if pixels[3] > ymax:
+                yextent = ymax - ystart
+            else:
+                yextent = pixels[3] - ystart
             array = band.ReadAsArray(xstart, ystart,
                                           xextent, yextent).astype(dtype)
         return array
