@@ -165,7 +165,7 @@ class CandidateGraph(nx.Graph):
         """
         self.node[nodeindex]['handle'] = GeoDataset(self.node[nodeindex]['image_path'])
 
-    def get_array(self, nodeindex, downsampling=1):
+    def get_array(self, nodeindex):
         """
         Downsample the input image file by some amount using bicubic interpolation
         in order to reduce data sizes for visualization and analysis, e.g. feature detection
@@ -180,10 +180,9 @@ class CandidateGraph(nx.Graph):
         """
 
         array = self.node[nodeindex]['handle'].read_array()
-        newx_size = int(array.shape[0] / downsampling)
-        newy_size = int(array.shape[1] / downsampling)
+        newx_size = int(array.shape[0])
+        newy_size = int(array.shape[1])
 
-        resized_array = imresize(array, (newx_size, newy_size), interp='bicubic')
         return bytescale(resized_array)
 
     def extract_features(self, method='orb', extractor_parameters={}, downsampling=1):
@@ -204,8 +203,7 @@ class CandidateGraph(nx.Graph):
         """
         for node, attributes in self.nodes_iter(data=True):
             self.get_geodataset(node)
-            attributes['downsampling'] = downsampling
-            image = self.get_array(node, downsampling=downsampling)
+            image = self.get_array(node)
             keypoints, descriptors = fe.extract_features(image,
                                                          method=method,
                                                          extractor_parameters=extractor_parameters)
@@ -358,15 +356,15 @@ class CandidateGraph(nx.Graph):
                 s_idx = int(row['source_idx'])
                 d_idx = int(row['destination_idx'])
 
-                s_keypoint = [s_node['keypoints'][s_idx].pt[0] * s_node['downsampling'],
-                              s_node['keypoints'][s_idx].pt[1] * s_node['downsampling']]
+                s_keypoint = [s_node['keypoints'][s_idx].pt[0],
+                              s_node['keypoints'][s_idx].pt[1]]
 
-                d_keypoint = [d_node['keypoints'][d_idx].pt[0] * d_node['downsampling'],
-                              d_node['keypoints'][d_idx].pt[1] * d_node['downsampling']]
+                d_keypoint = [d_node['keypoints'][d_idx].pt[0],
+                              d_node['keypoints'][d_idx].pt[1]]
 
                 # Get the template and search windows
-                s_template = sp.clip_roi(s_image, s_keypoint, template_size * s_node['downsampling'])
-                d_search = sp.clip_roi(d_image, d_keypoint, search_size * d_node['downsampling'])
+                s_template = sp.clip_roi(s_image, s_keypoint, template_size)
+                d_search = sp.clip_roi(d_image, d_keypoint, search_size)
 
                 edge_offsets[i] = sp.subpixel_offset(s_template, d_search, upsampling=upsampling)
 
