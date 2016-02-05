@@ -34,12 +34,17 @@ class TestCandidateGraph(unittest.TestCase):
         except:
             pass
 
+    def test_get_array(self):
+        node_number = self.graph.node_name_map['AS15-M-0297_SML.png']
+        image = self.graph.get_array(node_number)
+        self.assertEqual((1012, 1012), image.shape)
+        self.assertEqual(np.uint8, image.dtype)
+
     def test_extract_features(self):
         # also tests get_geodataset() and get_keypoints
         self.graph.extract_features(extractor_parameters={'nfeatures':10})
         node_number = self.graph.node_name_map['AS15-M-0297_SML.png']
         node = self.graph.node[node_number]
-        self.assertEquals(len(node['image']), 1012)
         self.assertEquals(len(node['keypoints']), 10)
         self.assertEquals(len(node['descriptors']), 10)
         self.assertIsInstance(node['keypoints'][0], type(cv2.KeyPoint()))
