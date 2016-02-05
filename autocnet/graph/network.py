@@ -180,10 +180,8 @@ class CandidateGraph(nx.Graph):
         """
 
         array = self.node[nodeindex]['handle'].read_array()
-        newx_size = int(array.shape[0])
-        newy_size = int(array.shape[1])
 
-        return bytescale(resized_array)
+        return bytescale(array)
 
     def extract_features(self, method='orb', extractor_parameters={}, downsampling=1):
         """
@@ -435,9 +433,6 @@ class CandidateGraph(nx.Graph):
         for source, destination, attributes in self.edges_iter(data=True):
             matches = attributes['matches']
 
-            s_downsampling = self.node[source]['downsampling']
-            d_downsampling = self.node[destination]['downsampling']
-
             # Merge all of the masks
             if clean_keys:
                 mask = np.prod([attributes[i] for i in clean_keys], axis=0, dtype=np.bool)
@@ -455,18 +450,18 @@ class CandidateGraph(nx.Graph):
                 m1 = (source, int(row['source_idx']))
                 m2 = (destination, int(row['destination_idx']))
 
-                values.append([kp1[m1[1]].pt[0] * s_downsampling,
-                               kp1[m1[1]].pt[1] * s_downsampling,
+                values.append([kp1[m1[1]].pt[0],
+                               kp1[m1[1]].pt[1],
                                m1,
                                pt_idx,
                                source])
 
-                kp2x = kp2[m2[1]].pt[0] * d_downsampling
-                kp2y = kp2[m2[1]].pt[1] * d_downsampling
+                kp2x = kp2[m2[1]].pt[0]
+                kp2y = kp2[m2[1]].pt[1]
 
                 if 'subpixel' in clean_keys:
-                    kp2x += (offsets['x_offset'].values[i] * d_downsampling)
-                    kp2y += (offsets['y_offset'].values[i] * d_downsampling)
+                    kp2x += (offsets['x_offset'].values[i])
+                    kp2y += (offsets['y_offset'].values[i])
                 values.append([kp2x,
                                kp2y,
                                m2,
