@@ -45,7 +45,7 @@ class TestTwoImageMatching(unittest.TestCase):
         self.assertEqual(1, cg.number_of_edges())
 
         # Step: Extract image data and attribute nodes
-        cg.extract_features(extractor_parameters={"nfeatures":500})
+        cg.extract_features(method='sift', extractor_parameters={"nfeatures":500})
         for node, attributes in cg.nodes_iter(data=True):
             self.assertIn(len(attributes['keypoints']), range(490, 511))
 
@@ -68,12 +68,12 @@ class TestTwoImageMatching(unittest.TestCase):
             attributes['symmetry'] = symmetry_mask
 
             # Perform the ratio test
-            ratio_mask = od.distance_ratio(matches, ratio=0.95)
-            self.assertIn(ratio_mask.sum(), range(390, 451))
+            ratio_mask = od.distance_ratio(matches, ratio=0.8)
+            self.assertIn(ratio_mask.sum(), range(20, 100))
             attributes['ratio'] = ratio_mask
 
             mask = np.array(ratio_mask * symmetry_mask)
-            self.assertIn(len(matches.loc[mask]), range(75,101))
+            self.assertIn(len(matches.loc[mask]), range(5,50))
 
         # Step: Compute the homographies and apply RANSAC
         cg.compute_homographies(clean_keys=['symmetry', 'ratio'])

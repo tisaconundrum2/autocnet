@@ -366,9 +366,6 @@ class CandidateGraph(nx.Graph):
 
                 edge_offsets[i] = sp.subpixel_offset(s_template, d_search, upsampling=upsampling)
 
-            # The destination node is the node that is subpixel registered, so downsample there
-            edge_offsets[:, :2] /= d_node['downsampling']
-
             # Compute the mask for correlations less than the threshold
             threshold_mask = edge_offsets[edge_offsets[:, -1] >= threshold]
 
