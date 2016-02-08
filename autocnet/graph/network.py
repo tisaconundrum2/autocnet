@@ -161,11 +161,12 @@ class Edge(object):
 
         # for each edge, calculate this for each keypoint pair
         for i, (idx, row) in enumerate(matches.iterrows()):
+
             s_idx = int(row['source_idx'])
             d_idx = int(row['destination_idx'])
 
-            s_keypoint = self.source.keypoints[s_idx][['x', 'y']].values
-            d_keypoint = self.destination.keypoints[d_idx][['x', 'y']].values
+            s_keypoint = self.source.keypoints.iloc[s_idx][['x', 'y']].values
+            d_keypoint = self.destination.keypoints.iloc[d_idx][['x', 'y']].values
 
             # Get the template and search windows
             s_template = sp.clip_roi(self.source.handle, s_keypoint, template_size)
@@ -188,6 +189,26 @@ class Edge(object):
                                                                              'correlation'])
         self.masks = ('subpixel', mask)
 
+    def convex_hull_coverage(self, clean_keys=[]):
+        """
+        Compute the ratio $area_{convexhull} / area_{imageoverlap}$.
+
+        Returns
+        -------
+        ratio : float
+        """
+        if not self.homography:
+            raise(AttributeError, 'A homography has not been computed. Unable to determine image overlap.')
+
+        matches = self.matches
+
+        # Build up a composite mask from all of the user specified masks
+        if clean_keys:
+            mask = np.prod([self._mask_arrays[i] for i in clean_keys], axis=0, dtype=np.bool)
+            matches = matches[mask]
+
+        print(matches
+              )
     def update(self, *args):
         # Added for NetworkX
         pass
@@ -284,7 +305,7 @@ class Node(object):
         mask = od.adaptive_non_max_suppression(self.keypoints,nfeatures,robust)
         self.masks = ('anms', mask)
 
-    def convex_hull_ratio(self):
+    def convex_hull_ratio(self, clean_keys=[]):
         """
         Compute the ratio $area_{convexhull} / area_{total}$
 
@@ -296,6 +317,12 @@ class Node(object):
         ideal_area = self.handle.pixel_area
         if not hasattr(self, 'keypoints'):
             raise AttributeError('Keypoints must be extracted already, they have not been.')
+
+        if clean_keys:
+            mask = np.prod([self._mask_arrays[i] for i in clean_keys], axis=0, dtype=np.bool)
+            keypoints = self.keypoints[mask]
+
+        keypoints = self.keypoints[['x', 'y']].values
 
         ratio = convex_hull_ratio(keypoints, ideal_area)
         return ratio
@@ -500,6 +527,20 @@ class CandidateGraph(nx.Graph):
                 else:
                     edge.matches = dest_group
 
+    def symmetry_checks(self):
+        """
+        Perform a symmetry check on all edges in the graph
+        """
+        for s, d, edge in self.edges_iter(data=True):
+            edge.symmetry_check()
+
+    def ratio_checks(self, ratio=0.8):
+        """
+        Perform a ratio check on all edges in the graph
+        """
+        for s, d, edge in self.edges_iter(data=True):
+            edge.ratio_check(ratio=ratio)
+
     def compute_homographies(self, outlier_algorithm=cv2.RANSAC, clean_keys=[]):
         """
         Compute homographies for all edges using identical parameters
@@ -517,7 +558,6 @@ class CandidateGraph(nx.Graph):
         for s, d, edge in self.edges_iter(data=True):
             edge.compute_homography(outlier_algorithm=outlier_algorithm,
                                     clean_keys=clean_keys)
-
 
     def compute_subpixel_offsets(self, clean_keys=[], threshold=0.8, upsampling=10,
                                  template_size=9, search_size=27):
@@ -599,27 +639,32 @@ class CandidateGraph(nx.Graph):
 
             if 'subpixel' in clean_keys:
                 offsets = edge.subpixel_offsets
+
             kp1 = self.node[source].keypoints
             kp2 = self.node[destination].keypoints
-
             pt_idx = 0
             values = []
             for i, (idx, row) in enumerate(matches.iterrows()):
                 # Composite matching key (node_id, point_id)
+                m1_pid = int(row['source_idx'])
+                m2_pid = int(row['destination_idx'])
                 m1 = (source, int(row['source_idx']))
                 m2 = (destination, int(row['destination_idx']))
 
-                values.append([kp1[['x', 'y']].values,
+
+
+                values.append([kp1.iloc[m1_pid]['x'],
+                               kp1.iloc[m1_pid]['y'],
                                m1,
                                pt_idx,
                                source])
 
-                kp2x = kp2['x']
-                kp2y = kp2['y']
+                kp2x = kp2.iloc[m2_pid]['x']
+                kp2y = kp2.iloc[m2_pid]['y']
 
                 if 'subpixel' in clean_keys:
-                    kp2x += (offsets['x_offset'].values[i])
-                    kp2y += (offsets['y_offset'].values[i])
+                    kp2x += offsets['x_offset'].values[i]
+                    kp2y += offsets['y_offset'].values[i]
                 values.append([kp2x,
                                kp2y,
                                m2,
@@ -653,7 +698,7 @@ class CandidateGraph(nx.Graph):
 
         # Final validation to remove any correspondence with multiple correspondences in the same image
         merged_cnet = _validate_cnet(merged_cnet)
-
+        print(merged_cnet)
         return merged_cnet
 
     def to_json_file(self, outputfile):
@@ -692,20 +737,3 @@ class CandidateGraph(nx.Graph):
           A list of connected sub-graphs of nodes, with the largest sub-graph first. Each subgraph is a set.
         """
         return sorted(nx.connected_components(self), key=len, reverse=True)
-
-    def covered_area(self, idx):
-
-
-        node = self.node[nodeindex]
-        keypoint_objs = self.get_keypoints(nodeindex)
-
-        handle = node['handle']
-        image_area = handle.pixel_area
-        print(image_area)
-        pts = np.empty((len(keypoint_objs), 2))
-        for i, j in enumerate(keypoint_objs):
-            pts[i] = j.pt[0], j.pt[1]
-        print(pts)
-        hull = ConvexHull(pts)
-
-        return hull.volume
