@@ -74,7 +74,7 @@ class TestThreeImageMatching(unittest.TestCase):
         # Step update the serial numbers
         nid_to_serial = {}
         for i, node in cg.nodes_iter(data=True):
-            nid_to_serial[node] = self.serial_numbers[node.image_name]
+            nid_to_serial[i] = self.serial_numbers[node.image_name]
 
         cnet.replace({'nid': nid_to_serial}, inplace=True)
         # Step: Output a control network
