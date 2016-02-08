@@ -82,7 +82,7 @@ class TestMercator(unittest.TestCase):
 
     def test_read_clipped_array(self):
         arr = self.dataset.read_array(pixels=[0,0,10,10])
-        self.assertEqual(arr.shape, (100,100))
+        self.assertEqual(arr.shape, (10,10))
 
     def test_read_array_set_dtype(self):
         arr = self.dataset.read_array(dtype='int8')
