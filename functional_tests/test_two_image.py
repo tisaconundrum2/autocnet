@@ -5,6 +5,7 @@ import numpy as np
 
 from autocnet.examples import get_path
 from autocnet.fileio.io_controlnetwork import to_isis
+from autocnet.fileio.io_controlnetwork import write_filelist
 from autocnet.graph.network import CandidateGraph
 from autocnet.matcher.matcher import FlannMatcher
 from autocnet.matcher import outlier_detector as od
@@ -88,6 +89,11 @@ class TestTwoImageMatching(unittest.TestCase):
 
         # Step: And create a C object
         cnet = cg.to_cnet(clean_keys=['symmetry', 'ratio', 'ransac', 'subpixel'])
+
+        # Step: Create a fromlist to go with the cnet and write it to a file
+        filelist = cg.to_filelist()
+        write_filelist(filelist)
+
         # Step update the serial numbers
         nid_to_serial = {}
         for node, attributes in cg.nodes_iter(data=True):
@@ -102,4 +108,5 @@ class TestTwoImageMatching(unittest.TestCase):
     def tearDown(self):
         try:
             os.path.remove('TestTwoImageMatching.net')
+            os.path.remove('fromlist.lis')
         except: pass

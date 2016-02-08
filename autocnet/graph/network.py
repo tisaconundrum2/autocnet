@@ -375,6 +375,20 @@ class CandidateGraph(nx.Graph):
                                                                                  'correlation'])
             attributes['subpixel'] = mask
 
+    def to_filelist(self):
+        """
+        Generate a file list for the entire graph.
+
+        Returns
+        -------
+        filelist : list
+                   A list where each entry is a string containing the full path to an image in the graph.
+        """
+        filelist = []
+        for node in self.nodes_iter(data=True):
+            filelist.append(node[1]['image_path'])
+        return filelist
+
     def to_cnet(self, clean_keys=[]):
         """
         Generate a control network (C) object from a graph
@@ -422,6 +436,7 @@ class CandidateGraph(nx.Graph):
         merged_cnet = None
 
         for source, destination, attributes in self.edges_iter(data=True):
+
             matches = attributes['matches']
 
             # Merge all of the masks
