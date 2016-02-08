@@ -43,28 +43,23 @@ class TestThreeImageMatching(unittest.TestCase):
 
         # Step: Extract image data and attribute nodes
         cg.extract_features(extractor_parameters={'nfeatures':500})
-        for node, attributes in cg.nodes_iter(data=True):
-            self.assertIn(len(attributes['keypoints']), range(490, 511))
+        for i, node, in cg.nodes_iter(data=True):
+            self.assertIn(node.nkeypoints, range(490, 511))
 
         fl = FlannMatcher()
-        for node, attributes in cg.nodes_iter(data=True):
-            fl.add(attributes['descriptors'], key=node)
+        for i, node in cg.nodes_iter(data=True):
+            fl.add(node.descriptors, key=i)
         fl.train()
 
-        for node, attributes in cg.nodes_iter(data=True):
-            descriptors = attributes['descriptors']
-            matches = fl.query(descriptors, node, k=5)
+        for i, node in cg.nodes_iter(data=True):
+            descriptors = node.descriptors
+            matches = fl.query(descriptors, i, k=5)
             cg.add_matches(matches)
 
-        for source, destination, attributes in cg.edges_iter(data=True):
-            matches = attributes['matches']
-            # Perform the symmetry check
-            symmetry_mask = od.mirroring_test(matches)
-            attributes['symmetry'] = symmetry_mask
-
-            # Perform the ratio test
-            ratio_mask = od.distance_ratio(matches, ratio=0.8)
-            attributes['ratio'] = ratio_mask
+        for source, destination, edge in cg.edges_iter(data=True):
+            matches = edge.matches
+            edge.symmetry_check()
+            edge.ratio_check(ratio=0.8)
 
         cg.compute_homographies(clean_keys=['symmetry', 'ratio'])
 
@@ -73,8 +68,8 @@ class TestThreeImageMatching(unittest.TestCase):
 
         # Step update the serial numbers
         nid_to_serial = {}
-        for node, attributes in cg.nodes_iter(data=True):
-            nid_to_serial[node] = self.serial_numbers[attributes['image_name']]
+        for i, node in cg.nodes_iter(data=True):
+            nid_to_serial[node] = self.serial_numbers[node.image_name]
 
         cnet.replace({'nid': nid_to_serial}, inplace=True)
         # Step: Output a control network
