@@ -46,39 +46,34 @@ class TestTwoImageMatching(unittest.TestCase):
 
         # Step: Extract image data and attribute nodes
         cg.extract_features(method='sift', extractor_parameters={"nfeatures":500})
-        for node, attributes in cg.nodes_iter(data=True):
-            self.assertIn(len(attributes['keypoints']), range(490, 511))
+        for i, node in cg.nodes_iter(data=True):
+            self.assertIn(node.nkeypoints, range(490, 511))
 
         # Step: apply Adaptive non-maximal suppression
-        for node, attributes in cg.nodes_iter(data=True):
-            attributes['keypoint_mask'] = od.adaptive_non_max_suppression(attributes['keypoints'])
-            self.assertEqual(len(attributes['keypoint_mask']), len(attributes['keypoints']))
+        for i, node in cg.nodes_iter(data=True):
+            pass
+            #node.anms()
+            #self.assertNotEqual(node.nkeypoints, sum(node._mask_arrays['anms']))
 
         # Step: Then apply a FLANN matcher
         fl = FlannMatcher()
-        for node, attributes in cg.nodes_iter(data=True):
-            fl.add(attributes['descriptors'], key=node)
+        for i, node, in cg.nodes_iter(data=True):
+            fl.add(node.descriptors, key=i)
         fl.train()
 
-        for node, attributes in cg.nodes_iter(data=True):
-            descriptors = attributes['descriptors']
-            matches = fl.query(descriptors, node, k=5)
+        for i, node in cg.nodes_iter(data=True):
+            descriptors = node.descriptors
+            matches = fl.query(descriptors, i, k=5)
             cg.add_matches(matches)
 
-        for source, destination, attributes in cg.edges_iter(data=True):
-            matches = attributes['matches']
+        for source, destination, edge in cg.edges_iter(data=True):
             # Perform the symmetry check
-            symmetry_mask = od.mirroring_test(matches)
-            self.assertIn(symmetry_mask.sum(), range(430, 461))
-            attributes['symmetry'] = symmetry_mask
+            symmetry_mask = edge.symmetry_check()
+            self.assertIn(edge._mask_arrays['symmetry'].sum(), range(430, 461))
 
             # Perform the ratio test
-            ratio_mask = od.distance_ratio(matches, ratio=0.8)
-            self.assertIn(ratio_mask.sum(), range(20, 100))
-            attributes['ratio'] = ratio_mask
-
-            mask = np.array(ratio_mask * symmetry_mask)
-            self.assertIn(len(matches.loc[mask]), range(5,50))
+            edge.ratio_check(ratio=0.8)
+            self.assertIn(edge._mask_arrays['ratio'].sum(), range(20, 100))
 
         # Step: Compute the homographies and apply RANSAC
         cg.compute_homographies(clean_keys=['symmetry', 'ratio'])
@@ -90,8 +85,8 @@ class TestTwoImageMatching(unittest.TestCase):
         cnet = cg.to_cnet(clean_keys=['symmetry', 'ratio', 'ransac', 'subpixel'])
         # Step update the serial numbers
         nid_to_serial = {}
-        for node, attributes in cg.nodes_iter(data=True):
-            nid_to_serial[node] = self.serial_numbers[attributes['image_name']]
+        for i, node in cg.nodes_iter(data=True):
+            nid_to_serial[node] = self.serial_numbers[node.image_name]
 
         cnet.replace({'nid': nid_to_serial}, inplace=True)
 
