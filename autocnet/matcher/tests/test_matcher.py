@@ -3,6 +3,7 @@ import sys
 import unittest
 
 import cv2
+import numpy as np
 
 sys.path.append(os.path.abspath('..'))
 

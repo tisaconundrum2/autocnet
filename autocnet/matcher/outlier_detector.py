@@ -56,15 +56,22 @@ def distance_ratio(matches, ratio=0.8):
     counter = 0
     for i, group in matches.groupby('source_idx'):
         group_size = len(group)
+        n_unique = len(group['destination_idx'].unique())
         # If we can not perform the ratio check because all matches are symmetrical
-        if len(group['destination_idx'].unique()) == 1:
+        if n_unique == 1:
             mask[counter:counter + group_size] = True
             counter += group_size
         else:
             # Otherwise, we can perform the ratio test
-            sorted = group.sort_values(by=['distance'])
-            unique = sorted['distance'].unique()
-            if unique[0] < ratio * unique[1]:
+            sorted_group = group.sort_values(by=['distance'])
+            unique = sorted_group['distance'].unique()
+
+            if len(unique) == 1:
+                # The distances from the unique points are identical
+                mask[counter: counter + group_size] = False
+                counter += group_size
+            elif unique[0] / unique[1] < ratio:
+                # The ratio test passes
                 mask[counter] = True
                 mask[counter + 1:counter + group_size] = False
                 counter += group_size

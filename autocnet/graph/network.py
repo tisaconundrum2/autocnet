@@ -165,7 +165,7 @@ class CandidateGraph(nx.Graph):
         """
         self.node[nodeindex]['handle'] = GeoDataset(self.node[nodeindex]['image_path'])
 
-    def get_array(self, nodeindex, downsampling=1):
+    def get_array(self, nodeindex):
         """
         Downsample the input image file by some amount using bicubic interpolation
         in order to reduce data sizes for visualization and analysis, e.g. feature detection
@@ -180,20 +180,19 @@ class CandidateGraph(nx.Graph):
         """
 
         array = self.node[nodeindex]['handle'].read_array()
-        newx_size = int(array.shape[0] / downsampling)
-        newy_size = int(array.shape[1] / downsampling)
 
-        resized_array = imresize(array, (newx_size, newy_size), interp='bicubic')
-        self.node[nodeindex]['image'] = bytescale(resized_array)
-        self.node[nodeindex]['image_downsampling'] = downsampling
+        return bytescale(array)
 
-    def extract_features(self, extractor_parameters={}, downsampling=1):
+    def extract_features(self, method='orb', extractor_parameters={}, downsampling=1):
         """
         Extracts features from each image in the graph and uses the result to assign the
         node attributes for 'handle', 'image', 'keypoints', and 'descriptors'.
 
         Parameters
         ----------
+        method : {'orb', 'sift', 'fast'}
+                 The descriptor method to be used
+
         extractor_parameters : dict
                                A dictionary containing OpenCV SIFT parameters names and values.
 
@@ -202,9 +201,13 @@ class CandidateGraph(nx.Graph):
         """
         for node, attributes in self.nodes_iter(data=True):
             self.get_geodataset(node)
-            self.get_array(node, downsampling=downsampling)
-            attributes['keypoints'], attributes['descriptors'] = fe.extract_features(attributes['image'],
-                                                                                     extractor_parameters)
+            image = self.get_array(node)
+            keypoints, descriptors = fe.extract_features(image,
+                                                         method=method,
+                                                         extractor_parameters=extractor_parameters)
+
+            attributes['keypoints'] = keypoints
+            attributes['descriptors'] = descriptors.astype(np.float32, copy=False)
 
     def add_matches(self, matches):
         """
@@ -337,31 +340,34 @@ class CandidateGraph(nx.Graph):
                 matches = matches[mask]
                 full_mask = np.where(mask == True)
 
-            src_image = self.node[source]['image']
-            dest_image = self.node[destination]['image']
-
             # Preallocate the numpy array to avoid appending and type conversion
             edge_offsets = np.empty((len(matches),3))
+
+            s_node = self.node[source]
+            d_node = self.node[destination]
+
+            s_image = s_node['handle']
+            d_image = d_node['handle']
 
             # for each edge, calculate this for each keypoint pair
             for i, (idx, row) in enumerate(matches.iterrows()):
                 s_idx = int(row['source_idx'])
                 d_idx = int(row['destination_idx'])
 
-                s_node = self.node[source]
-                d_node = self.node[destination]
+                s_keypoint = [s_node['keypoints'][s_idx].pt[0],
+                              s_node['keypoints'][s_idx].pt[1]]
 
-                s_keypoint = s_node['keypoints'][s_idx].pt
-                d_keypoint = d_node['keypoints'][d_idx].pt
+                d_keypoint = [d_node['keypoints'][d_idx].pt[0],
+                              d_node['keypoints'][d_idx].pt[1]]
 
                 # Get the template and search windows
-                s_template = sp.clip_roi(src_image, s_keypoint, template_size)
-                d_search = sp.clip_roi(dest_image, d_keypoint, search_size)
+                s_template = sp.clip_roi(s_image, s_keypoint, template_size)
+                d_search = sp.clip_roi(d_image, d_keypoint, search_size)
 
                 edge_offsets[i] = sp.subpixel_offset(s_template, d_search, upsampling=upsampling)
 
             # Compute the mask for correlations less than the threshold
-            threshold_mask = edge_offsets[edge_offsets[:,-1] >= threshold]
+            threshold_mask = edge_offsets[edge_offsets[:, -1] >= threshold]
 
             # Convert the truncated mask back into a full length mask
             if clean_keys:
@@ -466,8 +472,8 @@ class CandidateGraph(nx.Graph):
                 kp2y = kp2[m2[1]].pt[1]
 
                 if 'subpixel' in clean_keys:
-                    kp2x += offsets['x_offset'].values[i]
-                    kp2y += offsets['y_offset'].values[i]
+                    kp2x += (offsets['x_offset'].values[i])
+                    kp2y += (offsets['y_offset'].values[i])
                 values.append([kp2x,
                                kp2y,
                                m2,
