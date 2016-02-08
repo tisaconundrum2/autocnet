@@ -70,7 +70,7 @@ def distance_ratio(matches, ratio=0.8):
                 # The distances from the unique points are identical
                 mask[counter: counter + group_size] = False
                 counter += group_size
-            elif unique[1] / unique[0] < ratio:
+            elif unique[0] / unique[1] < ratio:
                 # The ratio test passes
                 mask[counter] = True
                 mask[counter + 1:counter + group_size] = False
