@@ -78,7 +78,7 @@ class TestTwoImageMatching(unittest.TestCase):
             attributes['ratio'] = ratio_mask
 
             mask = np.array(ratio_mask * symmetry_mask)
-            self.assertIn(len(matches.loc[mask]), range(100,300))
+            self.assertIn(len(matches.loc[mask]), range(40,100))
 
         # Step: Compute the homographies and apply RANSAC
         cg.compute_homographies(clean_keys=['symmetry', 'ratio'])
