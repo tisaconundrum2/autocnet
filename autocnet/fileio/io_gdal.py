@@ -142,6 +142,11 @@ class GeoDataset(object):
 
     @property
     def geotransform(self):
+      """
+      Where the array is in the form:
+      [top left x, w-e pixel resolution, x-rotation,
+      top left y, y-rotation, n-s pixel resolution]
+      """
         if not getattr(self, '_geotransform', None):
             self._geotransform = self.dataset.GetGeoTransform()
         return self._geotransform
