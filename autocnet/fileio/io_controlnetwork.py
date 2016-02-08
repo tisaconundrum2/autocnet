@@ -10,6 +10,23 @@ HEADERSTARTBYTE = 65536
 DEFAULTUSERNAME = 'AutoControlNetGeneration'
 
 
+def write_filelist(lst, path="fromlist.lis"):
+    """
+    Writes a filelist to a file so it can be used in ISIS3.
+
+    Parameters
+    ----------
+    lst : list
+          A list containing full paths to the images used, as strings.
+    path : str
+           The name of the file to write out. Default: fromlist.lis
+    """
+    handle = open(path, 'w')
+    for filename in lst:
+        handle.write(filename)
+        handle.write('\n')
+    return
+
 def to_isis(path, C, mode='w', version=VERSION,
             headerstartbyte=HEADERSTARTBYTE,
             networkid='None', targetname='None',
