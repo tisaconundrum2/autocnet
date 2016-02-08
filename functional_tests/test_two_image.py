@@ -74,7 +74,7 @@ class TestTwoImageMatching(unittest.TestCase):
 
             # Perform the ratio test
             ratio_mask = od.distance_ratio(matches, ratio=0.8)
-            self.assertIn(ratio_mask.sum(), range(300, 350))
+            self.assertIn(ratio_mask.sum(), range(250, 350))
             attributes['ratio'] = ratio_mask
 
             mask = np.array(ratio_mask * symmetry_mask)
