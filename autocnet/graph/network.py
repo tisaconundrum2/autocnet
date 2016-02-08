@@ -25,14 +25,14 @@ class Edge(object):
              The source node
     destination : hashable
                   The destination node
-    masks : list
+    masks : set
             A list of the available masking arrays
     """
 
     def __init__(self, source, destination):
         self.source = source
         self.destination = destination
-        self._masks = []
+        self._masks = set()
         self._mask_arrays = {}
         self._homography = None
         self._subpixel_offsets = None
@@ -43,7 +43,7 @@ class Edge(object):
 
     @masks.setter
     def masks(self, v):
-        self._masks.append(v[0])
+        self._masks.add(v[0])
         self._mask_arrays[v[0]] = v[1]
 
     @property
@@ -210,14 +210,14 @@ class Node(object):
                  The number of keypoints found for this image
     descriptors : ndarray
                   32-bit array of feature descriptors returned by OpenCV
-    masks : list
+    masks : set
             A list of the available masking arrays
     """
 
     def __init__(self, image_name, image_path):
         self.image_name = image_name
         self.image_path = image_path
-        self._masks = []
+        self._masks = set()
         self._mask_arrays = {}
 
     @property
@@ -243,7 +243,7 @@ class Node(object):
 
     @masks.setter
     def masks(self, v):
-        self._masks.append(v[0])
+        self._masks.add(v[0])
         self._mask_arrays[v[0]] = v[1]
 
     def get_array(self, band=1):
@@ -539,8 +539,8 @@ class CandidateGraph(nx.Graph):
                    A list where each entry is a string containing the full path to an image in the graph.
         """
         filelist = []
-        for node in self.nodes_iter(data=True):
-            filelist.append(node[1]['image_path'])
+        for i, node in self.nodes_iter(data=True):
+            filelist.append(node.image_path)
         return filelist
 
     def to_cnet(self, clean_keys=[]):
