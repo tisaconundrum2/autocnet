@@ -490,9 +490,9 @@ class CandidateGraph(nx.Graph):
                 source_key = dest_group['source_image'].values[0]
                 destination_key = dest_group['destination_image'].values[0]
                 try:
-                    edge = self[source_key][destination_key]
+                    edge = self.edge[source_key][destination_key]
                 except: # pragma: no cover
-                    edge = self[destination_key][source_key]
+                    edge = self.edge[destination_key][source_key]
 
                 if hasattr(edge, 'matches'):
                     df = edge.matches
