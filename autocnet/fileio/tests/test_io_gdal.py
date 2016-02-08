@@ -22,7 +22,7 @@ class TestMercator(unittest.TestCase):
         self.assertEqual(self.dataset.unit_type, '')
 
     def test_get_xy_extent(self):
-        self.assertEqual(self.dataset.xy_extent, [(0.0, -3921610.0), (10667520.0, 3921610.0)])
+        self.assertEqual(self.dataset.xy_extent, [(0.0, 3921610.0), (10667520.0, -3921610.0)])
 
     def test_get_no_data_value(self):
         self.assertEqual(self.dataset.no_data_value, 0.0)
@@ -37,10 +37,10 @@ class TestMercator(unittest.TestCase):
 
     def test_xy_extent(self):
         xy_extent = self.dataset.xy_extent
-        self.assertEqual(xy_extent, [(0.0, -3921610.0), (10667520.0, 3921610.0)])
+        self.assertEqual(xy_extent, [(0.0, 3921610.0), (10667520.0, -3921610.0)])
 
     def test_latlon_extent(self):
-        self.assertEqual(self.dataset.latlon_extent, [(90.0, 0.0), (-90.0, -150.4067721290261)])
+        self.assertEqual(self.dataset.latlon_extent, [(-90.0, 0.0), (90.0, -150.4067721290261)])
 
     def test_spheroid(self):
         sphere = self.dataset.spheroid
@@ -80,10 +80,6 @@ class TestMercator(unittest.TestCase):
         self.assertEqual(arr.shape, (1694, 2304))
         self.assertEqual(arr.dtype, np.float32)
 
-    def test_read_clipped_array(self):
-        arr = self.dataset.read_array(pixels=((0,0), (100,100)))
-        self.assertEqual(arr.shape, (100,100))
-
     def test_read_array_set_dtype(self):
         arr = self.dataset.read_array(dtype='int8')
         self.assertEqual(arr.dtype, np.int8)
@@ -101,7 +97,7 @@ class TestLambert(unittest.TestCase):
         self.assertEqual(self.dataset.unit_type, '')
 
     def test_get_xy_extent(self):
-        self.assertEqual(self.dataset.xy_extent, [(-464400.0, -1571220.0), (460530.0, -506970.0)])
+        self.assertEqual(self.dataset.xy_extent, [(-464400.0, -506970.0), (460530.0, -1571220.0)])
 
     def test_get_no_data_value(self):
         self.assertEqual(self.dataset.no_data_value, 0.0)
@@ -123,10 +119,10 @@ class TestLambert(unittest.TestCase):
 
     def test_xy_extent(self):
         xy_extent = self.dataset.xy_extent
-        self.assertEqual(xy_extent, [(-464400.0, -1571220.0), (460530.0, -506970.0)])
+        self.assertEqual(xy_extent, [(-464400.0, -506970.0), (460530.0, -1571220.0)])
 
     def test_latlon_extent(self):
-        self.assertEqual(self.dataset.latlon_extent, [(-89.98516988892511, -171.35800063907413), (-89.95883789218114, -178.8099427811737)])
+        self.assertEqual(self.dataset.latlon_extent, [(-89.95903191125286, -140.8933768668104),(-89.98515758604582, -148.48059053073257)])
 
 class TestPolar(unittest.TestCase):
     def setUp(self):
@@ -140,7 +136,7 @@ class TestPolar(unittest.TestCase):
         self.assertEqual(self.dataset.unit_type, '')
 
     def test_get_xy_extent(self):
-        self.assertEqual(self.dataset.xy_extent, [(-2129800.0, -2129800.0), (2129800.0, 2129800.0)])
+        self.assertEqual(self.dataset.xy_extent, [(-2129800.0, 2129800.0), (2129800.0, -2129800.0)])
 
     def test_get_no_data_value(self):
         self.assertEqual(self.dataset.no_data_value, 0.0)
@@ -158,7 +154,7 @@ class TestPolar(unittest.TestCase):
 
     def test_xy_extent(self):
         xy_extent = self.dataset.xy_extent
-        self.assertEqual(xy_extent, [(-2129800.0, -2129800.0), (2129800.0, 2129800.0)])
+        self.assertEqual(xy_extent, [(-2129800.0, 2129800.0), (2129800.0, -2129800.0)])
 
 class TestWriter(unittest.TestCase):
     def setUp(self):

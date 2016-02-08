@@ -1,14 +1,12 @@
 import os
 
 import unittest
-import numpy as np
 
 from autocnet.examples import get_path
 from autocnet.fileio.io_controlnetwork import to_isis
 from autocnet.fileio.io_controlnetwork import write_filelist
 from autocnet.graph.network import CandidateGraph
 from autocnet.matcher.matcher import FlannMatcher
-from autocnet.matcher import outlier_detector as od
 
 
 class TestTwoImageMatching(unittest.TestCase):
