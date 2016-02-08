@@ -72,7 +72,7 @@ class TestTwoImageMatching(unittest.TestCase):
 
             # Perform the ratio test
             edge.ratio_check(ratio=0.8)
-            self.assertIn(edge._mask_arrays['ratio'].sum(), range(20, 100))
+            self.assertIn(edge._mask_arrays['ratio'].sum(), range(250, 350))
 
         # Step: Compute the homographies and apply RANSAC
         cg.compute_homographies(clean_keys=['symmetry', 'ratio'])
