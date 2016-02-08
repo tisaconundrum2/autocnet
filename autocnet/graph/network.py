@@ -529,6 +529,20 @@ class CandidateGraph(nx.Graph):
                                           upsampling=upsampling, template_size=template_size,
                                           search_size=search_size)
 
+    def to_filelist(self):
+        """
+        Generate a file list for the entire graph.
+
+        Returns
+        -------
+        filelist : list
+                   A list where each entry is a string containing the full path to an image in the graph.
+        """
+        filelist = []
+        for node in self.nodes_iter(data=True):
+            filelist.append(node[1]['image_path'])
+        return filelist
+
     def to_cnet(self, clean_keys=[]):
         """
         Generate a control network (C) object from a graph
