@@ -4,6 +4,7 @@ source = autocnet
 omit =
     fileio/ControlNetFileV0002_pb2.py
     utils/visualization.py
+    vis/*
 exclude_lines =
     pragma: no cover
     def __repr__

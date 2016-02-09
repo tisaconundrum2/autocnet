@@ -8,12 +8,9 @@ from autocnet.fileio.io_gdal import GeoDataset # set handle, get image as array
 from matplotlib import pyplot as plt # plotting 
 
 
-def plotFeatures(imageName, keypoints, pointColorAndHatch='b.', featurePointSize=7):
+def plot_node(node, ax=None, clean_keys=[], **kwargs):
     """
-    Plot an image and its found features using the image file name and 
-    a keypoint list found using autocnet.feature_extractor. The user may
-    also specify the color and style of the points to be plotted and the
-    size of the points.
+    Plot the array and keypoints for a given node.
 
     Parameters
     ----------
@@ -21,35 +18,49 @@ def plotFeatures(imageName, keypoints, pointColorAndHatch='b.', featurePointSize
                 The base name of the image file (without path). 
                 This will be the title of the plot.
 
-    keypoints : list
-                The keypoints of this image found by the feature extractor.
+    ax : object
+         A MatPlotLIb axes object
 
-    pointColorAndHatch : str
-                         The color and hatch (symbol) to be used to mark
-                         the found features. Defaults to 'b.', blue and 
-                         square dot. See matplotlib documentation for
-                         more choices.
+    clean_keys : list
+                 of strings of masking array names to apply
 
-    featurePointSize : int
-                       The size of the point marker. Defaults to 7.
-
+    kwargs : dict
+             of MatPlotLib plotting options
     """
 
-    imgArray = GeoDataset(get_path(imageName)).read_array()
-    height, width = imgArray.shape[:2]
+    if ax is None:
+        ax = plt.gca()
 
-    displayBox = np.zeros((height, width), np.uint8)
-    displayBox[:height, :width] = imgArray
+    band = 1
+    if 'band' in kwargs.keys():
+        band = kwargs['band']
+        kwargs.pop('band', None)
 
-    plt.title(imageName)
-    plt.margins(tight=True)
-    plt.axis('off')
-    plt.imshow(displayBox, cmap='Greys')
+    array = node.get_array(band)
 
-    for kp in keypoints: 
-        x,y = kp.pt
-        plt.plot(x,y,pointColorAndHatch, markersize=featurePointSize)
-        
+    ax.set_title(node.image_name)
+    ax.margins(tight=True)
+    ax.axis('off')
+
+    if 'cmap' in kwargs:
+        cmap = kwargs['cmap']
+    else:
+        cmap = 'Greys'
+
+    ax.imshow(array, cmap=cmap)
+
+    keypoints = node.keypoints
+    if clean_keys:
+        mask = np.prod([node._mask_arrays[i] for i in clean_keys], axis=0, dtype=np.bool)
+        keypoints = node.keypoints[mask]
+
+    marker = '.'
+    if 'marker' in kwargs.keys():
+        marker = kwargs['marker']
+        kwargs.pop('marker', None)
+    ax.scatter(keypoints['x'], keypoints['y'], marker=marker, **kwargs)
+
+    return ax
 
 
 def plotAdjacencyGraphFeatures(graph, pointColorAndHatch='b.', featurePointSize=7):

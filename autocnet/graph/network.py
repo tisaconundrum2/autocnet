@@ -14,7 +14,7 @@ from autocnet.matcher import feature_extractor as fe # extract features from ima
 from autocnet.matcher import outlier_detector as od
 from autocnet.matcher import subpixel as sp
 from autocnet.cg.cg import convex_hull_ratio, overlapping_polygon_area
-
+from autocnet.vis.graph_view import plot_node
 
 class Edge(object):
     """
@@ -325,6 +325,7 @@ class Node(object):
         mask = od.adaptive_non_max_suppression(self.keypoints,nfeatures,robust)
         self.masks = ('anms', mask)
 
+
     def convex_hull_ratio(self, clean_keys=[]):
         """
         Compute the ratio $area_{convexhull} / area_{total}$
@@ -346,6 +347,9 @@ class Node(object):
 
         ratio = convex_hull_ratio(keypoints, ideal_area)
         return ratio
+
+    def plot(self, clean_keys=[], **kwargs):
+        return plot_node(self, clean_keys=clean_keys, **kwargs)
 
     def update(self, *args):
         # Empty pass method to get NetworkX to accept a non-dict
@@ -377,13 +381,8 @@ class CandidateGraph(nx.Graph):
 
         # the node_name is the relative path for the image
         for node_name, node in self.nodes_iter(data=True):
-
-            if os.path.isabs(node_name):
-                image_name = os.path.basename(node_name)
-                image_path = node_name
-            else:
-                image_name = os.path.basename(os.path.abspath(node_name))
-                image_path = os.path.abspath(node_name)
+            image_name = os.path.basename(node_name)
+            image_path = node_name
 
             # Replace the default node dict with an object
             self.node[node_name] = Node(image_name, image_path)
