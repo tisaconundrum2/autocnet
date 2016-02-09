@@ -14,9 +14,8 @@ def plot_node(node, ax=None, clean_keys=[], **kwargs):
 
     Parameters
     ----------
-    imageName : str
-                The base name of the image file (without path). 
-                This will be the title of the plot.
+    node : object
+           A Node object from which data is extracted
 
     ax : object
          A MatPlotLIb axes object
