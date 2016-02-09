@@ -290,8 +290,7 @@ class Node(object):
 
     def get_array(self, band=1):
         """
-        Downsample the input image file by some amount using bicubic interpolation
-        in order to reduce data sizes for visualization and analysis, e.g. feature detection
+        Get a band as a 32-bit numpy array
 
         Parameters
         ----------
