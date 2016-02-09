@@ -7,6 +7,7 @@ import numpy as np
 import unittest
 
 from autocnet.examples import get_path
+from autocnet.fileio.io_gdal import GeoDataset
 
 from .. import network
 
@@ -34,23 +35,6 @@ class TestCandidateGraph(unittest.TestCase):
         except:
             pass
 
-    def test_get_array(self):
-        node_number = self.graph.node_name_map['AS15-M-0297_SML.png']
-        image = self.graph.get_array(node_number)
-        self.assertEqual((1012, 1012), image.shape)
-        self.assertEqual(np.uint8, image.dtype)
-
-    def test_extract_features(self):
-        # also tests get_geodataset() and get_keypoints
-        self.graph.extract_features(extractor_parameters={'nfeatures':10})
-        node_number = self.graph.node_name_map['AS15-M-0297_SML.png']
-        node = self.graph.node[node_number]
-        self.assertEquals(len(node['keypoints']), 10)
-        self.assertEquals(len(node['descriptors']), 10)
-        self.assertIsInstance(node['keypoints'][0], type(cv2.KeyPoint()))
-        self.assertIsInstance(node['descriptors'][0], np.ndarray)
-        self.assertEquals(self.graph.get_keypoints(node_number), node['keypoints'])
-
     def test_island_nodes(self):
         self.assertEqual(len(self.graph.island_nodes()), 1)
 
@@ -62,3 +46,33 @@ class TestCandidateGraph(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+
+class TestNode(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.graph = network.CandidateGraph.from_adjacency(get_path('adjacency.json'))
+
+    def test_get_handle(self):
+        self.assertIsInstance(self.graph.node[0].handle, GeoDataset)
+
+    def test_get_array(self):
+        image = self.graph.node[0].get_array()
+        self.assertEqual((1012, 1012), image.shape)
+        self.assertEqual(np.uint8, image.dtype)
+
+    def test_extract_features(self):
+        node = self.graph.node[0]
+        image = node.get_array()
+        node.extract_features(image, extractor_parameters={'nfeatures':10})
+        self.assertEquals(len(node.keypoints), 10)
+        self.assertEquals(len(node.descriptors), 10)
+        self.assertIsInstance(node.descriptors[0], np.ndarray)
+
+    def test_convex_hull_ratio_fail(self):
+        # Convex hull computation is checked lower in the hull computation
+        node = self.graph.node[0]
+        self.assertRaises(AttributeError,node.convex_hull_ratio)
+
+

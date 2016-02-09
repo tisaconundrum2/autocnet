@@ -207,6 +207,14 @@ class GeoDataset(object):
         return self._xy_extent
 
     @property
+    def pixel_area(self):
+        if not getattr(self, '_pixel_area', None):
+            extent = self.xy_extent
+            self._pixel_area = extent[1][0] * extent[1][1]
+
+        return self._pixel_area
+
+    @property
     def pixel_width(self):
         if not getattr(self, '_pixel_width', None):
             self._pixel_width = self.geotransform[1]
