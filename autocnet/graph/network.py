@@ -6,7 +6,6 @@ import cv2
 import numpy as np
 
 from scipy.misc import bytescale
-from scipy.spatial import ConvexHull
 
 from autocnet.control.control import C
 from autocnet.fileio import io_json
@@ -14,7 +13,7 @@ from autocnet.fileio.io_gdal import GeoDataset
 from autocnet.matcher import feature_extractor as fe # extract features from image
 from autocnet.matcher import outlier_detector as od
 from autocnet.matcher import subpixel as sp
-from autocnet.health.area import convex_hull_ratio
+from autocnet.cg.cg import convex_hull_ratio, overlapping_polygon_area
 
 
 class Edge(object):
@@ -104,22 +103,25 @@ class Edge(object):
         if clean_keys:
             mask = np.prod([self._mask_arrays[i] for i in clean_keys], axis=0, dtype=np.bool)
             matches = matches[mask]
-
             full_mask = np.where(mask == True)
-        transformation_matrix, ransac_mask = od.compute_homography(self.source.keypoints[['x', 'y']].values,
-                                                                   self.destination.keypoints[['x', 'y']].values)
+
+        s_keypoints = self.source.keypoints.iloc[matches['source_idx'].values]
+        d_keypoints = self.source.keypoints.iloc[matches['destination_idx'].values]
+
+        transformation_matrix, ransac_mask = od.compute_homography(s_keypoints[['x', 'y']].values,
+                                                                   d_keypoints[['x', 'y']].values)
+
         ransac_mask = ransac_mask.ravel()
         # Convert the truncated RANSAC mask back into a full length mask
         if clean_keys:
             mask[full_mask] = ransac_mask
         else:
             mask = ransac_mask
-
         self.masks = ('ransac', mask)
         self.homography = transformation_matrix
 
     def compute_subpixel_offset(self, clean_keys=[], threshold=0.8, upsampling=10,
-                                 template_size=9, search_size=27):
+                                 template_size=9, search_size=39):
         """
         For the entire graph, compute the subpixel offsets using pattern-matching and add the result
         as an attribute to each edge of the graph.
@@ -197,18 +199,37 @@ class Edge(object):
         -------
         ratio : float
         """
-        if not self.homography:
-            raise(AttributeError, 'A homography has not been computed. Unable to determine image overlap.')
+        if self.homography is None:
+            raise AttributeError('A homography has not been computed. Unable to determine image overlap.')
 
         matches = self.matches
-
         # Build up a composite mask from all of the user specified masks
         if clean_keys:
             mask = np.prod([self._mask_arrays[i] for i in clean_keys], axis=0, dtype=np.bool)
             matches = matches[mask]
 
-        print(matches
-              )
+        d_idx = matches['destination_idx'].values
+        keypoints = self.destination.keypoints.iloc[d_idx][['x', 'y']].values
+        if len(keypoints) < 3:
+            raise ValueError('Convex hull computation requires at least 3 measures.')
+
+        # TODO: Ideal area is mocked in
+        ideal_area = self.compute_homography_overlap()
+
+        ratio = convex_hull_ratio(keypoints, ideal_area)
+
+    def compute_homography_overlap(self):
+        """
+        Using the homography, estimate the overlapping area
+        between images on the edge
+
+        Returns
+        -------
+        area : float
+               The estimated area
+        """
+        return 1.0
+
     def update(self, *args):
         # Added for NetworkX
         pass
@@ -294,10 +315,10 @@ class Node(object):
 
         """
         keypoint_objs, descriptors = fe.extract_features(array, **kwargs)
-        keypoints = np.empty((len(keypoint_objs), 3),dtype=np.float32)
+        keypoints = np.empty((len(keypoint_objs), 4),dtype=np.float32)
         for i, kpt in enumerate(keypoint_objs):
-            keypoints[i] = kpt.pt[0], kpt.pt[1], kpt.response  # y, x
-        self.keypoints = pd.DataFrame(keypoints, columns=['y', 'x', 'response'])
+            keypoints[i] = kpt.pt[0], kpt.pt[1], kpt.response, kpt.size  # y, x
+        self.keypoints = pd.DataFrame(keypoints, columns=['x', 'y', 'response', 'size'])
         self._nkeypoints = len(self.keypoints)
         self.descriptors = descriptors.astype(np.float32)
 
@@ -698,7 +719,6 @@ class CandidateGraph(nx.Graph):
 
         # Final validation to remove any correspondence with multiple correspondences in the same image
         merged_cnet = _validate_cnet(merged_cnet)
-        print(merged_cnet)
         return merged_cnet
 
     def to_json_file(self, outputfile):

@@ -73,7 +73,7 @@ class TestTwoImageMatching(unittest.TestCase):
 
         for source, destination, edge in cg.edges_iter(data=True):
             # Perform the symmetry check
-            symmetry_mask = edge.symmetry_check()
+            edge.symmetry_check()
             self.assertIn(edge._mask_arrays['symmetry'].sum(), range(430, 461))
 
             # Perform the ratio test
@@ -84,7 +84,7 @@ class TestTwoImageMatching(unittest.TestCase):
         cg.compute_homographies(clean_keys=['symmetry', 'ratio'])
 
         # Step: Compute subpixel offsets for candidate points
-        cg.compute_subpixel_offsets(clean_keys=['symmetry', 'ratio', 'ransac'])
+        cg.compute_subpixel_offsets(clean_keys=['ransac'])
 
         # Step: And create a C object
         cnet = cg.to_cnet(clean_keys=['symmetry', 'ratio', 'ransac', 'subpixel'])
