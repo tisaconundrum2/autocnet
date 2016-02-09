@@ -7,7 +7,7 @@ import numpy as np
 
 from autocnet.examples import get_path
 
-from .. import area
+from .. import cg
 
 
 class TestArea(unittest.TestCase):
@@ -18,6 +18,6 @@ class TestArea(unittest.TestCase):
 
     def test_area_single(self):
         total_area = 1.0
-        ratio = area.convex_hull_ratio(self.pts, total_area)
+        ratio = cg.convex_hull_ratio(self.pts, total_area)
 
         self.assertAlmostEqual(0.7566490, ratio, 5)

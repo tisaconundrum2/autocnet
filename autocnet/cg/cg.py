@@ -1,3 +1,4 @@
+import ogr
 from scipy.spatial import ConvexHull
 
 def convex_hull_ratio(points, ideal_area):
@@ -19,3 +20,12 @@ def convex_hull_ratio(points, ideal_area):
     """
     hull = ConvexHull(points)
     return hull.volume / ideal_area
+
+
+def overlapping_polygon_area(polys):
+    intersection = ogr.CreateGeometryFromWkt(polys[0])
+    for p in polys[1:]:
+        geom = ogr.CreateGeometryFromWkt(p)
+        intersection = intersection.Intersection(geom).ExportToWkt()
+
+    area = intersection.GetArea()
