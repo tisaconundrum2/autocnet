@@ -16,6 +16,7 @@ from autocnet.matcher import subpixel as sp
 from autocnet.cg.cg import convex_hull_ratio, overlapping_polygon_area
 from autocnet.vis.graph_view import plot_node, plot_edge
 
+
 class Edge(object):
     """
     Attributes
@@ -106,7 +107,7 @@ class Edge(object):
             full_mask = np.where(mask == True)
 
         s_keypoints = self.source.keypoints.iloc[matches['source_idx'].values]
-        d_keypoints = self.source.keypoints.iloc[matches['destination_idx'].values]
+        d_keypoints = self.destination.keypoints.iloc[matches['destination_idx'].values]
 
         transformation_matrix, ransac_mask = od.compute_homography(s_keypoints[['x', 'y']].values,
                                                                    d_keypoints[['x', 'y']].values)

@@ -58,7 +58,11 @@ def plot_node(node, ax=None, clean_keys=[], **kwargs):
     if 'marker' in kwargs.keys():
         marker = kwargs['marker']
         kwargs.pop('marker', None)
-    ax.scatter(keypoints['x'], keypoints['y'], marker=marker, **kwargs)
+    color = 'r'
+    if 'color' in kwargs.keys():
+        color = kwargs['color']
+        kwargs.pop('color', None)
+    ax.scatter(keypoints['x'], keypoints['y'], marker=marker, color=color, **kwargs)
 
     return ax
 
