@@ -67,7 +67,7 @@ def plot_node(node, ax=None, clean_keys=[], **kwargs):
     return ax
 
 
-def plot_edge(edge, ax=None, clean_keys=[],image_space=100,
+def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
               scatter_kwargs={}, line_kwargs={}, image_kwargs={}):
     """
     Plot the correspondences for a given edge

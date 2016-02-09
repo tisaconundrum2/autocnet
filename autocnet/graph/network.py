@@ -376,7 +376,7 @@ class CandidateGraph(nx.Graph):
     ----------
     """
 
-    def __init__(self,*args, **kwargs):
+    def __init__(self,*args, basepath=None, **kwargs):
         super(CandidateGraph, self).__init__(*args, **kwargs)
         self.node_counter = 0
         node_labels = {}
@@ -403,7 +403,7 @@ class CandidateGraph(nx.Graph):
             self.edge[s][d] = Edge(self.node[s], self.node[d])
 
     @classmethod
-    def from_adjacency(cls, input_adjacency):
+    def from_adjacency(cls, input_adjacency, basepath=None):
         """
         Instantiate the class using an adjacency dict or file. The input must contain relative or
         absolute paths to image files.
@@ -425,7 +425,12 @@ class CandidateGraph(nx.Graph):
         >>> candidate_graph = network.CandidateGraph.from_adjacency(inputfile)
         """
         if not isinstance(input_adjacency, dict):
-           input_adjacency = io_json.read_json(input_adjacency)
+            input_adjacency = io_json.read_json(input_adjacency)
+            if basepath is not None:
+                for k, v in input_adjacency.items():
+                    input_adjacency[k] =  [os.path.join(basepath, i) for i in v]
+                    input_adjacency[os.path.join(basepath, k)] = input_adjacency.pop(k)
+
         return cls(input_adjacency)
 
     def get_name(self, node_index):
