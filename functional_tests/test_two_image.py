@@ -39,7 +39,8 @@ class TestTwoImageMatching(unittest.TestCase):
     def test_two_image(self):
         # Step: Create an adjacency graph
         adjacency = get_path('two_image_adjacency.json')
-        cg = CandidateGraph.from_adjacency(adjacency)
+        basepath = get_path('Apollo15')
+        cg = CandidateGraph.from_adjacency(adjacency, basepath=basepath)
         self.assertEqual(2, cg.number_of_nodes())
         self.assertEqual(1, cg.number_of_edges())
 

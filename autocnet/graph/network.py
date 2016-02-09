@@ -14,6 +14,7 @@ from autocnet.matcher import feature_extractor as fe # extract features from ima
 from autocnet.matcher import outlier_detector as od
 from autocnet.matcher import subpixel as sp
 from autocnet.cg.cg import convex_hull_ratio, overlapping_polygon_area
+from autocnet.vis.graph_view import plot_node, plot_edge
 
 
 class Edge(object):
@@ -106,7 +107,7 @@ class Edge(object):
             full_mask = np.where(mask == True)
 
         s_keypoints = self.source.keypoints.iloc[matches['source_idx'].values]
-        d_keypoints = self.source.keypoints.iloc[matches['destination_idx'].values]
+        d_keypoints = self.destination.keypoints.iloc[matches['destination_idx'].values]
 
         transformation_matrix, ransac_mask = od.compute_homography(s_keypoints[['x', 'y']].values,
                                                                    d_keypoints[['x', 'y']].values)
@@ -230,6 +231,9 @@ class Edge(object):
         """
         return 1.0
 
+    def plot(self, clean_keys=[], **kwargs):
+        return plot_edge(self, clean_keys=clean_keys, **kwargs)
+
     def update(self, *args):
         # Added for NetworkX
         pass
@@ -347,6 +351,9 @@ class Node(object):
         ratio = convex_hull_ratio(keypoints, ideal_area)
         return ratio
 
+    def plot(self, clean_keys=[], **kwargs):
+        return plot_node(self, clean_keys=clean_keys, **kwargs)
+
     def update(self, *args):
         # Empty pass method to get NetworkX to accept a non-dict
         pass
@@ -369,7 +376,7 @@ class CandidateGraph(nx.Graph):
     ----------
     """
 
-    def __init__(self,*args, **kwargs):
+    def __init__(self,*args, basepath=None, **kwargs):
         super(CandidateGraph, self).__init__(*args, **kwargs)
         self.node_counter = 0
         node_labels = {}
@@ -377,13 +384,8 @@ class CandidateGraph(nx.Graph):
 
         # the node_name is the relative path for the image
         for node_name, node in self.nodes_iter(data=True):
-
-            if os.path.isabs(node_name):
-                image_name = os.path.basename(node_name)
-                image_path = node_name
-            else:
-                image_name = os.path.basename(os.path.abspath(node_name))
-                image_path = os.path.abspath(node_name)
+            image_name = os.path.basename(node_name)
+            image_path = node_name
 
             # Replace the default node dict with an object
             self.node[node_name] = Node(image_name, image_path)
@@ -401,7 +403,7 @@ class CandidateGraph(nx.Graph):
             self.edge[s][d] = Edge(self.node[s], self.node[d])
 
     @classmethod
-    def from_adjacency(cls, input_adjacency):
+    def from_adjacency(cls, input_adjacency, basepath=None):
         """
         Instantiate the class using an adjacency dict or file. The input must contain relative or
         absolute paths to image files.
@@ -423,7 +425,12 @@ class CandidateGraph(nx.Graph):
         >>> candidate_graph = network.CandidateGraph.from_adjacency(inputfile)
         """
         if not isinstance(input_adjacency, dict):
-           input_adjacency = io_json.read_json(input_adjacency)
+            input_adjacency = io_json.read_json(input_adjacency)
+            if basepath is not None:
+                for k, v in input_adjacency.items():
+                    input_adjacency[k] =  [os.path.join(basepath, i) for i in v]
+                    input_adjacency[os.path.join(basepath, k)] = input_adjacency.pop(k)
+
         return cls(input_adjacency)
 
     def get_name(self, node_index):
