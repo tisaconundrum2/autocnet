@@ -14,7 +14,7 @@ from autocnet.matcher import feature_extractor as fe # extract features from ima
 from autocnet.matcher import outlier_detector as od
 from autocnet.matcher import subpixel as sp
 from autocnet.cg.cg import convex_hull_ratio, overlapping_polygon_area
-from autocnet.vis.graph_view import plot_node
+from autocnet.vis.graph_view import plot_node, plot_edge
 
 class Edge(object):
     """
@@ -230,6 +230,9 @@ class Edge(object):
         """
         return 1.0
 
+    def plot(self, clean_keys=[], **kwargs):
+        return plot_edge(self, clean_keys=clean_keys, **kwargs)
+
     def update(self, *args):
         # Added for NetworkX
         pass
@@ -324,7 +327,6 @@ class Node(object):
     def anms(self, nfeatures=100, robust=0.9):
         mask = od.adaptive_non_max_suppression(self.keypoints,nfeatures,robust)
         self.masks = ('anms', mask)
-
 
     def convex_hull_ratio(self, clean_keys=[]):
         """

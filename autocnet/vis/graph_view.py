@@ -63,6 +63,113 @@ def plot_node(node, ax=None, clean_keys=[], **kwargs):
     return ax
 
 
+def plot_edge(edge, ax=None, clean_keys=[],image_space=100,
+              scatter_kwargs={}, line_kwargs={}, image_kwargs={}):
+    """
+    Plot the correspondences for a given edge
+
+    Parameters
+    ----------
+    edge : object
+           A graph edge object
+
+    ax : object
+         A MatPlotLIb axes object
+
+    clean_keys : list
+                 of strings of masking array names to apply
+
+    image_space : int
+                  The number of pixels to insert between the images
+
+    scatter_kwargs : dict
+                     of MatPlotLib arguments to be applied to the scatter plots
+
+    line_kwargs : dict
+                  of MatPlotLib arguments to be applied to the lines connecting matches
+
+    image_kwargs : dict
+                   of MatPlotLib arguments to be applied to the image rendering
+    """
+
+    if ax is None:
+        ax = plt.gca()
+
+    # Plot setup
+    ax.set_title('Matching: {} to {}'.format(edge.source.image_name,
+                                             edge.destination.image_name))
+    ax.margins(tight=True)
+    ax.axis('off')
+
+    # Image plotting
+    source_array = edge.source.get_array()
+    destination_array = edge.destination.get_array()
+
+    s_shape = source_array.shape
+    d_shape = destination_array.shape
+
+    y = max(s_shape[0], d_shape[0])
+    x = s_shape[1] + d_shape[1] + image_space
+    composite = np.zeros((y,x))
+
+    composite[:, :s_shape[1]] = source_array
+    composite[:, s_shape[1] + image_space:] = destination_array
+
+    if 'cmap' in image_kwargs:
+        cmap = image_kwargs['cmap']
+    else:
+        cmap = 'Greys'
+
+    ax.imshow(composite, cmap=cmap)
+
+    # Match point plotting
+    source_keypoints = edge.source.keypoints
+    destination_keypoints = edge.destination.keypoints
+
+    matches = edge.matches
+
+    if clean_keys:
+        mask = np.prod([edge._mask_arrays[i] for i in clean_keys], axis=0, dtype=np.bool)
+        matches = edge.matches[mask]
+
+    marker = '.'
+    if 'marker' in scatter_kwargs.keys():
+        marker = scatter_kwargs['marker']
+        scatter_kwargs.pop('marker', None)
+
+    color = 'r'
+    if 'color' in scatter_kwargs.keys():
+        color = scatter_kwargs['color']
+        scatter_kwargs.pop('color', None)
+
+    # Plot the source
+    source_idx = matches['source_idx'].values
+    s_kps = source_keypoints.iloc[source_idx]
+    ax.scatter(s_kps['x'], s_kps['y'], marker=marker, color=color, **scatter_kwargs)
+
+    # Plot the destination
+    destination_idx = matches['destination_idx'].values
+    d_kps = destination_keypoints.iloc[destination_idx]
+    x_offset = s_shape[0] + image_space
+    newx = d_kps['x'] + x_offset
+    ax.scatter(newx, d_kps['y'], marker=marker, color=color, **scatter_kwargs)
+
+    # Draw the connecting lines
+    color = 'y'
+    if 'color' in line_kwargs.keys():
+        color = line_kwargs['color']
+        line_kwargs.pop('color', None)
+
+    s_kps = s_kps[['x', 'y']].values
+    d_kps = d_kps[['x', 'y']].values
+    d_kps[:,0] += x_offset
+
+    for l in zip(s_kps, d_kps):
+        ax.plot((l[0][0], l[1][0]), (l[0][1], l[1][1]), color=color, **line_kwargs)
+
+    return ax
+
+
 def plotAdjacencyGraphFeatures(graph, pointColorAndHatch='b.', featurePointSize=7):
     """
     Plot each image in an adjacency graph and its found features in a single figure.
@@ -96,123 +203,7 @@ def plotAdjacencyGraphFeatures(graph, pointColorAndHatch='b.', featurePointSize=
                          pointColorAndHatch)
         counter = counter + 1
 
-def plotAdjacencyGraphMatches(imageName1, 
-                              imageName2, 
-                              graph,
-                              aspectRatio=0.44,
-                              featurePointSize=3,
-                              lineWidth=1,
-                              lineColor='g',
-                              saveToFile='FeatureMatches.png'):
-    """
-    Plot the features of two images in the given adjacency graph and draw lines
-    between matching features. The user may specify the size of the points and 
-    lines to be plotted, but the colors and styles of the points are internally
-    set to green circles ('go') for matched features and red circles ('ro') for
-    unmatched features. The output plot is saved under the given file name
-    in order to lock the aspect of the plotted lines.
 
-    Parameters
-    ----------
-    imageName : str
-                The name of the first image file (with extension, without path).
-                This will be the title of the left subplot.
-
-    imageName : str
-                The name of the second image file (with extension, without path).
-                This will be the title of the right subplot.
-
-    graph : object
-            A CandicateGraph object containing the given images (as nodes) and their
-            matches (edges). This graph is read from a JSON file, autocnet.feature_extractor
-            has been applied, and FlannMatcher has been applied.
-
-    aspectRatio : float
-                  The ratio of the height/width of the figure.
-
-    featurePointSize : int
-                       The size of the feature point marker. Defaults to 3.
-
-    lineWidth : int
-                The width of the match lines. Defaults to 1.
-
-    lineColor : str
-                Color code for the matching lines. Defaults to 'g' (green).
-
-    saveToFile : str
-                 A file name to which the figure is saved. Defaults to 'FeatureMatches.png'.
-                 If saveToFile='', then the figure will be shown, but lines will not be
-                 locked.
-    """
-
-    w,h = matplotlib.figure.figaspect(aspectRatio)    
-    fig = plt.figure(figsize=(w,h))     
-
-    columns = 2
-    rows = 1
-    # create a subplot with its own axes
-    ax1 = fig.add_subplot(rows, columns, 1)
-    ax1.axis('off')
-    ax1.margins(tight=True)
-    plotFeatures(imageName1, 
-                 graph.get_keypoints(imageName1), 
-                 'ro', 
-                 featurePointSize)
-    ax2 = fig.add_subplot(rows, columns, 2)
-    ax2.axis('off')
-    ax2.margins(tight=True)
-    plotFeatures(imageName2, 
-                 graph.get_keypoints(imageName2), 
-                 'ro', 
-                 featurePointSize)
-    edge = graph[graph.node_name_map[imageName1]][graph.node_name_map[imageName2]]
-    if 'matches' in edge.keys():
-        for i, row in edge['matches'].iterrows():
-            # get matching points
-            image1ID = int(row['source_idx'])
-            image2ID = int(row['destination_idx'])
-            keypointImage1 = (graph.get_keypoints(imageName1)[image1ID].pt[0],
-                              graph.get_keypoints(imageName1)[image1ID].pt[1])
-            keypointImage2 = (graph.get_keypoints(imageName2)[image2ID].pt[0],
-                              graph.get_keypoints(imageName2)[image2ID].pt[1])
-            
-            # change points to green
-            ax1.plot(keypointImage1[0], keypointImage1[1], 'go', markersize=featurePointSize)
-            ax2.plot(keypointImage2[0], keypointImage2[1], 'go', markersize=featurePointSize)
-
-            # Use the transform() method to get the display coordinates
-            # from the data coordinates of the matching points in each subplot
-            displayCoord1 = ax1.transData.transform([keypointImage1[0],
-                                                     keypointImage1[1]])
-            displayCoord2 = ax2.transData.transform([keypointImage2[0],
-                                                     keypointImage2[1]])
-            # Use the inverted() method to create a transform that will convert
-            # our display coordinates to data coordinates for the entire figure.
-            inv = fig.transFigure.inverted()
-            coord1 = inv.transform(displayCoord1)
-            coord2 = inv.transform(displayCoord2)
-
-            # construct a line between the matching points using the data coordinates and the 
-            # transformation from data coordinates to display coordinates
-            line = matplotlib.lines.Line2D((coord1[0], coord2[0]), 
-                                           (coord1[1], coord2[1]),
-                                           transform=fig.transFigure,
-                                           color=lineColor, 
-                                           marker='o',
-                                           markeredgecolor='g',
-                                           markersize=featurePointSize,
-                                           linewidth=lineWidth,
-                                           alpha=0.5)
-            fig.lines.append(line)
-
-    plt.axis('off')
-    plt.margins(tight=True)
-
-    if saveToFile:
-        fig.savefig(saveToFile)
-        plt.close()
-    else:
-        plt.show()
 
 
 # NOTE: We will probably delete this code if it is found to be un-needed,
