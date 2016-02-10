@@ -1,14 +1,12 @@
 import os
 
 import unittest
-import numpy as np
 
 from autocnet.examples import get_path
 from autocnet.fileio.io_controlnetwork import to_isis
 from autocnet.fileio.io_controlnetwork import write_filelist
 from autocnet.graph.network import CandidateGraph
 from autocnet.matcher.matcher import FlannMatcher
-from autocnet.matcher import outlier_detector as od
 
 
 class TestTwoImageMatching(unittest.TestCase):
@@ -41,54 +39,52 @@ class TestTwoImageMatching(unittest.TestCase):
     def test_two_image(self):
         # Step: Create an adjacency graph
         adjacency = get_path('two_image_adjacency.json')
-        cg = CandidateGraph.from_adjacency(adjacency)
+        basepath = get_path('Apollo15')
+        cg = CandidateGraph.from_adjacency(adjacency, basepath=basepath)
         self.assertEqual(2, cg.number_of_nodes())
         self.assertEqual(1, cg.number_of_edges())
 
         # Step: Extract image data and attribute nodes
-        cg.extract_features(extractor_parameters={"nfeatures":500})
-        for node, attributes in cg.nodes_iter(data=True):
-            self.assertIn(len(attributes['keypoints']), range(490, 511))
+        cg.extract_features(method='sift', extractor_parameters={"nfeatures":500})
+        for i, node in cg.nodes_iter(data=True):
+            self.assertIn(node.nkeypoints, range(490, 511))
 
+        #Step: Compute the coverage ratios
+        truth_ratios = [0.95351579,
+                        0.93595664]
+        for i, node in cg.nodes_iter(data=True):
+            ratio = node.coverage_ratio()
+            self.assertIn(round(ratio,8), truth_ratios)
         # Step: apply Adaptive non-maximal suppression
-        for node, attributes in cg.nodes_iter(data=True):
-            attributes['keypoint_mask'] = od.adaptive_non_max_suppression(attributes['keypoints'])
-            self.assertEqual(len(attributes['keypoint_mask']), len(attributes['keypoints']))
+        for i, node in cg.nodes_iter(data=True):
+            pass
+            #node.anms()
+            #self.assertNotEqual(node.nkeypoints, sum(node._mask_arrays['anms']))
 
-        # Step: Then apply a FLANN matcher
-        fl = FlannMatcher()
-        for node, attributes in cg.nodes_iter(data=True):
-            fl.add(attributes['descriptors'], key=node)
-        fl.train()
+        cg.match_features(k=5)
 
-        for node, attributes in cg.nodes_iter(data=True):
-            descriptors = attributes['descriptors']
-            matches = fl.query(descriptors, node, k=5)
-            cg.add_matches(matches)
-
-        for source, destination, attributes in cg.edges_iter(data=True):
-            matches = attributes['matches']
+        for source, destination, edge in cg.edges_iter(data=True):
+            pass
             # Perform the symmetry check
-            symmetry_mask = od.mirroring_test(matches)
-            #self.assertIn(symmetry_mask.sum(), range(430, 461))
-            attributes['symmetry'] = symmetry_mask
+            edge.symmetry_check()
+            self.assertIn(edge._mask_arrays['symmetry'].sum(), range(430, 461))
 
             # Perform the ratio test
-            ratio_mask = od.distance_ratio(matches, ratio=0.95)
-           # self.assertIn(ratio_mask.sum(), range(390, 451))
-            attributes['ratio'] = ratio_mask
-
-            mask = np.array(ratio_mask * symmetry_mask)
-            #self.assertIn(len(matches.loc[mask]), range(65,101))
+            edge.ratio_check(ratio=0.8)
+            self.assertIn(edge._mask_arrays['ratio'].sum(), range(250, 350))
 
         # Step: Compute the homographies and apply RANSAC
-        cg.compute_homographies(clean_keys=['symmetry', 'ratio'])
+        cg.compute_homographies()#clean_keys=['symmetry', 'ratio'])
+
+        # Step: Compute the overlap ratio and coverage ratio
+        for s, d, edge in cg.edges_iter(data=True):
+            ratio = edge.coverage_ratio(clean_keys=['symmetry', 'ratio'])
 
         # Step: Compute subpixel offsets for candidate points
-        cg.compute_subpixel_offsets(clean_keys=['symmetry', 'ratio', 'ransac'])
+        cg.compute_subpixel_offsets(clean_keys=['ransac'])
 
         # Step: And create a C object
-        cnet = cg.to_cnet(clean_keys=['symmetry', 'ratio', 'ransac', 'subpixel'])
+        cnet = cg.to_cnet()#clean_keys=['symmetry', 'ratio', 'ransac', 'subpixel'])
 
         # Step: Create a fromlist to go with the cnet and write it to a file
         filelist = cg.to_filelist()
@@ -96,17 +92,16 @@ class TestTwoImageMatching(unittest.TestCase):
 
         # Step update the serial numbers
         nid_to_serial = {}
-        for node, attributes in cg.nodes_iter(data=True):
-            nid_to_serial[node] = self.serial_numbers[attributes['image_name']]
+        for i, node in cg.nodes_iter(data=True):
+            nid_to_serial[i] = self.serial_numbers[node.image_name]
 
         cnet.replace({'nid': nid_to_serial}, inplace=True)
-
         # Step: Output a control network
         to_isis('TestTwoImageMatchingISIS.net', cnet, mode='wb',
                 networkid='TestTwoImageMatching', targetname='Moon')
 
-    #def tearDown(self):
-        #try:
-            #os.path.remove('TestTwoImageMatching.net')
-            #os.path.remove('fromlist.lis')
-        #except: pass
+    def tearDown(self):
+        try:
+            os.path.remove('TestTwoImageMatching.net')
+            os.path.remove('fromlist.lis')
+        except: pass

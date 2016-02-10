@@ -3,14 +3,14 @@ import pandas as pd
 
 import numpy as np
 from skimage.feature import match_template
-from scipy.misc import imresize
+from scipy.ndimage.interpolation import zoom
 
 FLANN_INDEX_KDTREE = 1  # Algorithm to set centers,
 DEFAULT_FLANN_PARAMETERS = dict(algorithm=FLANN_INDEX_KDTREE,
                                 trees=3)
 
 
-def pattern_match(template, image, upsampling=10,
+def pattern_match(template, image, upsampling=16,
                   func=match_template):
     """
     Call an arbitrary pattern matcher
@@ -45,14 +45,8 @@ def pattern_match(template, image, upsampling=10,
     if upsampling < 1:
         raise ValueError
 
-    u_template = imresize(template, (template.shape[0] * upsampling,
-                                   template.shape[1] * upsampling),
-                        interp='bicubic')
-
-    u_image = imresize(image, (image.shape[0] * upsampling,
-                             image.shape[1] * upsampling),
-                     interp='bicubic')
-
+    u_template = zoom(template, upsampling)
+    u_image = zoom(image, upsampling, )
     # Find the the upper left origin of the template in the image
     match = func(u_image, u_template)
     y, x = np.unravel_index(np.argmax(match), match.shape)

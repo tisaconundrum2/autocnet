@@ -56,15 +56,22 @@ def distance_ratio(matches, ratio=0.8):
     counter = 0
     for i, group in matches.groupby('source_idx'):
         group_size = len(group)
+        n_unique = len(group['destination_idx'].unique())
         # If we can not perform the ratio check because all matches are symmetrical
-        if len(group['destination_idx'].unique()) == 1:
+        if n_unique == 1:
             mask[counter:counter + group_size] = True
             counter += group_size
         else:
             # Otherwise, we can perform the ratio test
-            sorted = group.sort_values(by=['distance'])
-            unique = sorted['distance'].unique()
-            if unique[0] < ratio * unique[1]:
+            sorted_group = group.sort_values(by=['distance'])
+            unique = sorted_group['distance'].unique()
+
+            if len(unique) == 1:
+                # The distances from the unique points are identical
+                mask[counter: counter + group_size] = False
+                counter += group_size
+            elif unique[0] / unique[1] < ratio:
+                # The ratio test passes
                 mask[counter] = True
                 mask[counter + 1:counter + group_size] = False
                 counter += group_size
@@ -150,8 +157,9 @@ def compute_homography(kp1, kp2, outlier_algorithm=cv2.RANSAC, reproj_threshold=
     mask = mask.astype(bool)
     return transformation_matrix, mask
 
+
 # TODO: CITATION and better design?
-def adaptive_non_max_suppression(keypoints, n=100, robust=0.9):
+def adaptive_non_max_suppression(keypoints, n, robust):
     """
     Select the top n keypoints, using Adaptive Non-Maximal Suppression (see: Brown (2005) [Brown2005]_)
     to rank the keypoints in order of largest minimum suppression
@@ -172,12 +180,14 @@ def adaptive_non_max_suppression(keypoints, n=100, robust=0.9):
                     of all the other keypoints.
     """
     minimum_suppression_radius = {}
-    for i, kp1 in enumerate(keypoints):
-        x1, y1 = kp1.pt
+    for i, kp1 in keypoints.iterrows():
+        x1 = kp1['x']
+        y1 = kp1['y']
         temp = []
-        for kp2 in keypoints: #includes kp1 for now
-            if kp1.response < robust*kp2.response:
-                x2, y2 = kp2.pt
+        for j, kp2 in keypoints.iterrows(): #includes kp1 for now
+            if kp1['response'] < robust*kp2['response']:
+                x2 = kp2['x']
+                y2 = kp2['y']
                 temp.append(np.sqrt((x2-x1)**2 + (y2-y1)**2))
         if(len(temp) > 0):
             minimum_suppression_radius[i] = np.min(np.array(temp))
@@ -188,7 +198,7 @@ def adaptive_non_max_suppression(keypoints, n=100, robust=0.9):
     temp_df = df.mask(df.radius < top_n.radius.min(), other=np.nan)
     temp_df = temp_df.where(np.isnan(temp_df.keypoint), other=1)
     temp_df = temp_df.mask(np.isnan(temp_df.keypoint), other=0)
-    return list(temp_df.radius)
+    return np.array(temp_df.radius, dtype=np.bool)
 
 
 

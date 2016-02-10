@@ -1,5 +1,6 @@
 import os
 
+from pysal.cg.shapes import Polygon
 import numpy as np
 import gdal
 import osr
@@ -142,6 +143,11 @@ class GeoDataset(object):
 
     @property
     def geotransform(self):
+        """
+        Where the array is in the form:
+        [top left x, w-e pixel resolution, x-rotation,
+        top left y, y-rotation, n-s pixel resolution]
+        """
         if not getattr(self, '_geotransform', None):
             self._geotransform = self.dataset.GetGeoTransform()
         return self._geotransform
@@ -192,14 +198,41 @@ class GeoDataset(object):
         if not getattr(self, '_xy_extent', None):
             geotransform = self.geotransform
             minx = geotransform[0]
-            maxy = geotransform[3]
+            miny = geotransform[3]
 
             maxx = minx + geotransform[1] * self.dataset.RasterXSize
-            miny = maxy + geotransform[5] * self.dataset.RasterYSize
+            maxy = miny + geotransform[5] * self.dataset.RasterYSize
 
             self._xy_extent = [(minx, miny), (maxx, maxy)]
 
         return self._xy_extent
+
+    @property
+    def pixel_polygon(self):
+        """
+        A bounding polygon in pixel space
+
+        Returns
+        -------
+        : object
+          A PySAL Polygon object
+        """
+        if not getattr(self, '_pixel_polygon', None):
+            (minx, miny), (maxx, maxy) = self.xy_extent
+            ul = maxx, miny
+            ll = minx, miny
+            lr = minx, maxy
+            ur = maxx, maxy
+            self._pixel_polygon = Polygon([ul, ll, lr, ur, ul])
+        return self._pixel_polygon
+
+    @property
+    def pixel_area(self):
+        if not getattr(self, '_pixel_area', None):
+            extent = self.xy_extent
+            self._pixel_area = extent[1][0] * extent[1][1]
+
+        return self._pixel_area
 
     @property
     def pixel_width(self):
@@ -328,7 +361,7 @@ class GeoDataset(object):
                The image band number to be extracted as a NumPy array. Default band=1.
 
         pixels : list
-                 [start, ystart, xstop, ystop]. Default pixels=None.
+                 [xstart, ystart, xstop, ystop]. Default pixels=None.
 
         dtype : str
                 The NumPy dtype for the output array. Default dtype='float32'.
@@ -346,12 +379,22 @@ class GeoDataset(object):
         if not pixels:
             array = band.ReadAsArray().astype(dtype)
         else:
-            xstart = pixels[0][0]
-            ystart = pixels[0][1]
-            xextent = pixels[1][0] - xstart
-            yextent = pixels[1][1] - ystart
-            array = band.ReadAsArray(xstart, ystart,
-                                          xextent, yextent).astype(dtype)
+            # Check that the read start is not outside of the image
+            xstart, ystart, xextent, yextent = pixels
+            if xstart < 0:
+                xstart = 0
+
+            if ystart < 0:
+                ystart = 0
+
+            xmax, ymax = map(int, self.xy_extent[1])
+            if xstart + pixels[2] > xmax:
+                xextent = xmax - xstart
+
+            if ystart + pixels[3] > ymax:
+                yextent = ymax - ystart
+
+            array = band.ReadAsArray(xstart, ystart, xextent, yextent).astype(dtype)
         return array
 
 
