@@ -1,4 +1,5 @@
 import os
+import warnings
 
 import networkx as nx
 import pandas as pd
@@ -11,6 +12,7 @@ from scipy.misc import bytescale
 from autocnet.control.control import C
 from autocnet.fileio import io_json
 from autocnet.fileio.io_gdal import GeoDataset
+from autocnet.matcher.matcher import FlannMatcher
 from autocnet.matcher import feature_extractor as fe
 from autocnet.matcher import outlier_detector as od
 from autocnet.matcher import subpixel as sp
@@ -62,6 +64,32 @@ class Edge(object):
     @subpixel_offsets.setter
     def subpixel_offsets(self, v):
         self._subpixel_offsets = v
+
+    def keypoints(self, clean_keys=[]):
+        """
+        Return a view of the keypoints dataframe after having applied some
+        set of clean keys
+
+        Parameters
+        ----------
+        clean_keys
+
+        Returns
+        -------
+
+        """
+
+        matches = self.matches
+
+        # Build up a composite mask from all of the user specified masks
+        if clean_keys:
+            mask = np.prod([self._mask_arrays[i] for i in clean_keys], axis=0, dtype=np.bool)
+            matches = matches[mask]
+
+        # Now that we know the matches, build a pair of dataframes that are the truncated keypoints
+        s_kps = self.source.keypoints.iloc[matches['source_idx']]
+        d_kps = self.destination.keypoints.iloc[matches['destination_idx']]
+        return s_kps, d_kps
 
     def symmetry_check(self):
         if hasattr(self, 'matches'):
@@ -122,8 +150,8 @@ class Edge(object):
         self.masks = ('ransac', mask)
         self.homography = transformation_matrix
 
-    def compute_subpixel_offset(self, clean_keys=[], threshold=0.8, upsampling=10,
-                                 template_size=9, search_size=39):
+    def compute_subpixel_offset(self, clean_keys=[], threshold=0.8, upsampling=16,
+                                 template_size=19, search_size=53):
         """
         For the entire graph, compute the subpixel offsets using pattern-matching and add the result
         as an attribute to each edge of the graph.
@@ -176,7 +204,11 @@ class Edge(object):
             s_template = sp.clip_roi(self.source.handle, s_keypoint, template_size)
             d_search = sp.clip_roi(self.destination.handle, d_keypoint, search_size)
 
-            edge_offsets[i] = sp.subpixel_offset(s_template, d_search, upsampling=upsampling)
+            try:
+                edge_offsets[i] = sp.subpixel_offset(s_template, d_search, upsampling=upsampling)
+            except:
+                warnings.warn('Template-Search size mismatch, failing for this correspondence point.')
+                continue
 
         # Compute the mask for correlations less than the threshold
         threshold_mask = edge_offsets[edge_offsets[:, -1] >= threshold]
@@ -189,8 +221,8 @@ class Edge(object):
             mask = threshold_mask
 
         self.subpixel_offsets = pd.DataFrame(full_offsets, columns=['x_offset',
-                                                                             'y_offset',
-                                                                             'correlation'])
+                                                                    'y_offset',
+                                                                    'correlation'])
         self.masks = ('subpixel', mask)
 
     def coverage_ratio(self, clean_keys=[]):
@@ -341,10 +373,17 @@ class Node(object):
 
         """
         keypoint_objs, descriptors = fe.extract_features(array, **kwargs)
-        keypoints = np.empty((len(keypoint_objs), 4),dtype=np.float32)
+        keypoints = np.empty((len(keypoint_objs), 7),dtype=np.float32)
         for i, kpt in enumerate(keypoint_objs):
-            keypoints[i] = kpt.pt[0], kpt.pt[1], kpt.response, kpt.size  # y, x
-        self.keypoints = pd.DataFrame(keypoints, columns=['x', 'y', 'response', 'size'])
+            octave = kpt.octave & 8
+            layer = (kpt.octave >> 8) & 255
+            if octave < 128:
+                octave = octave
+            else:
+                octave = (-128 | octave)
+            keypoints[i] = kpt.pt[0], kpt.pt[1], kpt.response, kpt.size, kpt.angle, octave, layer  # y, x
+        self.keypoints = pd.DataFrame(keypoints, columns=['x', 'y', 'response', 'size',
+                                                          'angle', 'octave', 'layer'])
         self._nkeypoints = len(self.keypoints)
         self.descriptors = descriptors.astype(np.float32)
 
@@ -546,6 +585,29 @@ class CandidateGraph(nx.Graph):
             image = node.get_array()
             node.extract_features(image, method=method,
                                 extractor_parameters=extractor_parameters)
+
+    def match_features(self, k=3):
+        """
+        For all connected edges in the graph, apply feature matching
+
+        Parameters
+        ----------
+        k : int
+            The number of matches, minus 1, to find per feature.  For example
+            k=5 will find the 4 nearest neighbors for every extracted feature.
+        """
+        #Load a Fast Approximate Nearest Neighbor KD-Tree
+        fl = FlannMatcher()
+        for i, node in self.nodes_iter(data=True):
+            if not hasattr(node, 'descriptors'):
+                raise AttributeError('Descriptors must be extracted before matching can occur.')
+            fl.add(node.descriptors, key=i)
+        fl.train()
+
+        for i, node in self.nodes_iter(data=True):
+            descriptors = node.descriptors
+            matches = fl.query(descriptors, i, k=k)
+            self.add_matches(matches)
 
     def add_matches(self, matches):
         """

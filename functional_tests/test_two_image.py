@@ -61,16 +61,7 @@ class TestTwoImageMatching(unittest.TestCase):
             #node.anms()
             #self.assertNotEqual(node.nkeypoints, sum(node._mask_arrays['anms']))
 
-        # Step: Then apply a FLANN matcher
-        fl = FlannMatcher()
-        for i, node, in cg.nodes_iter(data=True):
-            fl.add(node.descriptors, key=i)
-        fl.train()
-
-        for i, node in cg.nodes_iter(data=True):
-            descriptors = node.descriptors
-            matches = fl.query(descriptors, i, k=5)
-            cg.add_matches(matches)
+        cg.match_features(k=5)
 
         for source, destination, edge in cg.edges_iter(data=True):
             # Perform the symmetry check
