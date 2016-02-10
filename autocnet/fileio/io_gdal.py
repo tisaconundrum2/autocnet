@@ -379,26 +379,22 @@ class GeoDataset(object):
         if not pixels:
             array = band.ReadAsArray().astype(dtype)
         else:
-            xstart = pixels[0]
+            # Check that the read start is not outside of the image
+            xstart, ystart, xextent, yextent = pixels
             if xstart < 0:
                 xstart = 0
 
-            ystart = pixels[1]
             if ystart < 0:
                 ystart = 0
 
             xmax, ymax = map(int, self.xy_extent[1])
-            if pixels[2] > xmax:
+            if xstart + pixels[2] > xmax:
                 xextent = xmax - xstart
-            else:
-                xextent = pixels[2] - xstart
 
-            if pixels[3] > ymax:
+            if ystart + pixels[3] > ymax:
                 yextent = ymax - ystart
-            else:
-                yextent = pixels[3] - ystart
-            array = band.ReadAsArray(xstart, ystart,
-                                          xextent, yextent).astype(dtype)
+
+            array = band.ReadAsArray(xstart, ystart, xextent, yextent).astype(dtype)
         return array
 
 

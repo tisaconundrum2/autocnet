@@ -5,7 +5,6 @@ from autocnet.fileio.io_controlnetwork import to_isis
 from autocnet.fileio.io_controlnetwork import write_filelist
 from autocnet.graph.network import CandidateGraph
 from autocnet.matcher.matcher import FlannMatcher
-from autocnet.matcher import outlier_detector as od
 
 
 class TestThreeImageMatching(unittest.TestCase):
@@ -48,15 +47,7 @@ class TestThreeImageMatching(unittest.TestCase):
         for i, node, in cg.nodes_iter(data=True):
             self.assertIn(node.nkeypoints, range(490, 511))
 
-        fl = FlannMatcher()
-        for i, node in cg.nodes_iter(data=True):
-            fl.add(node.descriptors, key=i)
-        fl.train()
-
-        for i, node in cg.nodes_iter(data=True):
-            descriptors = node.descriptors
-            matches = fl.query(descriptors, i, k=5)
-            cg.add_matches(matches)
+        cg.match_features(k=5)
 
         for source, destination, edge in cg.edges_iter(data=True):
             matches = edge.matches
