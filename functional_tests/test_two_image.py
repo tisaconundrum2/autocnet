@@ -26,7 +26,7 @@ class TestTwoImageMatching(unittest.TestCase):
     """
 
     def setUp(self):
-        self.serial_numbers = {'AS15-M-0295_SML.png '1971-07-31T01:24:11.754',
+        self.serial_numbers = {'AS15-M-0295_SML.png': '1971-07-31T01:24:11.754',
                                'AS15-M-0296_SML.png': '1971-07-31T01:24:36.970',
                                'AS15-M-0297_SML.png': '1971-07-31T01:25:02.243',
                                'AS15-M-0298_SML.png': '1971-07-31T01:25:27.457',
