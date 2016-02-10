@@ -47,19 +47,17 @@ print("Test reading data from CSV with lots of spectra and their metadata in one
 dbfile=r"C:\Users\rbanderson\Documents\Projects\LIBS PDART\Sample_Data\full_db_mars_corrected_dopedTiO2.csv"
 db=CSV(dbfile,setindex='Name')
 
-#ccs_br.random_folds(nfolds=6,seed=1,groupby='seqid')
+print("Test assigning random folds")
+ccs=spectral_data(ccs_batch_csv)
+ccs.random_folds(nfolds=6,seed=1,groupby='seqid')
 
+print("Test looking up ChemCam metadata")
 
-#foo.transpose().sort_index(level=1).to_csv('JSC_output_test.csv')
+masterlist_files=[r"C:\Users\rbanderson\Documents\Projects\LIBS PDART\Sample_Data\CCAM\MASTERLIST.csv",
+                  r"C:\Users\rbanderson\Documents\Projects\LIBS PDART\Sample_Data\CCAM\MASTERLIST_SOL_0010_0801.csv",
+                  r"C:\Users\rbanderson\Documents\Projects\LIBS PDART\Sample_Data\CCAM\MASTERLIST_SOL_0805_0980.csv"]
 
-#newx=list(foo.wvl.columns)
-#blah=ccs.interp(newx)
-
-
-
-
-##masterlist=["E:\ChemCam\ops_ccam_misc\MASTERLIST_SOL_0010_0801.csv",r"E:\ChemCam\ops_ccam_misc\MASTERLIST_SOL_0805_0980.csv",r"E:\ChemCam\ops_ccam_misc\MASTERLIST.csv"]
-##blah=lookup(ccs_br,masterlist)
+ccs=lookup(ccs.df,masterlist_files)
 #
 #jsctest=r"C:\Users\rbanderson\Documents\Projects\LIBS PDART\pysat\pysat\examples\LIBS_TEST\TestSS_UV_01.txt"
 #jsc=JSC(jsctest)

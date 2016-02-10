@@ -39,7 +39,9 @@ def CCS(input_data):
         if label=='dark':
             label='darkspec'
         df[label]=data 
-
+    
+    df.index.rename('shotnum',inplace=True)
+    df.reset_index(level=0,inplace=True)
     return df
         
 def CCS_SAV(input_data):
@@ -81,7 +83,8 @@ def CCS_SAV(input_data):
         df[label]=data
     
     df['sclock']=pd.to_numeric(df['sclock'])
-
+    df.index.rename('shotnum',inplace=True)
+    df.reset_index(level=0,inplace=True)
     
     return df    
 

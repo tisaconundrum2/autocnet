@@ -10,13 +10,17 @@ The default settings are for looking up ChemCam CCS csv data in the ChemCam mast
 """
 import pandas as pd
 def lookup(df,lookupfile,sep=',',skiprows=1,left_on='sclock',right_on='Spacecraft Clock'):
-    #this loop concatenates together multiple lookup files if provided (mostly to handle the three different master lists for chemcam)
+    #this loop concatenates together multiple lookup files if provided 
+    #(mostly to handle the three different master lists for chemcam)
     for x in lookupfile:
         try:
-            tmp=pd.read_csv(x,sep=sep,skiprows=skiprows)            
+            tmp=pd.read_csv(x,sep=sep,skiprows=skiprows,error_bad_lines=False)            
             lookupdf=pd.concat([lookupdf,tmp])
         except:
-            lookupdf=pd.read_csv(x, sep=sep,skiprows=skiprows)
+            lookupdf=pd.read_csv(x, sep=sep,skiprows=skiprows,error_bad_lines=False)
     
-    combined=pd.merge(df,lookupdf,left_on=left_on,right_on=right_on,how='inner')
-    return combined
+    temp=pd.DataFrame(df['sclock'])    
+    metadata=pd.merge(temp,lookupdf,left_on=left_on,right_on=right_on,how='inner')
+    for col in metadata.columns:
+        df[col]=metadata[col]
+    return df

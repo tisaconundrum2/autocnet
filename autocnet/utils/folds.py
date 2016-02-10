@@ -7,9 +7,9 @@ Created on Fri Dec  4 12:51:34 2015
 from sklearn import cross_validation
 import numpy as np
 def random(df,nfolds=5,seed=10,groupby=None):
-    df['Folds']='None'
+    df['Folds']='None' #Create an entry in the data frame that holds the folds
     foldslist=np.array(df['Folds'])
-    if groupby==None:
+    if groupby==None: #if no column name is listed to group on, just create random folds
         n=len(df.index)
         folds=cross_validation.KFold(n,nfolds,shuffle=True,random_state=seed)
         i=1        
@@ -17,8 +17,11 @@ def random(df,nfolds=5,seed=10,groupby=None):
             foldslist[test]='Fold'+str(i)
             i=i+1
     
-    else:
-        unique_inds=np.unique(df[groupby])
+    else: 
+        #if a column name is provided, get all the unique values and define folds
+        #so that all rows of a given value fall in the same fold 
+        #(this is useful to ensure that training and test data are truly independent)
+        unique_inds=np.unique(df[groupby]) 
         folds=cross_validation.KFold(len(unique_inds),nfolds,shuffle=True,random_state=seed)
         foldslist=np.array(df['Folds'])
         i=1        
