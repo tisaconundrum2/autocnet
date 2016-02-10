@@ -26,12 +26,12 @@ class TestTwoImageMatching(unittest.TestCase):
     """
 
     def setUp(self):
-        self.serial_numbers = {'AS15-M-0295_sub4.cub': '1971-07-31T01:24:11.754',
-                               'AS15-M-0296_sub4.cub': '1971-07-31T01:24:36.970',
-                               'AS15-M-0297_sub4.cub': '1971-07-31T01:25:02.243',
-                               'AS15-M-0298_sub4.cub': '1971-07-31T01:25:27.457',
-                               'AS15-M-0299_sub4.cub': '1971-07-31T01:25:52.669',
-                               'AS15-M-0300_sub4.cub': '1971-07-31T01:26:17.923'}
+        self.serial_numbers = {'AS15-M-0295_SML.png '1971-07-31T01:24:11.754',
+                               'AS15-M-0296_SML.png': '1971-07-31T01:24:36.970',
+                               'AS15-M-0297_SML.png': '1971-07-31T01:25:02.243',
+                               'AS15-M-0298_SML.png': '1971-07-31T01:25:27.457',
+                               'AS15-M-0299_SML.png': '1971-07-31T01:25:52.669',
+                               'AS15-M-0300_SML.png': '1971-07-31T01:26:17.923'}
 
         for k, v in self.serial_numbers.items():
             self.serial_numbers[k] = 'APOLLO15/METRIC/{}'.format(v)
@@ -64,7 +64,7 @@ class TestTwoImageMatching(unittest.TestCase):
         cg.match_features(k=5)
 
         for source, destination, edge in cg.edges_iter(data=True):
-            pass
+
             # Perform the symmetry check
             edge.symmetry_check()
             self.assertIn(edge._mask_arrays['symmetry'].sum(), range(430, 461))
@@ -74,7 +74,7 @@ class TestTwoImageMatching(unittest.TestCase):
             self.assertIn(edge._mask_arrays['ratio'].sum(), range(250, 350))
 
         # Step: Compute the homographies and apply RANSAC
-        cg.compute_homographies()#clean_keys=['symmetry', 'ratio'])
+        cg.compute_homographies(clean_keys=['symmetry', 'ratio'])
 
         # Step: Compute the overlap ratio and coverage ratio
         for s, d, edge in cg.edges_iter(data=True):
@@ -84,11 +84,11 @@ class TestTwoImageMatching(unittest.TestCase):
         cg.compute_subpixel_offsets(clean_keys=['ransac'])
 
         # Step: And create a C object
-        cnet = cg.to_cnet()#clean_keys=['symmetry', 'ratio', 'ransac', 'subpixel'])
+        cnet = cg.to_cnet(clean_keys=['symmetry', 'ratio', 'ransac', 'subpixel'])
 
         # Step: Create a fromlist to go with the cnet and write it to a file
         filelist = cg.to_filelist()
-        write_filelist(filelist, path="fromlis_ISIS.lis")
+        write_filelist(filelist, path="fromlis.lis")
 
         # Step update the serial numbers
         nid_to_serial = {}
@@ -97,7 +97,7 @@ class TestTwoImageMatching(unittest.TestCase):
 
         cnet.replace({'nid': nid_to_serial}, inplace=True)
         # Step: Output a control network
-        to_isis('TestTwoImageMatchingISIS.net', cnet, mode='wb',
+        to_isis('TestTwoImageMatching.net', cnet, mode='wb',
                 networkid='TestTwoImageMatching', targetname='Moon')
 
     def tearDown(self):
