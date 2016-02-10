@@ -25,7 +25,7 @@ def CCS(input_data):
     df['Pversion']=fname[34:36]        
     #transpose the data frame
     
-    #read the file header and put information into the dataframe as new columns (inneficient, but much easier to concatenate data from multiple files)
+    #read the file header and put information into the dataframe as new columns (inneficient to store this data many times, but much easier to concatenate data from multiple files)
     with open(input_data,'r') as f:
         header={}
         for i,row in enumerate(f.readlines()):
@@ -36,6 +36,8 @@ def CCS(input_data):
     for label,data in header.items(): 
         if '_float' in label:
             label=label.replace('_float','')
+        if label=='dark':
+            label='darkspec'
         df[label]=data 
 
     return df
@@ -48,54 +50,38 @@ def CCS_SAV(input_data):
     aspectra=np.array([np.hstack([d['auv'],d['avis'],d['avnir']])]).T
     mspectra=np.array([np.hstack([d['muv'],d['mvis'],d['mvnir']])]).T
     
+    #create tuples for the spectral columns to use as multiindex
     wvls=list(np.hstack([d['defuv'],d['defvis'],d['defvnir']]))
     for i,x in enumerate(wvls):
         wvls[i]=('wvl',round(x,5))
-    
-    #remove the above elements from the dict
-    del d['uv']
-    del d['vis']
-    del d['vnir']
-    del d['auv']
-    del d['avis']
-    del d['avnir']
-    del d['muv']
-    del d['mvis']
-    del d['mvnir']
-    del d['defuv']
-    del d['defvis']
-    del d['defvnir']
     
     #define column names
     shotnums=list(range(1,d['nshots']+1))
     shots=['shot'+str(i) for i in shotnums]
     shots.extend(['ave','median'])
+    
+    #create the data frame to hold the spectral data
     df = pd.DataFrame(np.hstack([spectra,aspectra,mspectra]),columns=shots,index=pd.MultiIndex.from_tuples(wvls))        
     df=df.transpose()
-
-        #        #extract data from the PDS label info
-#        pdslabel={}
-#        for i in d['label_info']:
-#            print(str(i.decode()))
-#            if type(i) is bytes:
-#                pdslabel.update(io_header_parser(i.decode(),'='))
-#            elif len(i)>0:
-#                pdslabel.update(io_header_parser(i,'='))
-        
-        
-    del d['label_info']  #not currently using PDS label info        
     
+    #remove the above elements from the dict
+    to_remove=['uv','vis','vnir','auv','avis','avnir','muv','mvis','mvnir','defuv','defvis','defvnir','label_info']
+    for x in to_remove:
+        del d[x]
+           
     #extract info from the file name
     fname=os.path.basename(input_data)
     d['sclock']=fname[4:13]
     d['seqid']=fname[25:34].upper()
     d['Pversion']=fname[34:36]
+    
+    #Add metadata to the data frame by stepping through the d dict
     for label,data in d.items(): 
         if type(data) is bytes: data=data.decode()
         df[label]=data
     
     df['sclock']=pd.to_numeric(df['sclock'])
-   
+
     
     return df    
 

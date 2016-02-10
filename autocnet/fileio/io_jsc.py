@@ -70,12 +70,25 @@ def jsc_filename_parse(filename,refdata):
 def JSC(input_file,refdata):
     data=pd.read_csv(input_file,skiprows=14,sep='\t')
     data=data.rename(columns={data.columns[0]:'time1',data.columns[1]:'time2'})
+    times=data[['time1','time2']] #split the two time columns from the data frame
+    data=data[data.columns[2:]] #trim the data frame so it is just the spectra
     
+    #make a multiindex for each wavlength column so they can be easily isolated from metadata later
+    cols=data.columns.tolist()    
+    for i,x in enumerate(cols):
+        cols[i]=('wvl',round(float(x),5))
+    data.columns=pd.MultiIndex.from_tuples(cols)
+    
+    #create a metadata frame and add the times to it
     metadata=pd.concat([jsc_filename_parse(input_file,refdata)]*len(data.index))
     metadata.index=data.index
-    df=pd.concat([metadata,data],axis=1)
+    metadata=pd.concat([metadata,times],axis=1)
     
-    return df
+    #add the metadata columns to the data frame
+    for col in metadata.columns.tolist():
+        data[col]=metadata[col]
+        
+    return data
    
         
 

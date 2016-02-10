@@ -7,7 +7,7 @@ Created on Tue Nov 24 13:35:56 2015
 
 def header_parser(row,delim):
     #get rid of various unwanted characters
-    badlist=['#','^',"'",'*','/']
+    badlist=['#','^',"'",'*']
     for i in badlist:
         row=row.replace(i,'')
     row.strip()   
