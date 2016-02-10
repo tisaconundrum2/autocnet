@@ -5,8 +5,8 @@ import os
 import numpy as np
 import pandas as pd
 import scipy
-from pysat.fileio.header_parser import header_parser
-from pysat.fileio.utils import file_search
+from autocnet.fileio.header_parser import header_parser
+from autocnet.fileio.utils import file_search
 
 def CCS(input_data):
     df = pd.DataFrame.from_csv(input_data, header=14)

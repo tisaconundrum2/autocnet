@@ -5,9 +5,9 @@ import re
 import numpy as np
 import pandas as pd
 
-from pysat.spectral.spectra import Spectra
-from pysat.fileio.header_parser import header_parser
-from pysat.fileio.utils import file_search
+from autocnet.spectral.spectra import Spectra
+from autocnet.fileio.header_parser import header_parser
+from autocnet.fileio.utils import file_search
 
 #This function reads the lookup tables used to expand metadata from the file names
 #This is separated from parsing the filenames so that for large lists of files the 
