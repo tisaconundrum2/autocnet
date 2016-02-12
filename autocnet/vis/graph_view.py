@@ -1,11 +1,33 @@
 import math
 import numpy as np
+import networkx as nx
 
 from autocnet.examples import get_path
 from autocnet.fileio.io_gdal import GeoDataset
 from matplotlib import pyplot as plt
-from matplotlib.patches import Polygon as mplPolygon
 
+
+def plot_graph(graph, ax=None, **kwargs):
+    """
+
+    Parameters
+    ----------
+    graph : object
+            A networkX or derived graph object
+    ax : objext
+         A MatPlotLib axes object
+
+    Returns
+    -------
+    ax : object
+         A MatPlotLib axes object. Either the argument passed in
+         or a new object
+    """
+    if ax is None:
+        ax = plt.gca()
+
+    nx.draw(graph, ax=ax)
+    return ax
 
 def plot_node(node, ax=None, clean_keys=[], **kwargs):
     """

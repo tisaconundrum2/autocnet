@@ -79,19 +79,6 @@ def distance_ratio(matches, ratio=0.8):
                 mask[counter: counter + group_size] = False
                 counter += group_size
 
-        '''
-        # won't work if there's only 1 match for each queryIdx
-        if len(group) < 2:
-            mask.append(True)
-        else:
-            if group['distance'].iloc[0] < ratio * group['distance'].iloc[1]: # this means distance _0_ is good and can drop all other distances
-                mask.append(True)
-                for i in range(len(group['distance']-1)):
-                    mask.append(False)
-            else:
-                for i in range(len(group['distance'])):
-                    mask.append(False)
-        '''
     return mask
 
 
@@ -122,9 +109,9 @@ def mirroring_test(matches):
     return duplicates
 
 
-def compute_homography(kp1, kp2, outlier_algorithm=cv2.RANSAC, reproj_threshold=5.0):
+def compute_fundamental_matrix(kp1, kp2, method='ransac', reproj_threshold=5.0, confidence=0.99):
     """
-    Given two arrays of keypoints compute a homography
+    Given two arrays of keypoints compute the fundamental matrix
 
     Parameters
     ----------
@@ -134,12 +121,15 @@ def compute_homography(kp1, kp2, outlier_algorithm=cv2.RANSAC, reproj_threshold=
     kp2 : ndarray
           (n, 2) of coordinates from the destination image
 
-    outlier_algorithm : object
+    outlier_algorithm : {'ransac', 'lmeds', 'normal'}
                         The openCV algorithm to use for outlier detection
 
     reproj_threshold : float
-                       The RANSAC reprojection threshold
+                       The maximum distances in pixels a reprojected points
+                       can be from the epipolar line to be considered an inlier
 
+    confidence : float
+                 [0, 1] that the estimated matrix is correct
 
     Returns
     -------
@@ -148,12 +138,79 @@ def compute_homography(kp1, kp2, outlier_algorithm=cv2.RANSAC, reproj_threshold=
 
     mask : ndarray
            Boolean array of the outliers
+
+    Notes
+    -----
+    While the method is user definable, if the number of input points
+    is < 7, normal outlier detection is automatically used, if 7 > n > 15,
+    least medians is used, and if 7 > 15, ransac can be used.
     """
+
+    if method == 'ransac':
+        method_ = cv2.FM_RANSAC
+    elif method == 'lmeds':
+        method_ = cv2.FM_LMEDS
+    elif method == 'normal':
+        method_ = cv2.FM_7POINT
+    else:
+        raise ValueError("Unknown outlier detection method.  Choices are: 'ransac', 'lmeds', or 'normal'.")
+
+    transformation_matrix, mask = cv2.findFundamentalMat(kp1,
+                                                     kp2,
+                                                     method_,
+                                                     reproj_threshold,
+                                                     confidence)
+    mask = mask.astype(bool)
+    return transformation_matrix, mask
+
+
+def compute_homography(kp1, kp2, method='ransac', **kwargs):
+    """
+    Given two arrays of keypoints compute the homography
+
+    Parameters
+    ----------
+    kp1 : ndarray
+          (n, 2) of coordinates from the source image
+
+    kp2 : ndarray
+          (n, 2) of coordinates from the destination image
+
+    outlier_algorithm : {'ransac', 'lmeds', 'normal'}
+                        The openCV algorithm to use for outlier detection
+
+    reproj_threshold : float
+                       The maximum distances in pixels a reprojected points
+                       can be from the epipolar line to be considered an inlier
+
+    Returns
+    -------
+    transformation_matrix : ndarray
+                            The 3x3 perspective transformation matrix
+
+    mask : ndarray
+           Boolean array of the outliers
+
+    Notes
+    -----
+    While the method is user definable, if the number of input points
+    is < 7, normal outlier detection is automatically used, if 7 > n > 15,
+    least medians is used, and if 7 > 15, ransac can be used.
+    """
+
+    if method == 'ransac':
+        method_ = cv2.RANSAC
+    elif method == 'lmeds':
+        method_ = cv2.LMEDS
+    elif method == 'normal':
+        method_ = 0  # Normal method
+    else:
+        raise ValueError("Unknown outlier detection method.  Choices are: 'ransac', 'lmeds', or 'normal'.")
 
     transformation_matrix, mask = cv2.findHomography(kp1,
                                                      kp2,
-                                                     outlier_algorithm,
-                                                     reproj_threshold)
+                                                     method_,
+                                                     **kwargs)
     mask = mask.astype(bool)
     return transformation_matrix, mask
 

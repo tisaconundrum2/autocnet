@@ -74,5 +74,3 @@ class TestNode(unittest.TestCase):
         # Convex hull computation is checked lower in the hull computation
         node = self.graph.node[0]
         self.assertRaises(AttributeError, node.coverage_ratio)
-
-

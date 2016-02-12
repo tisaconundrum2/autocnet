@@ -1,6 +1,5 @@
 import functools
-
-import pvl
+import numpy as np
 
 
 def enum(*sequential, **named):
@@ -9,6 +8,7 @@ def enum(*sequential, **named):
     """
     enums = dict(zip(sequential, range(len(sequential))), **named)
     return type('Enum', (), enums)
+
 
 def getnearest(iterable, value):
     """
@@ -28,6 +28,7 @@ def getnearest(iterable, value):
           The index into the list
     """
     return min(enumerate(iterable), key=lambda i: abs(i[1] - value))
+
 
 def checkbandnumbers(bands, checkbands):
     """
@@ -52,6 +53,7 @@ def checkbandnumbers(bands, checkbands):
             return False
     return True
 
+
 def checkdeplaid(incidence):
     """
     Given an incidence angle, select the appropriate deplaid method.
@@ -71,6 +73,7 @@ def checkdeplaid(incidence):
         return 'day'
     else:
         return False
+
 
 def checkmonotonic(iterable, piecewise=False):
     """
@@ -97,6 +100,7 @@ def checkmonotonic(iterable, piecewise=False):
     else:
         return all(monotonic)
 
+
 def convert_mean_pressure(elevation):
     """
     Convert from raw elevation, in km, to pressure in Pascals using
@@ -115,6 +119,7 @@ def convert_mean_pressure(elevation):
         Pressure in Pascals
     """
     return 689.7 * np.exp(-elevation / 10.8)
+
 
 def find_in_dict(obj, key):
     """
@@ -140,6 +145,7 @@ def find_in_dict(obj, key):
             if item is not None:
                 return item
 
+
 # note that this decorator ignores **kwargs
 def memoize(obj):
     cache = obj.cache = {}
@@ -149,3 +155,22 @@ def memoize(obj):
             cache[args] = obj(*args, **kwargs)
         return cache[args]
     return memoizer
+
+
+def make_homogeneous(points):
+    """
+    Convert a set of points (n x dim array) to
+        homogeneous coordinates.
+
+    Parameters
+    ----------
+    points : ndarray
+             n x m array of points, where n is the number
+             of points.
+
+    Returns
+    -------
+     : ndarray
+       n x m + 1 array of homogeneous points
+    """
+    return np.hstack((points, np.ones((points.shape[0], 1))))
