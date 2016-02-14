@@ -1,15 +1,6 @@
 import functools
 import numpy as np
 
-
-def enum(*sequential, **named):
-    """Handy way to fake an enumerated type in Python
-    http://stackoverflow.com/questions/36932/how-can-i-represent-an-enum-in-python
-    """
-    enums = dict(zip(sequential, range(len(sequential))), **named)
-    return type('Enum', (), enums)
-
-
 def getnearest(iterable, value):
     """
     Given an iterable, get the index nearest to the input value
@@ -101,26 +92,6 @@ def checkmonotonic(iterable, piecewise=False):
         return all(monotonic)
 
 
-def convert_mean_pressure(elevation):
-    """
-    Convert from raw elevation, in km, to pressure in Pascals using
-    Hugh Kieffer's algorithm.
-
-    689.7 is the constant pressure at sea level
-
-    Parameters
-    -----------
-    elevation : float or ndarray
-                elevation in km
-
-    Returns
-    --------
-      : float
-        Pressure in Pascals
-    """
-    return 689.7 * np.exp(-elevation / 10.8)
-
-
 def find_in_dict(obj, key):
     """
     Recursively find an entry in a dictionary
@@ -144,17 +115,6 @@ def find_in_dict(obj, key):
             item = find_in_dict(v, key)
             if item is not None:
                 return item
-
-
-# note that this decorator ignores **kwargs
-def memoize(obj):
-    cache = obj.cache = {}
-    @functools.wraps(obj)
-    def memoizer(*args, **kwargs):
-        if args not in cache:
-            cache[args] = obj(*args, **kwargs)
-        return cache[args]
-    return memoizer
 
 
 def make_homogeneous(points):

@@ -10,7 +10,6 @@ import numpy.testing
 from .. import homography
 
 
-
 class TestHomography(unittest.TestCase):
 
     def setUp(self):
@@ -34,3 +33,6 @@ class TestHomography(unittest.TestCase):
         self.assertAlmostEqual(H.determinant, 0.6249999, 5)
         self.assertAlmostEqual(H.condition, 7.19064438, 5)
         numpy.testing.assert_array_almost_equal(H.rmse, np.array([0, 0, 0.0]))
+
+    def test_Homography_fail(self):
+        self.assertRaises(TypeError, homography.Homography, [1,2,3], 'a', 'b')

@@ -2,7 +2,6 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
-import cv2
 import numpy as np
 import unittest
 
