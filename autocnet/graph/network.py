@@ -17,6 +17,8 @@ from autocnet.matcher import subpixel as sp
 from autocnet.matcher.homography import Homography
 from autocnet.cg.cg import convex_hull_ratio, overlapping_polygon_area
 from autocnet.vis.graph_view import plot_node, plot_edge, plot_graph
+from autocnet.utils.isis_serial_numbers import generate_serial_number
+
 
 class Edge(object):
     """
@@ -353,6 +355,10 @@ class Node(object):
                   32-bit array of feature descriptors returned by OpenCV
     masks : set
             A list of the available masking arrays
+
+    isis_serial : str
+                  If the input images have PVL headers, generate an
+                  ISIS compatible serial number
     """
 
     def __init__(self, image_name, image_path):
@@ -455,6 +461,20 @@ class Node(object):
 
     def plot(self, clean_keys=[], **kwargs):
         return plot_node(self, clean_keys=clean_keys, **kwargs)
+
+    @property
+    def isis_serial(self):
+        """
+        Generate an ISIS compatible serial number using the data file
+        associated with this node.  This assumes that the data file
+        has a PVL header.
+        """
+        if not hasattr(self, '_isis_serial'):
+            try:
+                self._isis_serial = generate_serial_number(self.image_path)
+            except:
+                self._isis_serial = None
+        return self._isis_serial
 
     def update(self, *args):
         # Empty pass method to get NetworkX to accept a non-dict

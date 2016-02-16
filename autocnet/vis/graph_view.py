@@ -29,6 +29,7 @@ def plot_graph(graph, ax=None, **kwargs):
     nx.draw(graph, ax=ax)
     return ax
 
+
 def plot_node(node, ax=None, clean_keys=[], **kwargs):
     """
     Plot the array and keypoints for a given node.

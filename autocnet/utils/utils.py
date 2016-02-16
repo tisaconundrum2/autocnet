@@ -1,4 +1,4 @@
-import functools
+from functools import reduce
 import numpy as np
 
 def getnearest(iterable, value):
@@ -85,8 +85,8 @@ def checkmonotonic(iterable, piecewise=False):
                 A boolean list of all True if monotonic, or including
                 an inflection point
     """
-    monotonic =  [True] + [x < y for x, y in zip(iterable, iterable[1:])]
-    if piecewise == True:
+    monotonic = [True] + [x < y for x, y in zip(iterable, iterable[1:])]
+    if piecewise is True:
         return monotonic
     else:
         return all(monotonic)
@@ -115,6 +115,27 @@ def find_in_dict(obj, key):
             item = find_in_dict(v, key)
             if item is not None:
                 return item
+
+
+def find_nested_in_dict(data, key_list):
+    """
+    Traverse a list of keys into a dict.
+
+    Parameters
+    ----------
+    data : dict
+           The dictionary to be traversed
+    key_list: list
+              The list of keys to be travered.  Keys are
+              traversed in the order they are entered in
+              the list
+
+    Returns
+    -------
+    value : object
+            The value in the dict
+    """
+    return reduce(lambda d, k: d[k], key_list, data)
 
 
 def make_homogeneous(points):
