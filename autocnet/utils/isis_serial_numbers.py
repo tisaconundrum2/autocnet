@@ -40,10 +40,9 @@ def get_isis_translation(label):
 
     # Try and pull an instrument identifier
     try:
-        instrumentid = find_in_dict(cube_obj, 'InstrumentId').capitalize()
+        instrumentid = find_in_dict(label, 'InstrumentId').capitalize()
     except:
         instrumentid = None
-
     # Grab the translation PVL object using the lookup
     for row in autocnet.data_session.query(Translations).filter(Translations.mission==spacecraft_name,
                                                                 Translations.instrument==instrumentid):
