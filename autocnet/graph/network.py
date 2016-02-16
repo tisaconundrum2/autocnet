@@ -1,3 +1,4 @@
+from collections import MutableMapping
 import os
 import warnings
 
@@ -20,7 +21,7 @@ from autocnet.vis.graph_view import plot_node, plot_edge, plot_graph
 from autocnet.utils.isis_serial_numbers import generate_serial_number
 
 
-class Edge(object):
+class Edge(dict, MutableMapping):
     """
     Attributes
     ----------
@@ -32,9 +33,10 @@ class Edge(object):
             A list of the available masking arrays
     """
 
-    def __init__(self, source, destination):
+    def __init__(self, source=None, destination=None):
         self.source = source
         self.destination = destination
+
         self._masks = set()
         self._mask_arrays = {}
         self._homography = None
@@ -331,12 +333,8 @@ class Edge(object):
     def plot(self, ax=None, clean_keys=[], **kwargs):
         return plot_edge(self, ax=ax, clean_keys=clean_keys, **kwargs)
 
-    def update(self, *args):
-        # Added for NetworkX
-        pass
 
-
-class Node(object):
+class Node(dict, MutableMapping):
     """
     Attributes
     ----------
@@ -361,7 +359,7 @@ class Node(object):
                   ISIS compatible serial number
     """
 
-    def __init__(self, image_name, image_path):
+    def __init__(self, image_name=None, image_path=None):
         self.image_name = image_name
         self.image_path = image_path
         self._masks = set()
@@ -476,10 +474,6 @@ class Node(object):
                 self._isis_serial = None
         return self._isis_serial
 
-    def update(self, *args):
-        # Empty pass method to get NetworkX to accept a non-dict
-        pass
-
 
 class CandidateGraph(nx.Graph):
     """
@@ -497,6 +491,7 @@ class CandidateGraph(nx.Graph):
 
     ----------
     """
+    edge_attr_dict_factory = Edge
 
     def __init__(self,*args, basepath=None, **kwargs):
         super(CandidateGraph, self).__init__(*args, **kwargs)
@@ -928,7 +923,6 @@ class CandidateGraph(nx.Graph):
 
     # TODO: The Edge object requires a get method in order to be plottable, probably Node as well.
     # This is a function of being a dict in NetworkX
-    '''
     def plot(self, ax=None, **kwargs):
         """
         Plot the graph object
@@ -944,4 +938,3 @@ class CandidateGraph(nx.Graph):
            A MatPlotLib axes object
         """
         return plot_graph(self, ax=ax,  **kwargs)
-    '''
