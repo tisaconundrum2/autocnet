@@ -677,9 +677,6 @@ class CandidateGraph(nx.Graph):
 
         Parameters
         ----------
-        source_node : str
-                      The identifier for the node
-
         matches : dataframe
                   The pandas dataframe containing the matches
         """
@@ -688,10 +685,8 @@ class CandidateGraph(nx.Graph):
             for j, dest_group in source_group.groupby('destination_image'):
                 source_key = dest_group['source_image'].values[0]
                 destination_key = dest_group['destination_image'].values[0]
-                try:
-                    edge = self.edge[source_key][destination_key]
-                except: # pragma: no cover
-                    edge = self.edge[destination_key][source_key]
+
+                edge = self.edge[source_key][destination_key]
 
                 if hasattr(edge, 'matches'):
                     df = edge.matches

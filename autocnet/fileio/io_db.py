@@ -20,6 +20,7 @@ def setup_db_session(db):
      : object
        A SQLAlchemy session object
     """
+    print(db)
     engine = create_engine('sqlite:///{}'.format(db))
     Base.metadata.bind = engine
     Base.metadata.create_all()
