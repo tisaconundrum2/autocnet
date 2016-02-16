@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 from .. import utils
 
+
 class TestUtils(unittest.TestCase):
 
     def setUp(self):
@@ -38,8 +39,6 @@ class TestUtils(unittest.TestCase):
                 [True,True,True, False])
         self.assertEqual(utils.checkmonotonic([-2.0, 0.0, -3.0],piecewise=True),
                 [True,True,False])
-        
-
 
     def test_getnearest(self):
         iterable = range(10)
@@ -55,22 +54,41 @@ class TestUtils(unittest.TestCase):
         idx, value = utils.getnearest(iterable, 8.51)
         self.assertEqual(idx, 9)
 
-
-                
-
     def test_find_in_dict(self):
         d = {'a':1,
-                'b':2,
-                'c':{
-                    'd':3,
-                    'e':4,
-                    'f':{
-                        'g':5,
-                        'h':6
-                        }
+            'b':2,
+            'c':{
+                'd':3,
+                'e':4,
+                'f':{
+                    'g':5,
+                    'h':6
                     }
                 }
+            }
 
         self.assertEqual(utils.find_in_dict(d, 'a'), 1)
         self.assertEqual(utils.find_in_dict(d, 'f'), {'g':5,'h':6})
         self.assertEqual(utils.find_in_dict(d, 'e'), 4)
+
+    def test_find_nested_in_dict(self):
+        d = {'a':1,
+            'b':2,
+            'c':{
+                'd':3,
+                'e':4,
+                'f':{
+                    'g':5,
+                    'h':6
+                    }
+                }
+            }
+
+        self.assertEqual(utils.find_nested_in_dict(d, 'a'), 1)
+        self.assertEqual(utils.find_nested_in_dict(d, ['c', 'f', 'g']), 5)
+
+    def test_make_homogeneous(self):
+        pts = np.arange(50).reshape(25,2)
+        pts = utils.make_homogeneous(pts)
+        self.assertEqual(pts.shape, (25,3))
+        np.testing.assert_array_equal(pts[:, -1], np.ones(25))

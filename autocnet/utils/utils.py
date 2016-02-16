@@ -1,14 +1,5 @@
-import functools
-
-import pvl
-
-
-def enum(*sequential, **named):
-    """Handy way to fake an enumerated type in Python
-    http://stackoverflow.com/questions/36932/how-can-i-represent-an-enum-in-python
-    """
-    enums = dict(zip(sequential, range(len(sequential))), **named)
-    return type('Enum', (), enums)
+from functools import reduce
+import numpy as np
 
 def getnearest(iterable, value):
     """
@@ -28,6 +19,7 @@ def getnearest(iterable, value):
           The index into the list
     """
     return min(enumerate(iterable), key=lambda i: abs(i[1] - value))
+
 
 def checkbandnumbers(bands, checkbands):
     """
@@ -52,6 +44,7 @@ def checkbandnumbers(bands, checkbands):
             return False
     return True
 
+
 def checkdeplaid(incidence):
     """
     Given an incidence angle, select the appropriate deplaid method.
@@ -72,6 +65,7 @@ def checkdeplaid(incidence):
     else:
         return False
 
+
 def checkmonotonic(iterable, piecewise=False):
     """
     Check if a given iterable is monotonically increasing.
@@ -91,30 +85,12 @@ def checkmonotonic(iterable, piecewise=False):
                 A boolean list of all True if monotonic, or including
                 an inflection point
     """
-    monotonic =  [True] + [x < y for x, y in zip(iterable, iterable[1:])]
-    if piecewise == True:
+    monotonic = [True] + [x < y for x, y in zip(iterable, iterable[1:])]
+    if piecewise is True:
         return monotonic
     else:
         return all(monotonic)
 
-def convert_mean_pressure(elevation):
-    """
-    Convert from raw elevation, in km, to pressure in Pascals using
-    Hugh Kieffer's algorithm.
-
-    689.7 is the constant pressure at sea level
-
-    Parameters
-    -----------
-    elevation : float or ndarray
-                elevation in km
-
-    Returns
-    --------
-      : float
-        Pressure in Pascals
-    """
-    return 689.7 * np.exp(-elevation / 10.8)
 
 def find_in_dict(obj, key):
     """
@@ -140,12 +116,42 @@ def find_in_dict(obj, key):
             if item is not None:
                 return item
 
-# note that this decorator ignores **kwargs
-def memoize(obj):
-    cache = obj.cache = {}
-    @functools.wraps(obj)
-    def memoizer(*args, **kwargs):
-        if args not in cache:
-            cache[args] = obj(*args, **kwargs)
-        return cache[args]
-    return memoizer
+
+def find_nested_in_dict(data, key_list):
+    """
+    Traverse a list of keys into a dict.
+
+    Parameters
+    ----------
+    data : dict
+           The dictionary to be traversed
+    key_list: list
+              The list of keys to be travered.  Keys are
+              traversed in the order they are entered in
+              the list
+
+    Returns
+    -------
+    value : object
+            The value in the dict
+    """
+    return reduce(lambda d, k: d[k], key_list, data)
+
+
+def make_homogeneous(points):
+    """
+    Convert a set of points (n x dim array) to
+        homogeneous coordinates.
+
+    Parameters
+    ----------
+    points : ndarray
+             n x m array of points, where n is the number
+             of points.
+
+    Returns
+    -------
+     : ndarray
+       n x m + 1 array of homogeneous points
+    """
+    return np.hstack((points, np.ones((points.shape[0], 1))))

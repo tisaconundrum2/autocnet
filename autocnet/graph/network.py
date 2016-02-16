@@ -1,12 +1,11 @@
+from collections import MutableMapping
 import os
 import warnings
 
 import networkx as nx
-import pandas as pd
-import cv2
-from pysal.cg.shapes import Polygon
 import numpy as np
-
+import pandas as pd
+from pysal.cg.shapes import Polygon
 from scipy.misc import bytescale
 
 from autocnet.control.control import C
@@ -16,11 +15,13 @@ from autocnet.matcher.matcher import FlannMatcher
 from autocnet.matcher import feature_extractor as fe
 from autocnet.matcher import outlier_detector as od
 from autocnet.matcher import subpixel as sp
+from autocnet.matcher.homography import Homography
 from autocnet.cg.cg import convex_hull_ratio, overlapping_polygon_area
-from autocnet.vis.graph_view import plot_node, plot_edge
+from autocnet.vis.graph_view import plot_node, plot_edge, plot_graph
+from autocnet.utils.isis_serial_numbers import generate_serial_number
 
 
-class Edge(object):
+class Edge(dict, MutableMapping):
     """
     Attributes
     ----------
@@ -32,9 +33,10 @@ class Edge(object):
             A list of the available masking arrays
     """
 
-    def __init__(self, source, destination):
+    def __init__(self, source=None, destination=None):
         self.source = source
         self.destination = destination
+
         self._masks = set()
         self._mask_arrays = {}
         self._homography = None
@@ -105,7 +107,35 @@ class Edge(object):
         else:
             raise AttributeError('No matches have been computed for this edge.')
 
-    def compute_homography(self, outlier_algorithm=cv2.RANSAC, clean_keys=[]):
+    def compute_fundamental_matrix(self, clean_keys=[], **kwargs):
+
+        if hasattr(self, 'matches'):
+            matches = self.matches
+        else:
+            raise AttributeError('Matches have not been computed for this edge')
+
+        if clean_keys:
+            mask = np.prod([self._mask_arrays[i] for i in clean_keys], axis=0, dtype=np.bool)
+            matches = matches[mask]
+            full_mask = np.where(mask == True)
+
+        s_keypoints = self.source.keypoints.iloc[matches['source_idx'].values]
+        d_keypoints = self.destination.keypoints.iloc[matches['destination_idx'].values]
+
+        transformation_matrix, fundam_mask = od.compute_fundamental_matrix(s_keypoints[['x', 'y']].values,
+                                                                           d_keypoints[['x', 'y']].values,
+                                                                           **kwargs)
+
+        fundam_mask = fundam_mask.ravel()
+        # Convert the truncated RANSAC mask back into a full length mask
+        if clean_keys:
+            mask[full_mask] = fundam_mask
+        else:
+            mask = fundam_mask
+        self.masks = ('fundamental', mask)
+        self.fundamental_matrix = transformation_matrix
+
+    def compute_homography(self, method='ransac', clean_keys=[], **kwargs):
         """
         For each edge in the (sub) graph, compute the homography
         Parameters
@@ -139,7 +169,8 @@ class Edge(object):
         d_keypoints = self.destination.keypoints.iloc[matches['destination_idx'].values]
 
         transformation_matrix, ransac_mask = od.compute_homography(s_keypoints[['x', 'y']].values,
-                                                                   d_keypoints[['x', 'y']].values)
+                                                                   d_keypoints[['x', 'y']].values,
+                                                                   **kwargs)
 
         ransac_mask = ransac_mask.ravel()
         # Convert the truncated RANSAC mask back into a full length mask
@@ -148,7 +179,20 @@ class Edge(object):
         else:
             mask = ransac_mask
         self.masks = ('ransac', mask)
-        self.homography = transformation_matrix
+        self.homography = Homography(transformation_matrix,
+                                     s_keypoints[ransac_mask][['x', 'y']],
+                                     d_keypoints[ransac_mask][['x', 'y']])
+
+    @property
+    def homography_determinant(self):
+        """
+        If the determinant of the homography is close to zero,
+        this is indicative of a validation issue, i.e., the
+        homography might be bad.
+        """
+        if not hasattr(self, 'homography'):
+            raise AttributeError('No homography has been computed for this edge.')
+        return np.linalg.det(self.homography)
 
     def compute_subpixel_offset(self, clean_keys=[], threshold=0.8, upsampling=16,
                                  template_size=19, search_size=53):
@@ -289,12 +333,8 @@ class Edge(object):
     def plot(self, ax=None, clean_keys=[], **kwargs):
         return plot_edge(self, ax=ax, clean_keys=clean_keys, **kwargs)
 
-    def update(self, *args):
-        # Added for NetworkX
-        pass
 
-
-class Node(object):
+class Node(dict, MutableMapping):
     """
     Attributes
     ----------
@@ -313,9 +353,13 @@ class Node(object):
                   32-bit array of feature descriptors returned by OpenCV
     masks : set
             A list of the available masking arrays
+
+    isis_serial : str
+                  If the input images have PVL headers, generate an
+                  ISIS compatible serial number
     """
 
-    def __init__(self, image_name, image_path):
+    def __init__(self, image_name=None, image_path=None):
         self.image_name = image_name
         self.image_path = image_path
         self._masks = set()
@@ -416,9 +460,19 @@ class Node(object):
     def plot(self, clean_keys=[], **kwargs):
         return plot_node(self, clean_keys=clean_keys, **kwargs)
 
-    def update(self, *args):
-        # Empty pass method to get NetworkX to accept a non-dict
-        pass
+    @property
+    def isis_serial(self):
+        """
+        Generate an ISIS compatible serial number using the data file
+        associated with this node.  This assumes that the data file
+        has a PVL header.
+        """
+        if not hasattr(self, '_isis_serial'):
+            try:
+                self._isis_serial = generate_serial_number(self.image_path)
+            except:
+                self._isis_serial = None
+        return self._isis_serial
 
 
 class CandidateGraph(nx.Graph):
@@ -437,6 +491,8 @@ class CandidateGraph(nx.Graph):
 
     ----------
     """
+    edge_attr_dict_factory = Edge
+    node_dict_factory = Node
 
     def __init__(self,*args, basepath=None, **kwargs):
         super(CandidateGraph, self).__init__(*args, **kwargs)
@@ -617,9 +673,6 @@ class CandidateGraph(nx.Graph):
 
         Parameters
         ----------
-        source_node : str
-                      The identifier for the node
-
         matches : dataframe
                   The pandas dataframe containing the matches
         """
@@ -628,10 +681,8 @@ class CandidateGraph(nx.Graph):
             for j, dest_group in source_group.groupby('destination_image'):
                 source_key = dest_group['source_image'].values[0]
                 destination_key = dest_group['destination_image'].values[0]
-                try:
-                    edge = self.edge[source_key][destination_key]
-                except: # pragma: no cover
-                    edge = self.edge[destination_key][source_key]
+
+                edge = self.edge[source_key][destination_key]
 
                 if hasattr(edge, 'matches'):
                     df = edge.matches
@@ -653,23 +704,33 @@ class CandidateGraph(nx.Graph):
         for s, d, edge in self.edges_iter(data=True):
             edge.ratio_check(ratio=ratio)
 
-    def compute_homographies(self, outlier_algorithm=cv2.RANSAC, clean_keys=[]):
+    def compute_homographies(self, clean_keys=[], **kwargs):
         """
         Compute homographies for all edges using identical parameters
 
         Parameters
         ----------
-        outlier_algorithm : object
-                            Function to apply for outlier detection
-
         clean_keys : list
                      Of keys in the mask dict
 
         """
 
         for s, d, edge in self.edges_iter(data=True):
-            edge.compute_homography(outlier_algorithm=outlier_algorithm,
-                                    clean_keys=clean_keys)
+            edge.compute_homography(clean_keys=clean_keys, **kwargs)
+
+    def compute_fundamental_matrices(self, clean_keys=[], **kwargs):
+        """
+        Compute fundamental matrices for all edges using identical parameters
+
+        Parameters
+        ----------
+        clean_keys : list
+                     Of keys in the mask dict
+
+        """
+
+        for s, d, edge in self.edges_iter(data=True):
+            edge.compute_fundamental_matrix(clean_keys=clean_keys, **kwargs)
 
     def compute_subpixel_offsets(self, clean_keys=[], threshold=0.8, upsampling=10,
                                  template_size=9, search_size=27):
@@ -695,7 +756,7 @@ class CandidateGraph(nx.Graph):
             filelist.append(node.image_path)
         return filelist
 
-    def to_cnet(self, clean_keys=[]):
+    def to_cnet(self, clean_keys=[], isis_serials=False):
         """
         Generate a control network (C) object from a graph
 
@@ -703,6 +764,10 @@ class CandidateGraph(nx.Graph):
         ----------
         clean_keys : list
              of strings identifying the masking arrays to use, e.g. ratio, symmetry
+
+        isis_serials : bool
+                       Replace the node ID (nid) values with an ISIS
+                       serial number. Default False
 
         Returns
         -------
@@ -810,6 +875,14 @@ class CandidateGraph(nx.Graph):
 
         # Final validation to remove any correspondence with multiple correspondences in the same image
         merged_cnet = _validate_cnet(merged_cnet)
+
+        # If the user wants ISIS serial numbers, replace the nid with the serial.
+        if isis_serials is True:
+            nid_to_serial = {}
+            for i, node in self.nodes_iter(data=True):
+                nid_to_serial[i] = node.isis_serial
+            merged_cnet.replace({'nid': nid_to_serial}, inplace=True)
+
         return merged_cnet
 
     def to_json_file(self, outputfile):
@@ -848,3 +921,21 @@ class CandidateGraph(nx.Graph):
           A list of connected sub-graphs of nodes, with the largest sub-graph first. Each subgraph is a set.
         """
         return sorted(nx.connected_components(self), key=len, reverse=True)
+
+    # TODO: The Edge object requires a get method in order to be plottable, probably Node as well.
+    # This is a function of being a dict in NetworkX
+    def plot(self, ax=None, **kwargs):
+        """
+        Plot the graph object
+
+        Parameters
+        ----------
+        ax : object
+             A MatPlotLib axes object.
+
+        Returns
+        -------
+         : object
+           A MatPlotLib axes object
+        """
+        return plot_graph(self, ax=ax,  **kwargs)
