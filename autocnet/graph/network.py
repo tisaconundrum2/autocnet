@@ -492,6 +492,7 @@ class CandidateGraph(nx.Graph):
     ----------
     """
     edge_attr_dict_factory = Edge
+    node_dict_factory = Node
 
     def __init__(self,*args, basepath=None, **kwargs):
         super(CandidateGraph, self).__init__(*args, **kwargs)
