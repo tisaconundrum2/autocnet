@@ -760,7 +760,7 @@ class CandidateGraph(nx.Graph):
             filelist.append(node.image_path)
         return filelist
 
-    def to_cnet(self, clean_keys=[]):
+    def to_cnet(self, clean_keys=[], isis_serials=False):
         """
         Generate a control network (C) object from a graph
 
@@ -768,6 +768,10 @@ class CandidateGraph(nx.Graph):
         ----------
         clean_keys : list
              of strings identifying the masking arrays to use, e.g. ratio, symmetry
+
+        isis_serials : bool
+                       Replace the node ID (nid) values with an ISIS
+                       serial number. Default False
 
         Returns
         -------
@@ -875,6 +879,14 @@ class CandidateGraph(nx.Graph):
 
         # Final validation to remove any correspondence with multiple correspondences in the same image
         merged_cnet = _validate_cnet(merged_cnet)
+
+        # If the user wants ISIS serial numbers, replace the nid with the serial.
+        if isis_serials is True:
+            nid_to_serial = {}
+            for i, node in self.nodes_iter(data=True):
+                nid_to_serial[i] = node.isis_serial
+            merged_cnet.replace({'nid': nid_to_serial}, inplace=True)
+
         return merged_cnet
 
     def to_json_file(self, outputfile):
