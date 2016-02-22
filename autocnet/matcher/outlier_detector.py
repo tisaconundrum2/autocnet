@@ -176,12 +176,12 @@ def compute_homography(kp1, kp2, method='ransac', **kwargs):
     kp2 : ndarray
           (n, 2) of coordinates from the destination image
 
-    outlier_algorithm : {'ransac', 'lmeds', 'normal'}
-                        The openCV algorithm to use for outlier detection
+    method : {'ransac', 'lmeds', 'normal'}
+             The openCV algorithm to use for outlier detection
 
-    reproj_threshold : float
-                       The maximum distances in pixels a reprojected points
-                       can be from the epipolar line to be considered an inlier
+    ransacReprojThreshold : float
+                            The maximum distances in pixels a reprojected points
+                            can be from the epipolar line to be considered an inlier
 
     Returns
     -------

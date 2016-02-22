@@ -47,4 +47,10 @@ class TestCandidateGraph(unittest.TestCase):
         pass
 
 
+class TestEdge(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.graph = network.CandidateGraph.from_adjacency(get_path('adjacency.json'))
+
 
