@@ -47,29 +47,4 @@ class TestCandidateGraph(unittest.TestCase):
         pass
 
 
-class TestNode(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        cls.graph = network.CandidateGraph.from_adjacency(get_path('adjacency.json'))
-
-    def test_get_handle(self):
-        self.assertIsInstance(self.graph.node[0].handle, GeoDataset)
-
-    def test_get_array(self):
-        image = self.graph.node[0].get_array()
-        self.assertEqual((1012, 1012), image.shape)
-        self.assertEqual(np.uint8, image.dtype)
-
-    def test_extract_features(self):
-        node = self.graph.node[0]
-        image = node.get_array()
-        node.extract_features(image, extractor_parameters={'nfeatures':10})
-        self.assertEquals(len(node.keypoints), 10)
-        self.assertEquals(len(node.descriptors), 10)
-        self.assertIsInstance(node.descriptors[0], np.ndarray)
-
-    def test_convex_hull_ratio_fail(self):
-        # Convex hull computation is checked lower in the hull computation
-        node = self.graph.node[0]
-        self.assertRaises(AttributeError, node.coverage_ratio)
