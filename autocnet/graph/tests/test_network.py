@@ -2,11 +2,9 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
-import numpy as np
 import unittest
 
 from autocnet.examples import get_path
-from autocnet.fileio.io_gdal import GeoDataset
 
 from .. import network
 
@@ -42,6 +40,14 @@ class TestCandidateGraph(unittest.TestCase):
         self.assertEqual(len(subgraph_list), 2)
         island = self.graph.island_nodes()[0]
         self.assertTrue(island in subgraph_list[1])
+
+    def test_save_load(self):
+        self.graph.save('test_save.cg')
+        loaded = self.graph.from_graph('test_save.cg')
+
+        self.assertEqual(self.graph.node[0].nkeypoints, loaded.node[0].nkeypoints)
+        self.assertEqual(self.graph.edge[0][1], self.graph.edge[0][1])
+        os.remove('test_save.cg')
 
     def tearDown(self):
         pass

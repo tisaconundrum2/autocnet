@@ -1,4 +1,5 @@
 import os
+import pickle
 
 import networkx as nx
 import numpy as np
@@ -57,6 +58,24 @@ class CandidateGraph(nx.Graph):
         # Add the Edge class as a edge data structure
         for s, d, edge in self.edges_iter(data=True):
             self.edge[s][d] = Edge(self.node[s], self.node[d])
+
+    @classmethod
+    def from_graph(cls, graph):
+        """
+        Return a graph object from a pickled file
+        Parameters
+        ----------
+        graph : str
+                PATH to the graph object
+
+        Returns
+        -------
+        graph : object
+                CandidateGraph object
+        """
+        with open(graph, 'rb') as f:
+            graph = pickle.load(f)
+        return graph
 
     @classmethod
     def from_adjacency(cls, input_adjacency, basepath=None):
@@ -458,6 +477,21 @@ class CandidateGraph(nx.Graph):
           A list of connected sub-graphs of nodes, with the largest sub-graph first. Each subgraph is a set.
         """
         return sorted(nx.connected_components(self), key=len, reverse=True)
+
+    def save(self, filename):
+        """
+        Save the graph object to disk.
+        Parameters
+        ----------
+        filename : str
+                   The relative or absolute PATH where the network is saved
+        """
+        for i, node in self.nodes_iter(data=True):
+            # Close the file handle because pickle doesn't handle SwigPyObjects
+            node._handle = None
+
+        with open(filename, 'wb') as f:
+            pickle.dump(self, f)
 
     # TODO: The Edge object requires a get method in order to be plottable, probably Node as well.
     # This is a function of being a dict in NetworkX
