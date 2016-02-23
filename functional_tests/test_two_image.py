@@ -76,8 +76,8 @@ class TestTwoImageMatching(unittest.TestCase):
         cg.compute_homographies(clean_keys=['symmetry', 'ratio'])
 
         # Step: Compute the overlap ratio and coverage ratio
-        #for s, d, edge in cg.edges_iter(data=True):
-            #ratio = edge.coverage_ratio(clean_keys=['symmetry', 'ratio'])
+        for s, d, edge in cg.edges_iter(data=True):
+            ratio = edge.coverage_ratio(clean_keys=['symmetry', 'ratio'])
 
         # Step: Compute subpixel offsets for candidate points
         cg.subpixel_register(clean_keys=['ransac'])
