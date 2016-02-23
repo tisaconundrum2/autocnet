@@ -4,6 +4,8 @@ sys.path.insert(0, os.path.abspath('..'))
 
 import unittest
 
+import numpy as np
+
 from autocnet.examples import get_path
 
 from .. import network
@@ -46,7 +48,12 @@ class TestCandidateGraph(unittest.TestCase):
         loaded = self.graph.from_graph('test_save.cg')
 
         self.assertEqual(self.graph.node[0].nkeypoints, loaded.node[0].nkeypoints)
-        self.assertEqual(self.graph.edge[0][1], self.graph.edge[0][1])
+        self.assertEqual(self.graph.edge[0][1], loaded.edge[0][1])
+
+        a = self.graph.node[0].handle.read_array()
+        b = loaded.node[0].handle.read_array()
+        np.testing.assert_array_equal(a, b)
+
         os.remove('test_save.cg')
 
     def tearDown(self):
