@@ -191,7 +191,8 @@ class Edge(dict, MutableMapping):
                                      index=mask[mask == True].index)
 
     def subpixel_register(self, clean_keys=[], threshold=0.8, upsampling=16,
-                                 template_size=19, search_size=53):
+                          template_size=19, search_size=53, max_x_shift=1.0,
+                          max_y_shift=1.0):
         """
         For the entire graph, compute the subpixel offsets using pattern-matching and add the result
         as an attribute to each edge of the graph.
@@ -216,6 +217,14 @@ class Edge(dict, MutableMapping):
 
         search_size : int
                       The size of the search
+
+        max_x_shift : float
+                      The maximum (positive) value that a pixel can shift in the x direction
+                      without being considered an outlier
+
+        max_y_shift : float
+                      The maximum (positive) value that a pixel can shift in the y direction
+                      without being considered an outlier
         """
 
         matches = self.matches
@@ -242,7 +251,7 @@ class Edge(dict, MutableMapping):
 
             try:
                 x_off, y_off, strength = sp.subpixel_offset(s_template, d_search, upsampling=upsampling)
-                self.subpixel_offsets.loc[idx] = [x_off, y_off, strength,s_idx, d_idx ]
+                self.subpixel_offsets.loc[idx] = [x_off, y_off, strength,s_idx, d_idx]
             except:
                 warnings.warn('Template-Search size mismatch, failing for this correspondence point.')
                 continue
@@ -250,8 +259,20 @@ class Edge(dict, MutableMapping):
         self.subpixel_offsets.to_sparse(fill_value=0.0)
 
         # Compute the mask for correlations less than the threshold
-        mask = self.subpixel_offsets['correlation'] >= threshold
+        threshold_mask = self.subpixel_offsets['correlation'] >= threshold
 
+        # Compute the mask for the point shifts that are too large
+        subp= self.subpixel_offsets
+        query_string = 'x_offset <= -{0} or x_offset >= {0} or y_offset <= -{1} or y_offset >= {1}'.format(max_x_shift,
+                                                                                                           max_y_shift)
+        sp_shift_outliers = subp.query(query_string)
+        shift_mask = pd.Series(True, index=self.subpixel_offsets.index)
+        shift_mask[sp_shift_outliers.index] = False
+
+        # Generate the composite mask and write the masks to the mask data structure
+        mask = threshold_mask & shift_mask
+        self.masks = ('shift', shift_mask)
+        self.masks = ('threshold', threshold_mask)
         self.masks = ('subpixel', mask)
 
     def coverage_ratio(self, clean_keys=[]):
