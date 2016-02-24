@@ -78,7 +78,7 @@ def plot_node(node, ax=None, clean_keys=[], **kwargs):
 
     keypoints = node.keypoints
     if clean_keys:
-        mask = np.prod([node._mask_arrays[i] for i in clean_keys], axis=0, dtype=np.bool)
+        matches, mask = node._clean(clean_keys)
         keypoints = node.keypoints[mask]
 
     marker = '.'
@@ -166,8 +166,7 @@ def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
     matches = edge.matches
 
     if clean_keys:
-        mask = np.prod([edge._mask_arrays[i] for i in clean_keys], axis=0, dtype=np.bool)
-        matches = edge.matches[mask]
+        matches, mask = edge._clean(clean_keys)
 
     marker = '.'
     if 'marker' in scatter_kwargs.keys():
