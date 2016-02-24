@@ -32,6 +32,8 @@ class Homography(np.ndarray):
         obj.x2 = make_homogeneous(x2)
         obj.pd_index = index
 
+        cls.__array_finalize__(cls, obj)
+
         return obj
 
     def __array_finalize__(self, obj):
