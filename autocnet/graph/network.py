@@ -1,5 +1,5 @@
 import os
-import pickle
+import dill as pickle
 
 import networkx as nx
 import numpy as np
@@ -491,7 +491,7 @@ class CandidateGraph(nx.Graph):
             node._handle = None
 
         with open(filename, 'wb') as f:
-            pickle.dump(self, f)
+            pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     # TODO: The Edge object requires a get method in order to be plottable, probably Node as well.
     # This is a function of being a dict in NetworkX
