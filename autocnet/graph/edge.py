@@ -190,6 +190,9 @@ class Edge(dict, MutableMapping):
                                      d_keypoints[ransac_mask][['x', 'y']],
                                      index=mask[mask == True].index)
 
+        # Finalize the array to get custom attrs to propagate
+        self.homography.__array_finalize__(self.homography)
+
     def subpixel_register(self, clean_keys=[], threshold=0.8, upsampling=16,
                           template_size=19, search_size=53, max_x_shift=1.0,
                           max_y_shift=1.0):

@@ -30,9 +30,16 @@ class Homography(np.ndarray):
 
         obj.x1 = make_homogeneous(x1)
         obj.x2 = make_homogeneous(x2)
-        obj.pd_index=index
+        obj.pd_index = index
 
         return obj
+
+    def __array_finalize__(self, obj):
+        if obj is None:
+            return
+        self.x1 = getattr(obj, 'x1', None)
+        self.x2 = getattr(obj, 'x2', None)
+        self.pd_index = getattr(obj, 'pd_index', None)
 
     @property
     def determinant(self):
