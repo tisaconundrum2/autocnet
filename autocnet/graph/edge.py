@@ -6,7 +6,7 @@ import pandas as pd
 from pysal.cg.shapes import Polygon
 
 from autocnet.matcher import subpixel as sp
-from autocnet.matcher.homography import Homography
+from autocnet.matcher.transformations import FundamentalMatrix, Homography
 from autocnet.cg.cg import overlapping_polygon_area
 from autocnet.vis.graph_view import plot_edge
 from autocnet.matcher import outlier_detector as od
@@ -37,8 +37,6 @@ class Edge(dict, MutableMapping):
 
         self._homography = None
         self._subpixel_offsets = None
-        self.provenance = {}
-        self._pid = 0
 
     def __repr__(self):
         return """
@@ -49,34 +47,25 @@ class Edge(dict, MutableMapping):
 
     @property
     def masks(self):
+        mask_lookup = {'fundamental': 'fundamental_matrix'}
         if not hasattr(self, '_masks'):
-            self._masks = pd.Panel({self._pid: pd.DataFrame(index=self.matches.index)})
+            if hasattr(self, 'matches'):
+                self._masks = pd.DataFrame(True, columns=['symmetry', 'ratio'],
+                                       index=index)
+            else:
+                self._masks = pd.DataFrame()
+        # If the mask is coming form another object that tracks
+        # state, dynamically draw the mask from the object.
+        for c in self._masks.columns:
+            if c in mask_lookup:
+                self._masks[c] = getattr(self, mask_lookup[c]).mask
         return self._masks
 
     @masks.setter
     def masks(self, v):
         column_name = v[0]
         boolean_mask = v[1]
-        current = self.masks[self._pid]
-        current[column_name] = boolean_mask
-
-    @property
-    def error(self):
-        if not hasattr(self, '_error'):
-            self._error = pd.Panel({self._pid: pd.DataFrame(index=self.matches.index)})
-        return self._error
-
-    @error.setter
-    def error(self, v):
-        pass
-
-    @property
-    def homography(self):
-        return self._homography
-
-    @homography.setter
-    def homography(self, v):
-        self._homography = v
+        self.masks[column_name] = boolean_mask
 
     def keypoints(self, clean_keys=[]):
         """
@@ -124,6 +113,9 @@ class Edge(dict, MutableMapping):
         else:
             raise AttributeError('Matches have not been computed for this edge')
 
+        all_source_keypoints = self.source.keypoints.iloc[matches['source_idx']]
+        all_destin_keypoints = self.destination.keypoints.iloc[matches['destination_idx']]
+
         if clean_keys:
             matches, mask = self._clean(clean_keys)
 
@@ -140,8 +132,13 @@ class Edge(dict, MutableMapping):
             mask[mask == True] = fundam_mask
         else:
             mask = fundam_mask
+        self.fundamental_matrix = FundamentalMatrix(transformation_matrix,
+                                                    all_source_keypoints[['x', 'y']],
+                                                    all_destin_keypoints[['x', 'y']],
+                                                    mask=mask)
+
+        # Set the initial state of the fundamental mask in the masks
         self.masks = ('fundamental', mask)
-        self.fundamental_matrix = transformation_matrix
 
     def compute_homography(self, method='ransac', clean_keys=[], pid=None, **kwargs):
         """
@@ -188,7 +185,7 @@ class Edge(dict, MutableMapping):
         self.homography = Homography(transformation_matrix,
                                      s_keypoints[ransac_mask][['x', 'y']],
                                      d_keypoints[ransac_mask][['x', 'y']],
-                                     index=mask[mask == True].index)
+                                     mask=mask[mask == True].index)
 
         # Finalize the array to get custom attrs to propagate
         self.homography.__array_finalize__(self.homography)
@@ -362,9 +359,7 @@ class Edge(dict, MutableMapping):
         mask : series
                     A boolean series to inflate back to the full match set
         """
-        if not pid:
-            pid = self._pid
-        panel = self.masks[pid]
+        panel = self.masks
         mask = panel[clean_keys].all(axis=1)
         matches = self.matches[mask]
         return matches, mask

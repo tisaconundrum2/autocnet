@@ -15,7 +15,9 @@ class TestCandidateGraph(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.graph = network.CandidateGraph.from_adjacency(get_path('adjacency.json'))
+        basepath = get_path('Apollo15')
+        cls.graph = network.CandidateGraph.from_adjacency(get_path('three_image_adjacency.json'),
+                                                          basepath=basepath)
 
     def test_get_name(self):
         node_number = self.graph.node_name_map['AS15-M-0297_SML.png']
@@ -46,7 +48,8 @@ class TestCandidateGraph(unittest.TestCase):
     def test_save_load(self):
         self.graph.save('test_save.cg')
         loaded = self.graph.from_graph('test_save.cg')
-
+        for s, d, e in loaded.edges_iter(data=True):
+            print(s, d)
         self.assertEqual(self.graph.node[0].nkeypoints, loaded.node[0].nkeypoints)
         self.assertEqual(self.graph.edge[0][1], loaded.edge[0][1])
 
