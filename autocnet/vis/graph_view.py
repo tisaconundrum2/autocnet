@@ -1,3 +1,4 @@
+import inspect
 import math
 import numpy as np
 import networkx as nx
@@ -168,27 +169,17 @@ def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
     if clean_keys:
         matches, mask = edge._clean(clean_keys)
 
-    marker = '.'
-    if 'marker' in scatter_kwargs.keys():
-        marker = scatter_kwargs['marker']
-        scatter_kwargs.pop('marker', None)
-
-    color = 'r'
-    if 'color' in scatter_kwargs.keys():
-        color = scatter_kwargs['color']
-        scatter_kwargs.pop('color', None)
-
     # Plot the source
     source_idx = matches['source_idx'].values
     s_kps = source_keypoints.iloc[source_idx]
-    ax.scatter(s_kps['x'], s_kps['y'], marker=marker, color=color, **scatter_kwargs)
+    ax.scatter(s_kps['x'], s_kps['y'], **scatter_kwargs)
 
     # Plot the destination
     destination_idx = matches['destination_idx'].values
     d_kps = destination_keypoints.iloc[destination_idx]
     x_offset = s_shape[0] + image_space
     newx = d_kps['x'] + x_offset
-    ax.scatter(newx, d_kps['y'], marker=marker, color=color, **scatter_kwargs)
+    ax.scatter(newx, d_kps['y'], **scatter_kwargs)
 
     # Draw the connecting lines
     color = 'y'
@@ -204,6 +195,7 @@ def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
         ax.plot((l[0][0], l[1][0]), (l[0][1], l[1][1]), color=color, **line_kwargs)
 
     return ax
+
 
 def plotAdjacencyGraphFeatures(graph, pointColorAndHatch='b.', featurePointSize=7):
     """
