@@ -1,3 +1,4 @@
+import abc
 from collections import deque
 
 import numpy as np
@@ -7,8 +8,122 @@ import pysal as ps
 from autocnet.matcher.outlier_detector import compute_fundamental_matrix
 from autocnet.utils.utils import make_homogeneous
 
+class TransformationMatrix(np.ndarray):
+    __metaclass__ = abc.ABCMeta
 
-class FundamentalMatrix(np.ndarray):
+    @abc.abstractmethod
+    def __new__(cls, inputarr, x1, x2, mask=None):
+        obj = np.asarray(inputarr).view(cls)
+
+        if not isinstance(inputarr, np.ndarray):
+            raise TypeError('The homography must be an ndarray')
+        if not inputarr.shape[0] == 3 and not inputarr.shape[1] == 3:
+            raise ValueError('The homography must be a 3x3 matrix.')
+
+        obj.x1 = x1
+        obj.x2 = x2
+        obj.mask = mask
+        obj._action_stack = deque(maxlen=10)
+        obj._current_action_stack = 0
+        # Seed the state package with the initial creation state
+        if mask is not None:
+            state_package = {'arr': obj.copy(),
+                             'mask': obj.mask.copy()}
+        else:
+            state_package = {'arr':obj.copy(),
+                             'mask':None}
+        obj._action_stack.append(state_package)
+
+        return obj
+
+    @abc.abstractmethod
+    def __array_finalize__(self, obj):
+        if obj is None:
+            return
+        self.x1 = getattr(obj, 'x1', None)
+        self.x2 = getattr(obj, 'x2', None)
+        self.mask = getattr(obj, 'mask', None)
+        self._action_stack = getattr(obj, '_action_stack', None)
+        self._current_action_stack = getattr(obj, '_current_action_stack', None)
+
+    @abc.abstractproperty
+    def determinant(self):
+        if not getattr(self, '_determinant', None):
+            self._determinant = np.linalg.det(self)
+        return self._determinant
+
+    @abc.abstractproperty
+    def condition(self):
+        if not getattr(self, '_condition', None):
+            s = np.linalg.svd(self, compute_uv=False)
+            self._condition = s[0] / s[1]
+        return self._condition
+
+    @abc.abstractproperty
+    def error(self):
+        if not hasattr(self, '_error'):
+            self._error = self.compute_error()
+        return self._error
+
+    @abc.abstractproperty
+    def describe_error(self):
+        if not getattr(self, '_error', None):
+            self._error = self.compute_error()
+        return self.error.describe()
+
+    @abc.abstractmethod
+    def rollback(self, n=1):
+        """
+        Roll backward in the object histroy, e.g. undo
+
+        Parameters
+        ----------
+        n : int
+            the number of steps to roll backwards
+        """
+        idx = self._current_action_stack - n
+        if idx < 0:
+            idx = 0
+        self._current_action_stack = idx
+        state = self._action_stack[idx]
+        self[:] = state['arr']
+        setattr(self, 'mask', state['mask'])
+        # Reset attributes (could also cache)
+        self._clean_attrs()
+
+    @abc.abstractmethod
+    def rollforward(self, n=1):
+        """
+        Roll forwards in the object history, e.g. do
+
+        Parameters
+        ----------
+        n : int
+            the number of steps to roll forwards
+        """
+        idx = self._current_action_stack + n
+        if idx > len(self._action_stack) - 1:
+            idx = len(self._action_stack) - 1
+        state = self._action_stack[idx]
+        self[:] = state['arr']
+        setattr(self, 'mask', state['mask'])
+        # Reset attributes (could also cache)
+        self._clean_attrs()
+
+    @abc.abstractmethod
+    def compute_error(self, x1=None, x2=None, index=None):
+        pass
+
+    @abc.abstractmethod
+    def recompute_matrix(self):
+        pass
+
+    @abc.abstractmethod
+    def refine(self):
+        pass
+
+
+class FundamentalMatrix(TransformationMatrix):
     """
     A homography or planar transformation matrix
 
@@ -24,81 +139,6 @@ class FundamentalMatrix(np.ndarray):
             describing the error of the points used to
             compute this homography
     """
-    def __new__(cls, inputarr, x1, x2, mask=None):
-        obj = np.asarray(inputarr).view(cls)
-
-        if not isinstance(inputarr, np.ndarray):
-            raise TypeError('The homography must be an ndarray')
-        if not inputarr.shape[0] == 3 and not inputarr.shape[1] == 3:
-            raise ValueError('The homography must be a 3x3 matrix.')
-
-        obj.x1 = x1
-        obj.x2 = x2
-        obj.mask = mask
-        obj._action_stack = deque(maxlen=10)
-        obj._current_action_stack = 0
-        # Seed the state package with the initial creation state
-        state_package = {'arr': obj.copy(),
-                         'mask': obj.mask.copy()}
-        obj._action_stack.append(state_package)
-
-        return obj
-
-    def __array_finalize__(self, obj):
-        if obj is None:
-            return
-        self.x1 = getattr(obj, 'x1', None)
-        self.x2 = getattr(obj, 'x2', None)
-        self.mask = getattr(obj, 'mask', None)
-        self._action_stack = getattr(obj, '_action_stack', None)
-        self._current_action_stack = getattr(obj, '_current_action_stack', None)
-
-    @property
-    def determinant(self):
-        if not getattr(self, '_determinant', None):
-            self._determinant = np.linalg.det(self)
-        return self._determinant
-
-    @property
-    def condition(self):
-        if not getattr(self, '_condition', None):
-            s = np.linalg.svd(self, compute_uv=False)
-            self._condition = s[0] / s[1]
-        return self._condition
-
-    @property
-    def error(self):
-        if not hasattr(self, '_error'):
-            self._error = self.compute_error()
-        return self._error
-
-    @property
-    def describe_error(self):
-        if not getattr(self, '_error', None):
-            self._error = self.compute_error()
-        return self.error.describe()
-
-    def rollback(self, n=1):
-        idx = self._current_action_stack - n
-        if idx < 0:
-            idx = 0
-        self._current_action_stack = idx
-        state = self._action_stack[idx]
-        self[:] = state['arr']
-        setattr(self, 'mask', state['mask'])
-        # Reset attributes (could also cache)
-        self._clean_attrs()
-
-    def rollforward(self, n=1):
-        idx = self._current_action_stack + n
-        if idx > len(self._action_stack) - 1:
-            idx = len(self._action_stack) - 1
-        state = self._action_stack[idx]
-        self[:] = state['arr']
-        self.mask = state['mask']
-        # Reset attributes (could also cache)
-        self._clean_attrs()
-
     def refine(self, method=ps.esda.mapclassify.Fisher_Jenks, bin_id=0, **kwargs):
         """
         Refine the fundamental matrix by accepting some data classification
@@ -210,3 +250,92 @@ class FundamentalMatrix(np.ndarray):
 
         return error
 
+    def recompute_matrix(self):
+        raise NotImplementedError
+
+
+class Homography(TransformationMatrix):
+    """
+    A homography or planar transformation matrix
+
+    Attributes
+    ----------
+    determinant : float
+                  The determinant of the matrix
+
+    condition : float
+                The condition computed as SVD[0] / SVD[-1]
+
+    error : dataframe
+            describing the error of the points used to
+            compute this homography
+    """
+
+    def compute_error(self, a=None, b=None, index=None):
+        """
+        Give this homography, compute the planar reprojection error
+        between points a and b.
+
+        Parameters
+        ----------
+        a : ndarray
+            n,2 array of x,y coordinates
+
+        b : ndarray
+            n,2 array of x,y coordinates
+
+        index : ndarray
+                Index to be used in the returned dataframe
+
+        Returns
+        -------
+        df : dataframe
+             With columns for x_residual, y_residual, rmse, and
+             error contribution.  The dataframe also has cumulative
+             x, t, and total RMS statistics accessible via
+             df.x_rms, df.y_rms, and df.total_rms, respectively.
+        """
+        if not isinstance(a, np.ndarray):
+            a = np.asarray(a)
+        if not isinstance(b, np.ndarray):
+            b = np.asarray(b)
+
+        if a.shape[1] == 2:
+            a = make_homogeneous(a)
+        if b.shape[1] == 2:
+            b = make_homogeneous(b)
+
+        # ToDo: Vectorize for performance
+        for i, j in enumerate(a):
+            a[i] = self.dot(j)
+            a[i] /= a[i][-1]
+
+        data = np.empty((a.shape[0], 4))
+
+        data[:,0] = x_res = b[:,0] - a[:,0]
+        data[:,1] = y_res = b[:,1] - a[:,1]
+        data[:,2] = rms = np.sqrt(x_res**2 + y_res**2)
+        total_rms = np.sqrt(np.mean(x_res**2 + y_res**2))
+        x_rms = np.sqrt(np.mean(x_res**2))
+        y_rms = np.sqrt(np.mean(y_res**2))
+
+        data[:,3] = rms / total_rms
+
+        df = pd.DataFrame(data,
+                          columns=['x_residuals',
+                                   'y_residuals',
+                                   'rmse',
+                                   'error_contribution'],
+                          index=index)
+
+        df.total_rms = total_rms
+        df.x_rms = x_rms
+        df.y_rms = y_rms
+
+        return df
+
+    def recompute_matrix(self):
+        raise NotImplementedError
+
+    def refine(self):
+        raise NotImplementedError

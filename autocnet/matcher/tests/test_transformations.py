@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.abspath('..'))
 
 import numpy.testing
 
-from .. import homography
+from .. import transformations
 
 
 class TestHomography(unittest.TestCase):
@@ -27,7 +27,7 @@ class TestHomography(unittest.TestCase):
         tp = static_H.dot(fph.T)
         # normalize hom. coordinates
         tp /= tp[-1,:np.newaxis]
-        H = homography.Homography(static_H,
+        H = transformations.Homography(static_H,
                                   fp,
                                   tp.T[:,:2])
         self.assertAlmostEqual(H.determinant, 0.6249999, 5)
@@ -36,4 +36,4 @@ class TestHomography(unittest.TestCase):
         numpy.testing.assert_array_almost_equal(error['rmse'], np.zeros(20))
 
     def test_Homography_fail(self):
-        self.assertRaises(TypeError, homography.Homography, [1,2,3], 'a', 'b')
+        self.assertRaises(TypeError, transformations.Homography, [1,2,3], 'a', 'b')
