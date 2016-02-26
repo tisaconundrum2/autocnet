@@ -51,7 +51,7 @@ class Edge(dict, MutableMapping):
         if not hasattr(self, '_masks'):
             if hasattr(self, 'matches'):
                 self._masks = pd.DataFrame(True, columns=['symmetry', 'ratio'],
-                                       index=index)
+                                       index=self.matches.index)
             else:
                 self._masks = pd.DataFrame()
         # If the mask is coming form another object that tracks

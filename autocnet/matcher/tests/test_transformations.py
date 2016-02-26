@@ -1,11 +1,12 @@
 import os
-import numpy as np
 import unittest
 
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
+import numpy as np
 import numpy.testing
+import pandas as pd
 
 from .. import transformations
 
@@ -28,8 +29,9 @@ class TestHomography(unittest.TestCase):
         # normalize hom. coordinates
         tp /= tp[-1,:np.newaxis]
         H = transformations.Homography(static_H,
-                                  fp,
-                                  tp.T[:,:2])
+                                  pd.DataFrame(fp, columns=['x', 'y']),
+                                  pd.DataFrame(tp.T[:,:2], columns=['x', 'y']),
+                                  mask=pd.Series(True, index=np.arange(fp.shape[0])))
         self.assertAlmostEqual(H.determinant, 0.6249999, 5)
         self.assertAlmostEqual(H.condition, 7.19064438, 5)
         error = H.error

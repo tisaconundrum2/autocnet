@@ -12,7 +12,7 @@ class TransformationMatrix(np.ndarray):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def __new__(cls, inputarr, x1, x2, mask=None):
+    def __new__(cls, inputarr, x1, x2, mask):
         obj = np.asarray(inputarr).view(cls)
 
         if not isinstance(inputarr, np.ndarray):
@@ -62,13 +62,17 @@ class TransformationMatrix(np.ndarray):
     @abc.abstractproperty
     def error(self):
         if not hasattr(self, '_error'):
-            self._error = self.compute_error()
+            self._error = self.compute_error(self.x1,
+                                             self.x2,
+                                             self.mask)
         return self._error
 
     @abc.abstractproperty
     def describe_error(self):
         if not getattr(self, '_error', None):
-            self._error = self.compute_error()
+            self._error = self.compute_error(self.x1,
+                                             self.x2,
+                                             self.mask)
         return self.error.describe()
 
     @abc.abstractmethod
@@ -111,7 +115,7 @@ class TransformationMatrix(np.ndarray):
         self._clean_attrs()
 
     @abc.abstractmethod
-    def compute_error(self, x1=None, x2=None, index=None):
+    def compute_error(self, x1, x2, index=None):
         pass
 
     @abc.abstractmethod
@@ -195,7 +199,7 @@ class FundamentalMatrix(TransformationMatrix):
                 delattr(self, a)
             except: pass
 
-    def compute_error(self, x1=None, x2=None, index=None):
+    def compute_error(self, x1, x2, mask=None):
         """
         Give this homography, compute the planar reprojection error
         between points a and b.
@@ -208,8 +212,8 @@ class FundamentalMatrix(TransformationMatrix):
         b : ndarray
             n,2 array of x,y coordinates
 
-        index : ndarray
-                Index to be used in the returned dataframe
+        mask : Series
+               Index to be used in the returned dataframe
 
         Returns
         -------
@@ -220,12 +224,14 @@ class FundamentalMatrix(TransformationMatrix):
              df.x_rms, df.y_rms, and df.total_rms, respectively.
         """
 
-        if x1 is None:
-            maskidx = self.mask[self.mask==True].index
-            x1 = self.x1.iloc[maskidx].values
-            index=maskidx
-        if x2 is None:
-            x2 = self.x2.iloc[maskidx].values
+        if mask is not None:
+            mask = mask
+        else:
+            mask = self.mask
+        index = mask[mask==True].index
+
+        x1 = self.x1.iloc[index].values
+        x2 = self.x2.iloc[index].values
         err = np.zeros(x1.shape[0])
 
         # TODO: Vectorize the error computation
@@ -271,7 +277,7 @@ class Homography(TransformationMatrix):
             compute this homography
     """
 
-    def compute_error(self, a=None, b=None, index=None):
+    def compute_error(self, a, b, mask=None):
         """
         Give this homography, compute the planar reprojection error
         between points a and b.
@@ -295,10 +301,15 @@ class Homography(TransformationMatrix):
              x, t, and total RMS statistics accessible via
              df.x_rms, df.y_rms, and df.total_rms, respectively.
         """
-        if not isinstance(a, np.ndarray):
-            a = np.asarray(a)
-        if not isinstance(b, np.ndarray):
-            b = np.asarray(b)
+
+        if mask is not None:
+            mask = mask
+        else:
+            mask = self.mask
+        index = mask[mask==True].index
+
+        a = a.iloc[index].values
+        b = b.iloc[index].values
 
         if a.shape[1] == 2:
             a = make_homogeneous(a)
