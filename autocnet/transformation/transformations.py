@@ -1,5 +1,6 @@
 import abc
 from collections import deque
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -7,6 +8,7 @@ import pysal as ps
 
 from autocnet.matcher.outlier_detector import compute_fundamental_matrix
 from autocnet.utils.utils import make_homogeneous
+
 
 class TransformationMatrix(np.ndarray):
     __metaclass__ = abc.ABCMeta
@@ -25,6 +27,7 @@ class TransformationMatrix(np.ndarray):
         obj.mask = mask
         obj._action_stack = deque(maxlen=10)
         obj._current_action_stack = 0
+        obj._observers = set()
         # Seed the state package with the initial creation state
         if mask is not None:
             state_package = {'arr': obj.copy(),
@@ -45,6 +48,7 @@ class TransformationMatrix(np.ndarray):
         self.mask = getattr(obj, 'mask', None)
         self._action_stack = getattr(obj, '_action_stack', None)
         self._current_action_stack = getattr(obj, '_current_action_stack', None)
+        self._observers = getattr(obj, '_observers', None)
 
     @abc.abstractproperty
     def determinant(self):
@@ -94,6 +98,7 @@ class TransformationMatrix(np.ndarray):
         setattr(self, 'mask', state['mask'])
         # Reset attributes (could also cache)
         self._clean_attrs()
+        self._notify_subscribers(self)
 
     @abc.abstractmethod
     def rollforward(self, n=1):
@@ -113,6 +118,28 @@ class TransformationMatrix(np.ndarray):
         setattr(self, 'mask', state['mask'])
         # Reset attributes (could also cache)
         self._clean_attrs()
+        self._notify_subscribers(self)
+
+    @abc.abstractmethod
+    def subscribe(self, func):
+        """
+        Subscribe some observer to the edge
+
+        Parameters
+        ----------
+        func : object
+               The callable that is to be executed on update
+        """
+        self._observers.add(func)
+
+    @abc.abstractmethod
+    def _notify_subscribers(self, *args, **kwargs):
+        """
+        The 'update' call to notify all subscribers of
+        a change.
+        """
+        for update_func in self._observers:
+            update_func(self, *args, **kwargs)
 
     @abc.abstractmethod
     def compute_error(self, x1, x2, index=None):
@@ -187,11 +214,17 @@ class FundamentalMatrix(TransformationMatrix):
         self.mask[self.mask==True] = mask
 
         # Update the action stack
-        state_package = {'arr': fmatrix.copy(),
-                         'mask': self.mask.copy()}
-        self._action_stack.append(state_package)
-        self._current_action_stack = len(self._action_stack) - 1  # 0 based vs. 1 based
-        self._clean_attrs()
+        try:
+            state_package = {'arr': fmatrix.copy(),
+                             'mask': self.mask.copy()}
+
+            self._action_stack.append(state_package)
+            self._current_action_stack = len(self._action_stack) - 1  # 0 based vs. 1 based
+            self._clean_attrs()
+            self._notify_subscribers(self)
+        except:
+            warnings.warn('Refinement outlier detection removed all observations.',
+                          UserWarning)
 
     def _clean_attrs(self):
         for a in ['_error', '_determinant', '_condition']:

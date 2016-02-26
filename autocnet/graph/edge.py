@@ -1,16 +1,17 @@
-from collections import MutableMapping
 import warnings
+from collections import MutableMapping
 
 import numpy as np
 import pandas as pd
 from pysal.cg.shapes import Polygon
 
-from autocnet.matcher import subpixel as sp
-from autocnet.matcher.transformations import FundamentalMatrix, Homography
-from autocnet.cg.cg import overlapping_polygon_area
-from autocnet.vis.graph_view import plot_edge
-from autocnet.matcher import outlier_detector as od
 from autocnet.cg.cg import convex_hull_ratio
+from autocnet.cg.cg import overlapping_polygon_area
+from autocnet.matcher import health
+from autocnet.matcher import outlier_detector as od
+from autocnet.matcher import subpixel as sp
+from autocnet.transformation.transformations import FundamentalMatrix, Homography
+from autocnet.vis.graph_view import plot_edge
 
 
 class Edge(dict, MutableMapping):
@@ -35,8 +36,14 @@ class Edge(dict, MutableMapping):
         self.source = source
         self.destination = destination
 
-        self._homography = None
+        self.homography = None
+        self.fundamental_matrix = None
         self._subpixel_offsets = None
+
+        self._observers = set()
+
+        #Subscribe the heatlh observer
+        self._health = health.EdgeHealth()
 
     def __repr__(self):
         return """
@@ -66,6 +73,10 @@ class Edge(dict, MutableMapping):
         column_name = v[0]
         boolean_mask = v[1]
         self.masks[column_name] = boolean_mask
+
+    @property
+    def health(self):
+        return self._health.health
 
     def keypoints(self, clean_keys=[]):
         """
@@ -136,6 +147,10 @@ class Edge(dict, MutableMapping):
                                                     all_source_keypoints[['x', 'y']],
                                                     all_destin_keypoints[['x', 'y']],
                                                     mask=mask)
+
+        # Subscribe the health watcher to the fundamental matrix observable
+        self.fundamental_matrix.subscribe(self._health.update)
+        self.fundamental_matrix._notify_subscribers(self.fundamental_matrix)
 
         # Set the initial state of the fundamental mask in the masks
         self.masks = ('fundamental', mask)

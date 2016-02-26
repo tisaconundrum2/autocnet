@@ -33,7 +33,7 @@ class CandidateGraph(nx.Graph):
     edge_attr_dict_factory = Edge
     node_dict_factory = Node
 
-    def __init__(self,*args, basepath=None, **kwargs):
+    def __init__(self, *args, basepath=None, **kwargs):
         super(CandidateGraph, self).__init__(*args, **kwargs)
         self.node_counter = 0
         node_labels = {}
@@ -103,7 +103,7 @@ class CandidateGraph(nx.Graph):
             input_adjacency = io_json.read_json(input_adjacency)
             if basepath is not None:
                 for k, v in input_adjacency.items():
-                    input_adjacency[k] =  [os.path.join(basepath, i) for i in v]
+                    input_adjacency[k] = [os.path.join(basepath, i) for i in v]
                     input_adjacency[os.path.join(basepath, k)] = input_adjacency.pop(k)
 
         return cls(input_adjacency)
@@ -175,7 +175,6 @@ class CandidateGraph(nx.Graph):
 
         raise NotImplementedError
         self.add_node(self.node_counter, *args, **kwargs)
-        #self.node_labels[self.node[self.node_counter]['image_name']] = self.node_counter
         self.node_counter += 1
 
     def extract_features(self, method='orb', extractor_parameters={}):
@@ -225,7 +224,7 @@ class CandidateGraph(nx.Graph):
     def add_matches(self, matches):
         """
         Adds match data to a node and attributes the data to the
-        appropriate edges, e.g. if A-B have a match, edge A-B is attributes
+        appropriate edges, e.g. if A-B have a match, edge A-B is attributed
         with the pandas dataframe.
 
         Parameters
@@ -233,13 +232,16 @@ class CandidateGraph(nx.Graph):
         matches : dataframe
                   The pandas dataframe containing the matches
         """
+        edges = self.edges()
         source_groups = matches.groupby('source_image')
         for i, source_group in source_groups:
             for j, dest_group in source_group.groupby('destination_image'):
                 source_key = dest_group['source_image'].values[0]
                 destination_key = dest_group['destination_image'].values[0]
-
-                edge = self.edge[source_key][destination_key]
+                if (source_key, destination_key) in edges:
+                    edge = self.edge[source_key][destination_key]
+                else:
+                    edge = self.edge[destination_key][source_key]
 
                 if hasattr(edge, 'matches'):
                     df = edge.matches

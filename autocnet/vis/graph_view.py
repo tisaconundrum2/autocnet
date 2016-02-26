@@ -6,17 +6,21 @@ import networkx as nx
 from autocnet.examples import get_path
 from autocnet.fileio.io_gdal import GeoDataset
 from matplotlib import pyplot as plt
+import matplotlib
 
-
-def plot_graph(graph, ax=None, **kwargs):
+def plot_graph(graph, ax=None, cmap='Spectral', **kwargs):
     """
 
     Parameters
     ----------
     graph : object
             A networkX or derived graph object
+
     ax : objext
          A MatPlotLib axes object
+
+    cmap : str
+           A MatPlotLib color map string. Default 'Spectral'
 
     Returns
     -------
@@ -27,7 +31,14 @@ def plot_graph(graph, ax=None, **kwargs):
     if ax is None:
         ax = plt.gca()
 
-    nx.draw(graph, ax=ax)
+    cmap = matplotlib.cm.get_cmap(cmap)
+
+    # Setup edge color based on the health metric
+    colors = []
+    for s, d, e in graph.edges_iter(data=True):
+        colors.append(cmap(e.health))
+
+    nx.draw(graph, ax=ax, edge_color=colors)
     return ax
 
 
