@@ -1,4 +1,3 @@
-import inspect
 import math
 import numpy as np
 import networkx as nx
