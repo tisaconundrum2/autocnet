@@ -5,17 +5,21 @@ import networkx as nx
 from autocnet.examples import get_path
 from autocnet.fileio.io_gdal import GeoDataset
 from matplotlib import pyplot as plt
+import matplotlib
 
-
-def plot_graph(graph, ax=None, **kwargs):
+def plot_graph(graph, ax=None, cmap='Spectral', **kwargs):
     """
 
     Parameters
     ----------
     graph : object
             A networkX or derived graph object
+
     ax : objext
          A MatPlotLib axes object
+
+    cmap : str
+           A MatPlotLib color map string. Default 'Spectral'
 
     Returns
     -------
@@ -26,7 +30,14 @@ def plot_graph(graph, ax=None, **kwargs):
     if ax is None:
         ax = plt.gca()
 
-    nx.draw(graph, ax=ax)
+    cmap = matplotlib.cm.get_cmap(cmap)
+
+    # Setup edge color based on the health metric
+    colors = []
+    for s, d, e in graph.edges_iter(data=True):
+        colors.append(cmap(e.health))
+
+    nx.draw(graph, ax=ax, edge_color=colors)
     return ax
 
 
@@ -168,27 +179,17 @@ def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
     if clean_keys:
         matches, mask = edge._clean(clean_keys)
 
-    marker = '.'
-    if 'marker' in scatter_kwargs.keys():
-        marker = scatter_kwargs['marker']
-        scatter_kwargs.pop('marker', None)
-
-    color = 'r'
-    if 'color' in scatter_kwargs.keys():
-        color = scatter_kwargs['color']
-        scatter_kwargs.pop('color', None)
-
     # Plot the source
     source_idx = matches['source_idx'].values
     s_kps = source_keypoints.iloc[source_idx]
-    ax.scatter(s_kps['x'], s_kps['y'], marker=marker, color=color, **scatter_kwargs)
+    ax.scatter(s_kps['x'], s_kps['y'], **scatter_kwargs)
 
     # Plot the destination
     destination_idx = matches['destination_idx'].values
     d_kps = destination_keypoints.iloc[destination_idx]
     x_offset = s_shape[0] + image_space
     newx = d_kps['x'] + x_offset
-    ax.scatter(newx, d_kps['y'], marker=marker, color=color, **scatter_kwargs)
+    ax.scatter(newx, d_kps['y'], **scatter_kwargs)
 
     # Draw the connecting lines
     color = 'y'
@@ -204,6 +205,7 @@ def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
         ax.plot((l[0][0], l[1][0]), (l[0][1], l[1][1]), color=color, **line_kwargs)
 
     return ax
+
 
 def plotAdjacencyGraphFeatures(graph, pointColorAndHatch='b.', featurePointSize=7):
     """

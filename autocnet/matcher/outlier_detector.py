@@ -155,12 +155,16 @@ def compute_fundamental_matrix(kp1, kp2, method='ransac', reproj_threshold=5.0, 
     else:
         raise ValueError("Unknown outlier detection method.  Choices are: 'ransac', 'lmeds', or 'normal'.")
 
+
     transformation_matrix, mask = cv2.findFundamentalMat(kp1,
                                                      kp2,
                                                      method_,
                                                      reproj_threshold,
                                                      confidence)
-    mask = mask.astype(bool)
+    try:
+        mask = mask.astype(bool)
+    except: pass  # pragma: no cover
+
     return transformation_matrix, mask
 
 

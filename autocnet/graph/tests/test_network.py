@@ -15,7 +15,10 @@ class TestCandidateGraph(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.graph = network.CandidateGraph.from_adjacency(get_path('adjacency.json'))
+        basepath = get_path('Apollo15')
+        cls.graph = network.CandidateGraph.from_adjacency(get_path('three_image_adjacency.json'),
+                                                          basepath=basepath)
+        cls.disconnected_graph = network.CandidateGraph.from_adjacency(get_path('adjacency.json'))
 
     def test_get_name(self):
         node_number = self.graph.node_name_map['AS15-M-0297_SML.png']
@@ -35,18 +38,21 @@ class TestCandidateGraph(unittest.TestCase):
             pass
 
     def test_island_nodes(self):
-        self.assertEqual(len(self.graph.island_nodes()), 1)
+        self.assertEqual(len(self.disconnected_graph.island_nodes()), 1)
 
     def test_connected_subgraphs(self):
-        subgraph_list = self.graph.connected_subgraphs()
+        subgraph_list = self.disconnected_graph.connected_subgraphs()
         self.assertEqual(len(subgraph_list), 2)
-        island = self.graph.island_nodes()[0]
-        self.assertTrue(island in subgraph_list[1])
+        islands = self.disconnected_graph.island_nodes()
+        self.assertTrue(islands[0] in subgraph_list[1])
+
+        subgraph_list = self.graph.connected_subgraphs()
+        self.assertEqual(len(subgraph_list), 1)
+
 
     def test_save_load(self):
         self.graph.save('test_save.cg')
         loaded = self.graph.from_graph('test_save.cg')
-
         self.assertEqual(self.graph.node[0].nkeypoints, loaded.node[0].nkeypoints)
         self.assertEqual(self.graph.edge[0][1], loaded.edge[0][1])
 

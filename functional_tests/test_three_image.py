@@ -50,7 +50,10 @@ class TestThreeImageMatching(unittest.TestCase):
         cg.match_features(k=5)
 
         for source, destination, edge in cg.edges_iter(data=True):
-            matches = edge.matches
+            try:
+                matches = edge.matches
+            except:
+                print(cg.edges())
             edge.symmetry_check()
             edge.ratio_check(ratio=0.8)
 
