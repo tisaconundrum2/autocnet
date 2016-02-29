@@ -36,10 +36,12 @@ class TestOutlierDetector(unittest.TestCase):
             counter += 1
 
         fmatcher.train()
-        self.matches = fmatcher.query(fd['AS15-M-0296_SML.png'][1],'AS15-M-0296_SML.png', k=3)
+        self.matches = fmatcher.query(fd['AS15-M-0296_SML.png'][1], 'AS15-M-0296_SML.png')
 
     def test_distance_ratio(self):
-        self.assertTrue(len(outlier_detector.distance_ratio(self.matches)), 13)
+        d = outlier_detector.DistanceRatio(self.matches)
+        d.compute(0.9)
+        self.assertEqual(d.mask.sum(), 3)
 
     def test_distance_ratio_unique(self):
         data = [['A', 0, 'B', 1, 10],
@@ -47,8 +49,9 @@ class TestOutlierDetector(unittest.TestCase):
         df = pd.DataFrame(data, columns=['source_image', 'source_idx',
                                          'destination_image', 'destination_idx',
                                          'distance'])
-        mask = outlier_detector.distance_ratio(df)
-        self.assertTrue(mask.all() == False)
+        d = outlier_detector.DistanceRatio(df)
+        d.compute(0.9)
+        self.assertTrue(d.mask.all() == False)
 
     def test_self_neighbors(self):
         # returned mask should be same length as input df

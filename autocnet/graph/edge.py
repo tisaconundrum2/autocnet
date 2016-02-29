@@ -54,10 +54,11 @@ class Edge(dict, MutableMapping):
 
     @property
     def masks(self):
-        mask_lookup = {'fundamental': 'fundamental_matrix'}
+        mask_lookup = {'fundamental': 'fundamental_matrix',
+                       'ratio': 'distance_ratio'}
         if not hasattr(self, '_masks'):
             if hasattr(self, 'matches'):
-                self._masks = pd.DataFrame(True, columns=['symmetry', 'ratio'],
+                self._masks = pd.DataFrame(True, columns=['symmetry'],
                                        index=self.matches.index)
             else:
                 self._masks = pd.DataFrame()
@@ -110,9 +111,20 @@ class Edge(dict, MutableMapping):
         else:
             raise AttributeError('No matches have been computed for this edge.')
 
-    def ratio_check(self, ratio=0.8):
+    def ratio_check(self, ratio=0.8, clean_keys=[]):
         if hasattr(self, 'matches'):
-            mask = od.distance_ratio(self.matches, ratio=ratio)
+
+            if clean_keys:
+                _, mask = self._clean(clean_keys)
+            else:
+                mask = pd.Series(True, self.matches.index)
+
+            self.distance_ratio = od.DistanceRatio(self.matches)
+            self.distance_ratio.compute(ratio, mask=mask, mask_name=None)
+
+            # Setup to be notified
+            self.distance_ratio._notify_subscribers(self.distance_ratio)
+
             self.masks = ('ratio', mask)
         else:
             raise AttributeError('No matches have been computed for this edge.')

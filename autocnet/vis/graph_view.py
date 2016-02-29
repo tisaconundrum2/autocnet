@@ -7,6 +7,7 @@ from autocnet.fileio.io_gdal import GeoDataset
 from matplotlib import pyplot as plt
 import matplotlib
 
+
 def plot_graph(graph, ax=None, cmap='Spectral', **kwargs):
     """
 
@@ -35,7 +36,10 @@ def plot_graph(graph, ax=None, cmap='Spectral', **kwargs):
     # Setup edge color based on the health metric
     colors = []
     for s, d, e in graph.edges_iter(data=True):
-        colors.append(cmap(e.health))
+        try:
+            colors.append(cmap(e.health))
+        except:
+            colors.append(1)
 
     nx.draw(graph, ax=ax, edge_color=colors)
     return ax

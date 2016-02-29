@@ -113,6 +113,7 @@ class TransformationMatrix(np.ndarray):
         idx = self._current_action_stack + n
         if idx > len(self._action_stack) - 1:
             idx = len(self._action_stack) - 1
+        self._current_action_stack = idx
         state = self._action_stack[idx]
         self[:] = state['arr']
         setattr(self, 'mask', state['mask'])
