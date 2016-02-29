@@ -7,6 +7,7 @@ import pandas as pd
 import scipy
 from autocnet.fileio.header_parser import header_parser
 from autocnet.fileio.utils import file_search
+import copy
 
 def CCS(input_data):
     df = pd.DataFrame.from_csv(input_data, header=14)
@@ -25,7 +26,8 @@ def CCS(input_data):
     df['Pversion']=fname[34:36]        
     #transpose the data frame
     
-    #read the file header and put information into the dataframe as new columns (inneficient to store this data many times, but much easier to concatenate data from multiple files)
+    #read the file header and put information into the dataframe as new columns
+    #(inefficient to store this data many times, but much easier to concatenate data from multiple files)
     with open(input_data,'r') as f:
         header={}
         for i,row in enumerate(f.readlines()):
@@ -77,7 +79,7 @@ def CCS_SAV(input_data):
     d['seqid']=fname[25:34].upper()
     d['Pversion']=fname[34:36]
     
-    #Add metadata to the data frame by stepping through the d dict
+    #Add metadata to the data frame by stepping through the dict
     for label,data in d.items(): 
         if type(data) is bytes: data=data.decode()
         df[label]=data
@@ -89,26 +91,47 @@ def CCS_SAV(input_data):
     return df    
 
 def ccs_batch(directory,searchstring='*CCS*.csv',is_sav=False):
+   
     if 'SAV' in searchstring:
         is_sav=True
     else:
         is_sav=False
     filelist=file_search(directory,searchstring)
-    for i in filelist:
+    basenames=np.zeros_like(filelist)
+    sclocks=np.zeros_like(filelist)
+    P_version=np.zeros_like(filelist,dtype='int')
+    
+    #Extract the sclock and version for each file and ensure that only one 
+    #file per sclock is being read, and that it is the one with the highest version number
+    for i,name in enumerate(filelist):
+        basenames[i]=os.path.basename(name)
+        sclocks[i]=basenames[i][4:13]
+        P_version[i]=basenames[i][-5:-4]
+    sclocks_unique=np.unique(sclocks)
+    filelist_new=np.array([],dtype='str')
+    for i in sclocks_unique:
+        match=(sclocks==i)
+        maxP=P_version[match]==max(P_version[match])
+        filelist_new=np.append(filelist_new,filelist[match][maxP])
         
+    filelist=filelist_new
+    #any way to speed this up for large numbers of files? 
+    #Should add a progress bar for importing large numbers of files    
+    for i in filelist:
         if is_sav:
             tmp=CCS_SAV(i)
+          
         else:
             tmp=CCS(i)
-            
+          
         try:
-            cols1=list(combined.columns[combined.dtypes=='float'])
-            cols2=list(tmp.columns[tmp.dtypes=='float'])
+            #This ensures that rounding errors are not causing mismatches in columns            
+            cols1=list(combined['wvl'].columns)
+            cols2=list(tmp['wvl'].columns)
             if set(cols1)==set(cols2):
                 combined=pd.concat([combined,tmp])
             else:
                 print("Wavelengths don't match!")
-                print('foo')
         except:
             combined=tmp
     return combined

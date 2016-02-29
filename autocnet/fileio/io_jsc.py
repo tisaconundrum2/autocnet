@@ -1,14 +1,8 @@
-import datetime
-import os
-import re
 
+import os
 import numpy as np
 import pandas as pd
-
-from autocnet.spectral.spectra import Spectra
-from autocnet.fileio.header_parser import header_parser
 from autocnet.fileio.utils import file_search
-
 #This function reads the lookup tables used to expand metadata from the file names
 #This is separated from parsing the filenames so that for large lists of files the 
 #lookup tables don't need to be read over and over
@@ -17,9 +11,13 @@ from autocnet.fileio.utils import file_search
 #(the dict) needs to be passed between functions
 def read_refdata(LUT_files):
     spectrometer_info=pd.read_csv(LUT_files['spect'],index_col=0)
+    #spectrometer_info.reset_index(inplace=True)
     laser_info=pd.read_csv(LUT_files['laser'],index_col=0)
+    #laser_info.reset_index(inplace=True)
     exp_info=pd.read_csv(LUT_files['exp'],index_col=0)
+    #exp_info.reset_index(inplace=True)
     sample_info=pd.read_csv(LUT_files['sample'],index_col=0)
+    #sample_info.reset_index(inplace=True)
     refdata={'spect':spectrometer_info,'laser':laser_info,'exp':exp_info,'sample':sample_info}
     return refdata
 
@@ -31,7 +29,7 @@ def jsc_filename_parse(filename,refdata):
     laserID=filename[4][0]
     expID=filename[5]
     spectID=filename[6]
-    if libs_ID in refdata['sample']:
+    if libs_ID in refdata['sample'].index:
         file_info=pd.DataFrame(refdata['sample'].loc[libs_ID]).T
     else:
         file_info=pd.DataFrame(refdata['sample'].loc['Unknown']).T
@@ -87,7 +85,7 @@ def JSC(input_file,refdata):
     #add the metadata columns to the data frame
     for col in metadata.columns.tolist():
         data[col]=metadata[col]
-        
+    
     return data
    
         
@@ -108,7 +106,7 @@ def jsc_batch(directory, LUT_files,searchstring='*.txt'):
     #loop through each spectrometer, read the spectra and combine them into a single data frame for that spectrometer    
     for spect in spectIDs_unique:
         sublist=filelist[np.in1d(spectIDs,spect)]
-        temp=[JSC(sublist[0],refdata)        ]
+        temp=[JSC(sublist[0],refdata)]
         for file in sublist[1:]:
             temp.append(JSC(file,refdata))
         dfs.append(pd.concat(temp))

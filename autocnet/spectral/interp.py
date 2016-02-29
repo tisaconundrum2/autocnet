@@ -2,19 +2,20 @@
 """
 Created on Tue Dec  1 14:25:15 2015
 
+
+
 @author: rbanderson
 """
 import numpy as np
 import pandas as pd
 import scipy as sp
-#import matplotlib.pyplot as plot
 
 def interp_spect(old_df,xnew):
-    xnew=np.array(xnew)
+    xnew=np.array(xnew,dtype='float')
 
     metadata_cols=old_df.columns.levels[0]!='wvl'
     metadata=old_df[old_df.columns.levels[0][metadata_cols]]
-    old_wvls=np.array(old_df['wvl'].columns)
+    old_wvls=np.array(old_df['wvl'].columns,dtype='float')
     old_spectra=np.array(old_df['wvl'])
     new_spectra=np.empty([len(old_spectra[:,0]),len(xnew)])*np.nan
     interp_index=(xnew>min(old_wvls)) & (xnew<max(old_wvls))
