@@ -54,10 +54,11 @@ class Edge(dict, MutableMapping):
 
     @property
     def masks(self):
-        mask_lookup = {'fundamental': 'fundamental_matrix'}
+        mask_lookup = {'fundamental': 'fundamental_matrix',
+                       'ratio': 'distance_ratio'}
         if not hasattr(self, '_masks'):
             if hasattr(self, 'matches'):
-                self._masks = pd.DataFrame(True, columns=['symmetry', 'ratio'],
+                self._masks = pd.DataFrame(True, columns=['symmetry'],
                                        index=self.matches.index)
             else:
                 self._masks = pd.DataFrame()
@@ -110,9 +111,20 @@ class Edge(dict, MutableMapping):
         else:
             raise AttributeError('No matches have been computed for this edge.')
 
-    def ratio_check(self, ratio=0.8):
+    def ratio_check(self, ratio=0.8, clean_keys=[]):
         if hasattr(self, 'matches'):
-            mask = od.distance_ratio(self.matches, ratio=ratio)
+
+            if clean_keys:
+                _, mask = self._clean(clean_keys)
+            else:
+                mask = pd.Series(True, self.matches.index)
+
+            self.distance_ratio = od.DistanceRatio(self.matches)
+            self.distance_ratio.compute(ratio, mask=mask, mask_name=None)
+
+            # Setup to be notified
+            self.distance_ratio._notify_subscribers(self.distance_ratio)
+
             self.masks = ('ratio', mask)
         else:
             raise AttributeError('No matches have been computed for this edge.')
@@ -207,7 +219,7 @@ class Edge(dict, MutableMapping):
 
     def subpixel_register(self, clean_keys=[], threshold=0.8, upsampling=16,
                           template_size=19, search_size=53, max_x_shift=1.0,
-                          max_y_shift=1.0):
+                          max_y_shift=1.0, tiled=False):
         """
         For the entire graph, compute the subpixel offsets using pattern-matching and add the result
         as an attribute to each edge of the graph.
@@ -252,6 +264,13 @@ class Edge(dict, MutableMapping):
         if clean_keys:
             matches, mask = self._clean(clean_keys)
 
+        if tiled is True:
+            s_img = self.source.handle
+            d_img = self.destination.handle
+        else:
+            s_img = self.source.handle.read_array()
+            d_img = self.destination.handle.read_array()
+
         # for each edge, calculate this for each keypoint pair
         for i, (idx, row) in enumerate(matches.iterrows()):
             s_idx = int(row['source_idx'])
@@ -261,8 +280,8 @@ class Edge(dict, MutableMapping):
             d_keypoint = self.destination.keypoints.iloc[d_idx][['x', 'y']].values
 
             # Get the template and search window
-            s_template = sp.clip_roi(self.source.handle, s_keypoint, template_size)
-            d_search = sp.clip_roi(self.destination.handle, d_keypoint, search_size)
+            s_template = sp.clip_roi(s_img, s_keypoint, template_size)
+            d_search = sp.clip_roi(d_img, d_keypoint, search_size)
 
             try:
                 x_off, y_off, strength = sp.subpixel_offset(s_template, d_search, upsampling=upsampling)

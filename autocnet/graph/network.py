@@ -198,7 +198,7 @@ class CandidateGraph(nx.Graph):
             node.extract_features(image, method=method,
                                 extractor_parameters=extractor_parameters)
 
-    def match_features(self, k=3):
+    def match_features(self, k=None):
         """
         For all connected edges in the graph, apply feature matching
 
@@ -207,18 +207,22 @@ class CandidateGraph(nx.Graph):
         k : int
             The number of matches, minus 1, to find per feature.  For example
             k=5 will find the 4 nearest neighbors for every extracted feature.
+            If None,  k = (2 * the number of edges connecting a node) +1
         """
-        #Load a Fast Approximate Nearest Neighbor KD-Tree
-        fl = FlannMatcher()
+        degree = self.degree()
+
+        self._fl = FlannMatcher()
         for i, node in self.nodes_iter(data=True):
             if not hasattr(node, 'descriptors'):
                 raise AttributeError('Descriptors must be extracted before matching can occur.')
-            fl.add(node.descriptors, key=i)
-        fl.train()
+            self._fl.add(node.descriptors, key=i)
+        self._fl.train()
 
         for i, node in self.nodes_iter(data=True):
+            if k is None:
+                k = (degree[i] * 2) + 1
             descriptors = node.descriptors
-            matches = fl.query(descriptors, i, k=k)
+            matches = self._fl.query(descriptors, i, k=k)
             self.add_matches(matches)
 
     def add_matches(self, matches):
@@ -256,12 +260,12 @@ class CandidateGraph(nx.Graph):
         for s, d, edge in self.edges_iter(data=True):
             edge.symmetry_check()
 
-    def ratio_checks(self, ratio=0.8):
+    def ratio_checks(self, ratio=0.8, clean_keys=[]):
         """
         Perform a ratio check on all edges in the graph
         """
         for s, d, edge in self.edges_iter(data=True):
-            edge.ratio_check(ratio=ratio)
+            edge.ratio_check(ratio=ratio, clean_keys=clean_keys)
 
     def compute_homographies(self, clean_keys=[], **kwargs):
         """

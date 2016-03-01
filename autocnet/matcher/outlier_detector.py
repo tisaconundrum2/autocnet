@@ -1,6 +1,156 @@
+from collections import deque
+
 import cv2
 import numpy as np
 import pandas as pd
+
+
+class DistanceRatio(object):
+
+    """
+    A stateful object to store ratio test results and provenance.
+
+    Attributes
+    ----------
+
+    nvalid : int
+             The number of valid entries in the mask
+
+    mask : series
+           Pandas boolean series indexed by the match id
+
+    matches : dataframe
+              The matches dataframe from an edge.  This dataframe
+              must have 'source_idx' and 'distance' columns.
+
+    single : bool
+             If True, then single entries in the distance ratio
+             mask are assumed to have passed the ratio test.  Else
+             False.
+
+    """
+
+    def __init__(self, matches):
+
+        self._action_stack = deque(maxlen=10)
+        self._current_action_stack = 0
+        self._observers = set()
+        self.matches = matches
+        self.mask = None
+
+    @property
+    def nvalid(self):
+        return self.mask.sum()
+
+    def compute(self, ratio, mask=None, mask_name=None, single=False):
+        """
+        Compute and return a mask for a matches dataframe
+        using Lowe's ratio test.  If keypoints have a single
+        Lowe (2004) [Lowe2004]_
+
+        Parameters
+        ----------
+        ratio : float
+                the ratio between the first and second-best match distances
+                for each keypoint to use as a bound for marking the first keypoint
+                as "good". Default: 0.8
+
+        mask : series
+               A pandas boolean series to initially mask the matches array
+
+        mask_name : list or str
+                    An arbitrary mask name for provenance tracking
+
+        single : bool
+                 If True, points with only a single entry are included (True)
+                 in the result mask, else False.
+        """
+        def func(group):
+            res = [False] * len(group)
+            if len(res) == 1:
+                return [single]
+            if group.iloc[0] < group.iloc[1] * ratio:
+                res[0] = True
+            return res
+
+        self.single = single
+
+        if mask is not None:
+            self.mask = mask.copy()
+            new_mask = self.matches[mask].groupby('source_idx')['distance'].transform(func).astype('bool')
+            self.mask[mask==True] = new_mask
+        else:
+            new_mask = self.matches.groupby('source_idx')['distance'].transform(func).astype('bool')
+            self.mask = new_mask.copy()
+
+        state_package = {'ratio': ratio,
+                         'mask': self.mask.copy(),
+                         'clean_keys': mask_name,
+                         'single': single
+                         }
+        self._action_stack.append(state_package)
+        self._current_action_stack = len(self._action_stack) - 1
+
+    def subscribe(self, func):
+        """
+        Subscribe some observer to the edge
+
+        Parameters
+        ----------
+        func : object
+               The callable that is to be executed on update
+        """
+        self._observers.add(func)
+
+    def _notify_subscribers(self, *args, **kwargs):
+        """
+        The 'update' call to notify all subscribers of
+        a change.
+        """
+        for update_func in self._observers:
+            update_func(self, *args, **kwargs)
+
+    def rollforward(self, n=1):
+        """
+        Roll forwards in the object history, e.g. do
+
+        Parameters
+        ----------
+        n : int
+            the number of steps to roll forwards
+        """
+        idx = self._current_action_stack + n
+        if idx > len(self._action_stack) - 1:
+            idx = len(self._action_stack) - 1
+        self._current_action_stack = idx
+        state = self._action_stack[idx]
+        setattr(self, 'mask', state['mask'])
+        setattr(self, 'ratio', state['ratio'])
+        setattr(self, 'clean_keys', state['clean_keys'])
+        setattr(self, 'single', state['single'])
+        # Reset attributes (could also cache)
+        self._notify_subscribers(self)
+
+    def rollback(self, n=1):
+        """
+        Roll backward in the object histroy, e.g. undo
+
+        Parameters
+        ----------
+        n : int
+            the number of steps to roll backwards
+        """
+        idx = self._current_action_stack - n
+        if idx < 0:
+            idx = 0
+        self._current_action_stack = idx
+        state = self._action_stack[idx]
+        setattr(self, 'mask', state['mask'])
+        setattr(self, 'ratio', state['ratio'])
+        setattr(self, 'clean_keys', state['clean_keys'])
+        setattr(self, 'single', state['single'])
+        # Reset attributes (could also cache)
+        self._notify_subscribers(self)
 
 
 def self_neighbors(matches):
@@ -25,63 +175,6 @@ def self_neighbors(matches):
     return matches.source_image != matches.destination_image
 
 
-def distance_ratio(matches, ratio=0.8):
-    """
-    Compute and return a mask for a matches dataframe
-    using Lowe's ratio test.
-    Lowe (2004) [Lowe2004]_
-
-    Parameters
-    ----------
-    matches : dataframe
-              the matches dataframe stored along the edge of the graph
-              containing matched points with columns containing:
-              matched image name, query index, train index, and
-              descriptor distance.
-
-    ratio : float
-            the ratio between the first and second-best match distances
-            for each keypoint to use as a bound for marking the first keypoint
-            as "good". Default: 0.8
-    Returns
-    -------
-     mask : ndarray
-            Intended to mask the matches dataframe. Rows are True if the associated keypoint passes
-            the ratio test and false otherwise. Keypoints without more than one match are True by
-            default, since the ratio test will not work for them.
-
-    """
-
-    mask = np.zeros(len(matches), dtype=bool)  # Pre-allocate the mask
-    counter = 0
-    for i, group in matches.groupby('source_idx'):
-        group_size = len(group)
-        n_unique = len(group['destination_idx'].unique())
-        # If we can not perform the ratio check because all matches are symmetrical
-        if n_unique == 1:
-            mask[counter:counter + group_size] = True
-            counter += group_size
-        else:
-            # Otherwise, we can perform the ratio test
-            sorted_group = group.sort_values(by=['distance'])
-            unique = sorted_group['distance'].unique()
-
-            if len(unique) == 1:
-                # The distances from the unique points are identical
-                mask[counter: counter + group_size] = False
-                counter += group_size
-            elif unique[0] / unique[1] < ratio:
-                # The ratio test passes
-                mask[counter] = True
-                mask[counter + 1:counter + group_size] = False
-                counter += group_size
-            else:
-                mask[counter: counter + group_size] = False
-                counter += group_size
-
-    return mask
-
-
 def mirroring_test(matches):
     """
     Compute and return a mask for the matches dataframe on each edge of the graph which
@@ -104,8 +197,7 @@ def mirroring_test(matches):
                  otherwise, they will be false. Keypoints with only one match will be False. Removes
                  duplicate rows.
     """
-    duplicates = matches.duplicated(keep='first').values
-    duplicates.astype(bool, copy=False)
+    duplicates = matches.duplicated(keep='first').astype(bool)
     return duplicates
 
 
@@ -215,7 +307,8 @@ def compute_homography(kp1, kp2, method='ransac', **kwargs):
                                                      kp2,
                                                      method_,
                                                      **kwargs)
-    mask = mask.astype(bool)
+    if mask is not None:
+        mask = mask.astype(bool)
     return transformation_matrix, mask
 
 
