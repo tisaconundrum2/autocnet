@@ -67,3 +67,8 @@ target/
 
 # Vim
 *.swp
+
+#Data and output files
+.csv
+.png
+.SAV
