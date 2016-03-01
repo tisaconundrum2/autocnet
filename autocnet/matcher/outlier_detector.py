@@ -42,7 +42,7 @@ class DistanceRatio(object):
     def nvalid(self):
         return self.mask.sum()
 
-    def compute(self, ratio, mask=None, mask_name=None, single=False):
+    def compute(self, ratio=0.8, mask=None, mask_name=None, single=False):
         """
         Compute and return a mask for a matches dataframe
         using Lowe's ratio test.  If keypoints have a single
@@ -74,20 +74,19 @@ class DistanceRatio(object):
             return res
 
         self.single = single
-
         if mask is not None:
             self.mask = mask.copy()
             new_mask = self.matches[mask].groupby('source_idx')['distance'].transform(func).astype('bool')
             self.mask[mask==True] = new_mask
         else:
-            new_mask = self.matches.groupby('source_idx')['distance'].transform(func).astype('bool')
-            self.mask = new_mask.copy()
+            self.mask = self.matches.groupby('source_idx')['distance'].transform(func).astype('bool')
 
         state_package = {'ratio': ratio,
                          'mask': self.mask.copy(),
                          'clean_keys': mask_name,
                          'single': single
                          }
+
         self._action_stack.append(state_package)
         self._current_action_stack = len(self._action_stack) - 1
 
@@ -152,7 +151,6 @@ class DistanceRatio(object):
         # Reset attributes (could also cache)
         self._notify_subscribers(self)
 
-
 def self_neighbors(matches):
     """
     Returns a pandas data series intended to be used as a mask. Each row
@@ -197,8 +195,10 @@ def mirroring_test(matches):
                  otherwise, they will be false. Keypoints with only one match will be False. Removes
                  duplicate rows.
     """
-    duplicates = matches.duplicated(keep='first').astype(bool)
-    return duplicates
+    duplicate_mask = matches.duplicated(subset=['source_idx', 'destination_idx', 'distance'],
+                                    keep='last')
+
+    return duplicate_mask
 
 
 def compute_fundamental_matrix(kp1, kp2, method='ransac', reproj_threshold=5.0, confidence=0.99):

@@ -92,10 +92,10 @@ class FlannMatcher(object):
 
     def __init__(self, flann_parameters=DEFAULT_FLANN_PARAMETERS):
         self._flann_matcher = cv2.FlannBasedMatcher(flann_parameters, {})
-        self.image_indices = {}
-        self.image_index_counter = 0
+        self.nid_lookup = {}
+        self.node_counter = 0
 
-    def add(self, descriptor, key):
+    def add(self, descriptor, nid):
         """
         Add a set of descriptors to the matcher and add the image
         index key to the image_indices attribute
@@ -105,12 +105,21 @@ class FlannMatcher(object):
         descriptor : ndarray
                      The descriptor to be added
 
-        key : hashable
-              The identifier for this image, e.g. the image name
+        nid : int
+              The node ids
         """
         self._flann_matcher.add([descriptor])
-        self.image_indices[self.image_index_counter] = key
-        self.image_index_counter += 1
+        self.nid_lookup[self.node_counter] = nid
+        self.node_counter += 1
+
+    def clear(self):
+        """
+        Remove all nodes from the tree and resets
+        all counters
+        """
+        self._flann_matcher.clear()
+        self.nid_lookup = {}
+        self.node_counter = 0
 
     def train(self):
         """
@@ -144,23 +153,22 @@ class FlannMatcher(object):
         matched = []
         for m in matches:
             for i in m:
-                # This checks for self neighbor and never allows them into the graph
-                if self.image_indices[i.imgIdx] == query_image:
-                    continue
-
-                # Ensure ordering in the source / destination
-                if query_image < self.image_indices[i.imgIdx]:
+                source = query_image
+                destination = self.nid_lookup[i.imgIdx]
+                if source < destination:
                     matched.append((query_image,
                                     i.queryIdx,
-                                    self.image_indices[i.imgIdx],
+                                    destination,
                                     i.trainIdx,
                                     i.distance))
-                else:
-                    matched.append((self.image_indices[i.imgIdx],
+                elif source > destination:
+                    matched.append((destination,
                                     i.trainIdx,
                                     query_image,
                                     i.queryIdx,
                                     i.distance))
+                else:
+                    raise ValueError('Likely self neighbor in query!')
         return pd.DataFrame(matched, columns=['source_image', 'source_idx',
                                               'destination_image', 'destination_idx',
                                               'distance'])

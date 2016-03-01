@@ -55,9 +55,15 @@ class CandidateGraph(nx.Graph):
 
         nx.relabel_nodes(self, node_labels, copy=False)
 
+
         # Add the Edge class as a edge data structure
         for s, d, edge in self.edges_iter(data=True):
-            self.edge[s][d] = Edge(self.node[s], self.node[d])
+            if s < d:
+                self.edge[s][d] = Edge(self.node[s], self.node[d])
+            else:
+                self.remove_edge(s, d)
+                self.add_edge(d, s)
+                self.edge[d][s] = Edge(self.node[d], self.node[s])
 
     @classmethod
     def from_graph(cls, graph):
@@ -209,21 +215,31 @@ class CandidateGraph(nx.Graph):
             k=5 will find the 4 nearest neighbors for every extracted feature.
             If None,  k = (2 * the number of edges connecting a node) +1
         """
-        degree = self.degree()
+        # Instantiate a single flann matcher to be resused for all nodes
 
         self._fl = FlannMatcher()
         for i, node in self.nodes_iter(data=True):
+
+            # Grab the descriptors
             if not hasattr(node, 'descriptors'):
                 raise AttributeError('Descriptors must be extracted before matching can occur.')
-            self._fl.add(node.descriptors, key=i)
-        self._fl.train()
-
-        for i, node in self.nodes_iter(data=True):
-            if k is None:
-                k = (degree[i] * 2) + 1
             descriptors = node.descriptors
+
+            # Load the neighbors of the current node into the FLANN matcher
+            neighbors = self.neighbors(i)
+            for n in neighbors:
+                neighbor_descriptors = self.node[n].descriptors
+                self._fl.add(neighbor_descriptors, n)
+            self._fl.train()
+
+            if k is None:
+                k = (self.degree(i) * 2)
+
+            # Query and then empty the FLANN matcher for the next node
             matches = self._fl.query(descriptors, i, k=k)
             self.add_matches(matches)
+
+            self._fl.clear()
 
     def add_matches(self, matches):
         """
@@ -249,7 +265,7 @@ class CandidateGraph(nx.Graph):
 
                 if hasattr(edge, 'matches'):
                     df = edge.matches
-                    edge.matches = pd.concat([df, dest_group], ignore_index=True)
+                    edge.matches = df.append(dest_group, ignore_index=True)
                 else:
                     edge.matches = dest_group
 
@@ -260,12 +276,12 @@ class CandidateGraph(nx.Graph):
         for s, d, edge in self.edges_iter(data=True):
             edge.symmetry_check()
 
-    def ratio_checks(self, ratio=0.8, clean_keys=[]):
+    def ratio_checks(self, clean_keys=[], **kwargs):
         """
         Perform a ratio check on all edges in the graph
         """
         for s, d, edge in self.edges_iter(data=True):
-            edge.ratio_check(ratio=ratio, clean_keys=clean_keys)
+            edge.ratio_check(clean_keys=clean_keys)
 
     def compute_homographies(self, clean_keys=[], **kwargs):
         """
@@ -296,14 +312,14 @@ class CandidateGraph(nx.Graph):
             edge.compute_fundamental_matrix(clean_keys=clean_keys, **kwargs)
 
     def subpixel_register(self, clean_keys=[], threshold=0.8, upsampling=10,
-                                 template_size=9, search_size=27):
+                                 template_size=9, search_size=27, tiled=False):
          """
          Compute subpixel offsets for all edges using identical parameters
          """
          for s, d, edge in self.edges_iter(data=True):
              edge.subpixel_register(clean_keys=clean_keys, threshold=threshold,
                                     upsampling=upsampling, template_size=template_size,
-                                    search_size=search_size)
+                                    search_size=search_size, tiled=tiled)
 
     def to_filelist(self):
         """
@@ -499,8 +515,6 @@ class CandidateGraph(nx.Graph):
         with open(filename, 'wb') as f:
             pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-    # TODO: The Edge object requires a get method in order to be plottable, probably Node as well.
-    # This is a function of being a dict in NetworkX
     def plot(self, ax=None, **kwargs):
         """
         Plot the graph object

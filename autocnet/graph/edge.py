@@ -1,3 +1,4 @@
+import math
 import warnings
 from collections import MutableMapping
 
@@ -111,7 +112,7 @@ class Edge(dict, MutableMapping):
         else:
             raise AttributeError('No matches have been computed for this edge.')
 
-    def ratio_check(self, ratio=0.8, clean_keys=[]):
+    def ratio_check(self, clean_keys=[], **kwargs):
         if hasattr(self, 'matches'):
 
             if clean_keys:
@@ -119,13 +120,14 @@ class Edge(dict, MutableMapping):
             else:
                 mask = pd.Series(True, self.matches.index)
 
+
             self.distance_ratio = od.DistanceRatio(self.matches)
-            self.distance_ratio.compute(ratio, mask=mask, mask_name=None)
+            self.distance_ratio.compute(mask=mask, **kwargs)
 
             # Setup to be notified
             self.distance_ratio._notify_subscribers(self.distance_ratio)
 
-            self.masks = ('ratio', mask)
+            self.masks = ('ratio', self.distance_ratio.mask)
         else:
             raise AttributeError('No matches have been computed for this edge.')
 
@@ -253,7 +255,6 @@ class Edge(dict, MutableMapping):
                       The maximum (positive) value that a pixel can shift in the y direction
                       without being considered an outlier
         """
-
         matches = self.matches
         self.subpixel_offsets = pd.DataFrame(0, index=matches.index, columns=['x_offset',
                                                                               'y_offset',
@@ -264,6 +265,7 @@ class Edge(dict, MutableMapping):
         if clean_keys:
             matches, mask = self._clean(clean_keys)
 
+        # Grab the full images, or handles
         if tiled is True:
             s_img = self.source.handle
             d_img = self.destination.handle
@@ -289,7 +291,6 @@ class Edge(dict, MutableMapping):
             except:
                 warnings.warn('Template-Search size mismatch, failing for this correspondence point.')
                 continue
-
         self.subpixel_offsets.to_sparse(fill_value=0.0)
 
         # Compute the mask for correlations less than the threshold
@@ -308,6 +309,84 @@ class Edge(dict, MutableMapping):
         self.masks = ('shift', shift_mask)
         self.masks = ('threshold', threshold_mask)
         self.masks = ('subpixel', mask)
+
+    def suppress(self, min_radius=1, k=100, error_k=0.1):
+        """
+        Suppress subpixel registered points to that k +- k * error_k
+        points, with good spatial distribution, remain
+
+        Adds a suppression mask to the edge mask dataframe.
+
+        Parameters
+        ----------
+        min_radius : int
+                     The lowest acceptable radius value for points
+
+        k : int
+            The desired number of output points
+
+        error_k : float
+                  [0,1) The acceptable epsilon
+        """
+        xy_extent = self.source.handle.xy_extent[1]
+        max_radius = min(xy_extent) / 4
+        k = 100
+
+        sp_mask = self.masks['subpixel']
+        sp_values = self.subpixel_offsets[sp_mask]
+
+        coordinates = self.source.keypoints.iloc[sp_values['s_idx']][['x', 'y']]
+        merged = pd.merge(sp_values, coordinates, left_on='s_idx', how='left', right_index=True).sort_values(by='correlation')
+
+        previous_cell_size = 0
+
+        while True:
+            r = (min_radius + max_radius) / 2
+            cell_size = int(r / math.sqrt(2))
+
+            # To prevent cycling
+            if cell_size == previous_cell_size:
+                break
+            previous_cell_size = cell_size
+
+            # Setup to store results
+            result = []
+            # Compute the bin edges and assign points to the appropriate bins
+            x_edges = np.arange(0,xy_extent[0], int(xy_extent[0] / cell_size))
+            y_edges = np.arange(0,xy_extent[1], int(xy_extent[1] / cell_size))
+            grid = np.zeros((len(y_edges), len(x_edges)), dtype=np.bool)
+
+            xbins = np.digitize(merged['x'], bins=x_edges)
+            ybins = np.digitize(merged['y'], bins=y_edges)
+
+            for i, (idx, p) in enumerate(merged.iterrows()):
+                x_center = xbins[i]
+                y_center = ybins[i]
+                cell = grid[y_center-1 , x_center-1]
+                if cell == False:
+                    result.append(idx)
+                    if len(result) > k:
+                        # Search the lower half, the radius is too big
+                        max_radius = r
+                        break
+
+                    # Cover the necessary cells
+                    grid[y_center - 5: y_center + 5,
+                         x_center - 5:x_center + 5] = True
+
+            # Check break conditions
+            if k - k * error_k < len(result) < k + k * error_k:
+                break
+            elif len(result) < k:
+                # Search the upper half, the radius is too small
+                min_radius = r
+            elif abs(max_radius - min_radius) < 5:
+                break
+
+        mask = pd.Series(False, self.masks.index)
+        mask.iloc[np.array(result)] = True
+
+        self.masks = ('suppression', mask)
 
     def coverage_ratio(self, clean_keys=[]):
         """
