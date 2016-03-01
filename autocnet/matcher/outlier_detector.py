@@ -7,6 +7,29 @@ import pandas as pd
 
 class DistanceRatio(object):
 
+    """
+    A stateful object to store ratio test results and provenance.
+
+    Attributes
+    ----------
+
+    nvalid : int
+             The number of valid entries in the mask
+
+    mask : series
+           Pandas boolean series indexed by the match id
+
+    matches : dataframe
+              The matches dataframe from an edge.  This dataframe
+              must have 'source_idx' and 'distance' columns.
+
+    single : bool
+             If True, then single entries in the distance ratio
+             mask are assumed to have passed the ratio test.  Else
+             False.
+
+    """
+
     def __init__(self, matches):
 
         self._action_stack = deque(maxlen=10)
@@ -19,10 +42,10 @@ class DistanceRatio(object):
     def nvalid(self):
         return self.mask.sum()
 
-    def compute(self, ratio, mask=None, mask_name=None):
+    def compute(self, ratio, mask=None, mask_name=None, single=False):
         """
         Compute and return a mask for a matches dataframe
-        using Lowe's ratio test.
+        using Lowe's ratio test.  If keypoints have a single
         Lowe (2004) [Lowe2004]_
 
         Parameters
@@ -31,21 +54,26 @@ class DistanceRatio(object):
                 the ratio between the first and second-best match distances
                 for each keypoint to use as a bound for marking the first keypoint
                 as "good". Default: 0.8
-        Returns
-        -------
-         mask : ndarray
-                Intended to mask the matches dataframe. Rows are True if the associated keypoint passes
-                the ratio test and false otherwise. Keypoints without more than one match are True by
-                default, since the ratio test will not work for them.
 
+        mask : series
+               A pandas boolean series to initially mask the matches array
+
+        mask_name : list or str
+                    An arbitrary mask name for provenance tracking
+
+        single : bool
+                 If True, points with only a single entry are included (True)
+                 in the result mask, else False.
         """
         def func(group):
             res = [False] * len(group)
             if len(res) == 1:
-                return res
+                return [single]
             if group.iloc[0] < group.iloc[1] * ratio:
                 res[0] = True
             return res
+
+        self.single = single
 
         if mask is not None:
             self.mask = mask.copy()
@@ -57,7 +85,8 @@ class DistanceRatio(object):
 
         state_package = {'ratio': ratio,
                          'mask': self.mask.copy(),
-                         'clean_keys': mask_name
+                         'clean_keys': mask_name,
+                         'single': single
                          }
         self._action_stack.append(state_package)
         self._current_action_stack = len(self._action_stack) - 1
@@ -98,6 +127,7 @@ class DistanceRatio(object):
         setattr(self, 'mask', state['mask'])
         setattr(self, 'ratio', state['ratio'])
         setattr(self, 'clean_keys', state['clean_keys'])
+        setattr(self, 'single', state['single'])
         # Reset attributes (could also cache)
         self._notify_subscribers(self)
 
@@ -118,8 +148,10 @@ class DistanceRatio(object):
         setattr(self, 'mask', state['mask'])
         setattr(self, 'ratio', state['ratio'])
         setattr(self, 'clean_keys', state['clean_keys'])
+        setattr(self, 'single', state['single'])
         # Reset attributes (could also cache)
         self._notify_subscribers(self)
+
 
 def self_neighbors(matches):
     """
@@ -141,9 +173,6 @@ def self_neighbors(matches):
       and false the row is.
     """
     return matches.source_image != matches.destination_image
-
-
-
 
 
 def mirroring_test(matches):
