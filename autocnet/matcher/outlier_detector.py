@@ -1,11 +1,14 @@
 from collections import deque
+import math
 
 import cv2
 import numpy as np
 import pandas as pd
 
+from autocnet.utils.observable import Observable
 
-class DistanceRatio(object):
+
+class DistanceRatio(Observable):
 
     """
     A stateful object to store ratio test results and provenance.
@@ -37,6 +40,9 @@ class DistanceRatio(object):
         self._observers = set()
         self.matches = matches
         self.mask = None
+        self.clean_keys = None
+        self.single = None
+        self.attrs = ['mask', 'ratio', 'clean_keys', 'single']
 
     @property
     def nvalid(self):
@@ -90,66 +96,158 @@ class DistanceRatio(object):
         self._action_stack.append(state_package)
         self._current_action_stack = len(self._action_stack) - 1
 
-    def subscribe(self, func):
+
+class SpatialSuppression(Observable):
+    """
+    Spatial suppression using disc based method.
+
+    Attributes
+    ----------
+    df : dataframe
+         Input dataframe used for suppressing
+
+    mask : series
+           pandas boolean series
+
+    max_radius : float
+                 Maximum allowable point radius
+
+    min_radius : float
+                 The smallest allowable radius size
+
+    nvalid : int
+             The number of valid points after suppression
+
+    k : int
+        The number of points to be saved
+
+    error_k : float
+              [0,1] the acceptable error in k
+
+    domain : tuple
+             The (x,y) extent of the input domain
+    """
+
+    def __init__(self, df, domain, min_radius=1, k=250, error_k=0.05):
+        columns = df.columns
+        for i in ['x', 'y', 'strength']:
+            if i not in columns:
+                raise ValueError('The dataframe is missing a {} column.'.format(i))
+        self._df = df.sort_values(by=['strength'], ascending=False).copy()
+        self.max_radius = min(domain)
+        self.min_radius = min_radius
+        self.domain = domain
+        self.mask = None
+        self._k = k
+        self._error_k = error_k
+
+        self.attrs = ['mask', 'k', 'error_k']
+
+        self._action_stack = deque(maxlen=10)
+        self._current_action_stack = 0
+        self._observers = set()
+
+    @property
+    def nvalid(self):
+        return self.mask.sum()
+
+    @property
+    def k(self):
+        return self._k
+
+    @k.setter
+    def k(self, v):
+        self._k = v
+
+    @property
+    def error_k(self):
+        return self._error_k
+
+    @error_k.setter
+    def error_k(self, v):
+        self._error_k = v
+
+    @property
+    def df(self):
+        return self._df
+
+    def suppress(self):
         """
-        Subscribe some observer to the edge
+        Suppress subpixel registered points to that k +- k * error_k
+        points, with good spatial distribution, remain
+
+        Adds a suppression mask to the edge mask dataframe.
 
         Parameters
         ----------
-        func : object
-               The callable that is to be executed on update
-        """
-        self._observers.add(func)
+        k : int
+            The desired number of output points
 
-    def _notify_subscribers(self, *args, **kwargs):
+        error_k : float
+                  [0,1) The acceptable epsilon
         """
-        The 'update' call to notify all subscribers of
-        a change.
-        """
-        for update_func in self._observers:
-            update_func(self, *args, **kwargs)
 
-    def rollforward(self, n=1):
-        """
-        Roll forwards in the object history, e.g. do
+        df = self.df
+        if self.k > len(df):
+           raise ValueError('Only {} valid points, but {} points requested'.format(len(df), self.k))
+        min_radius = self.min_radius
+        max_radius = self.max_radius
+        while True:
+            r = (min_radius + max_radius) / 2
+            cell_size = int(r / math.sqrt(2))
 
-        Parameters
-        ----------
-        n : int
-            the number of steps to roll forwards
-        """
-        idx = self._current_action_stack + n
-        if idx > len(self._action_stack) - 1:
-            idx = len(self._action_stack) - 1
-        self._current_action_stack = idx
-        state = self._action_stack[idx]
-        setattr(self, 'mask', state['mask'])
-        setattr(self, 'ratio', state['ratio'])
-        setattr(self, 'clean_keys', state['clean_keys'])
-        setattr(self, 'single', state['single'])
-        # Reset attributes (could also cache)
+            # Setup to store results
+            result = []
+
+            # Compute the bin edges and assign points to the appropriate bins
+            x_edges = np.arange(0,self.domain[0],
+                                self.domain[0] / cell_size)
+            y_edges = np.arange(0,self.domain[1],
+                                self.domain[1] / cell_size)
+            grid = np.zeros((len(y_edges), len(x_edges)), dtype=np.bool)
+
+            # Bin assignment
+            xbins = np.digitize(df['x'], bins=x_edges)
+            ybins = np.digitize(df['y'], bins=y_edges)
+            bounds = True
+            for i, (idx, p) in enumerate(df.iterrows()):
+                x_center = xbins[i]
+                y_center = ybins[i]
+                cell = grid[y_center - 1 , x_center - 1]
+                if cell == False:
+                    result.append(idx)
+                    if len(result) > self.k - self.k * self.error_k:
+                        # Search the lower half, the radius is too small
+                        max_radius = r
+                        bounds = False
+                        continue
+
+                    # Cover the necessary cells
+                    grid[y_center - 3: y_center + 3,
+                         x_center - 3: x_center + 3] = True
+            if bounds is False:
+                continue
+
+            #  Check break conditions
+            if self.k - self.k * self.error_k < len(result) < self.k + self.k * self.error_k:
+                break
+            elif abs(max_radius - min_radius) < 5:
+                break
+            elif len(result) < self.k:
+                # Search the upper half, the radius is too small
+                min_radius = r
+
+        self.mask = pd.Series(False, self.df.index)
+        self.mask.loc[np.array(result)] = True
+
+        state_package = {'mask':self.mask,
+                         'k': self.k,
+                         'error_k': self.error_k}
+
+        self._action_stack.append(state_package)
         self._notify_subscribers(self)
+        self._current_action_stack = len(self._action_stack) - 1  # 0 based vs. 1 based
 
-    def rollback(self, n=1):
-        """
-        Roll backward in the object histroy, e.g. undo
-
-        Parameters
-        ----------
-        n : int
-            the number of steps to roll backwards
-        """
-        idx = self._current_action_stack - n
-        if idx < 0:
-            idx = 0
-        self._current_action_stack = idx
-        state = self._action_stack[idx]
-        setattr(self, 'mask', state['mask'])
-        setattr(self, 'ratio', state['ratio'])
-        setattr(self, 'clean_keys', state['clean_keys'])
-        setattr(self, 'single', state['single'])
-        # Reset attributes (could also cache)
-        self._notify_subscribers(self)
 
 def self_neighbors(matches):
     """

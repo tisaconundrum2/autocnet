@@ -211,9 +211,7 @@ class CandidateGraph(nx.Graph):
         Parameters
         ----------
         k : int
-            The number of matches, minus 1, to find per feature.  For example
-            k=5 will find the 4 nearest neighbors for every extracted feature.
-            If None,  k = (2 * the number of edges connecting a node) +1
+            The number of matches to find per feature.
         """
         # Instantiate a single flann matcher to be resused for all nodes
 
@@ -224,7 +222,6 @@ class CandidateGraph(nx.Graph):
             if not hasattr(node, 'descriptors'):
                 raise AttributeError('Descriptors must be extracted before matching can occur.')
             descriptors = node.descriptors
-
             # Load the neighbors of the current node into the FLANN matcher
             neighbors = self.neighbors(i)
             for n in neighbors:
@@ -392,9 +389,6 @@ class CandidateGraph(nx.Graph):
             if clean_keys:
                 matches, mask = edge._clean(clean_keys)
 
-            if 'subpixel' in clean_keys:
-                offsets = edge.subpixel_offsets
-
             kp1 = self.node[source].keypoints
             kp2 = self.node[destination].keypoints
             pt_idx = 0
@@ -417,8 +411,9 @@ class CandidateGraph(nx.Graph):
                 kp2y = kp2.iloc[m2_pid]['y']
 
                 if 'subpixel' in clean_keys:
-                    kp2x += offsets['x_offset'].values[i]
-                    kp2y += offsets['y_offset'].values[i]
+                    kp2x += row['x_offset']
+                    kp2y += row['y_offset']
+
                 values.append([kp2x,
                                kp2y,
                                m2,

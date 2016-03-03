@@ -10,6 +10,7 @@ from autocnet.cg.cg import convex_hull_ratio
 from autocnet.cg.cg import overlapping_polygon_area
 from autocnet.matcher import health
 from autocnet.matcher import outlier_detector as od
+from autocnet.matcher import suppression_funcs as spf
 from autocnet.matcher import subpixel as sp
 from autocnet.transformation.transformations import FundamentalMatrix, Homography
 from autocnet.vis.graph_view import plot_edge
@@ -256,10 +257,9 @@ class Edge(dict, MutableMapping):
                       without being considered an outlier
         """
         matches = self.matches
-        self.subpixel_offsets = pd.DataFrame(0, index=matches.index, columns=['x_offset',
-                                                                              'y_offset',
-                                                                              'correlation',
-                                                                              's_idx', 'd_idx'])
+        for column in ['x_offset', 'y_offset', 'correlation']:
+            if not column in self.matches.columns:
+                self.matches[column] = 0
 
         # Build up a composite mask from all of the user specified masks
         if clean_keys:
@@ -287,21 +287,19 @@ class Edge(dict, MutableMapping):
 
             try:
                 x_off, y_off, strength = sp.subpixel_offset(s_template, d_search, upsampling=upsampling)
-                self.subpixel_offsets.loc[idx] = [x_off, y_off, strength,s_idx, d_idx]
+                self.matches.loc[idx, ('x_offset', 'y_offset', 'correlation')] = [x_off, y_off, strength]
             except:
                 warnings.warn('Template-Search size mismatch, failing for this correspondence point.')
                 continue
-        self.subpixel_offsets.to_sparse(fill_value=0.0)
 
         # Compute the mask for correlations less than the threshold
-        threshold_mask = self.subpixel_offsets['correlation'] >= threshold
+        threshold_mask = self.matches['correlation'] >= threshold
 
         # Compute the mask for the point shifts that are too large
-        subp= self.subpixel_offsets
         query_string = 'x_offset <= -{0} or x_offset >= {0} or y_offset <= -{1} or y_offset >= {1}'.format(max_x_shift,
                                                                                                            max_y_shift)
-        sp_shift_outliers = subp.query(query_string)
-        shift_mask = pd.Series(True, index=self.subpixel_offsets.index)
+        sp_shift_outliers = self.matches.query(query_string)
+        shift_mask = pd.Series(True, index=self.matches.index)
         shift_mask[sp_shift_outliers.index] = False
 
         # Generate the composite mask and write the masks to the mask data structure
@@ -310,82 +308,37 @@ class Edge(dict, MutableMapping):
         self.masks = ('threshold', threshold_mask)
         self.masks = ('subpixel', mask)
 
-    def suppress(self, min_radius=1, k=100, error_k=0.1):
-        """
-        Suppress subpixel registered points to that k +- k * error_k
-        points, with good spatial distribution, remain
+    def suppress(self, func=spf.correlation, clean_keys=[], **kwargs):
+        if not hasattr(self, 'matches'):
+            raise AttributeError('This edge does not yet have any matches computed.')
 
-        Adds a suppression mask to the edge mask dataframe.
+        # Build up a composite mask from all of the user specified masks
+        if clean_keys:
+            matches, mask = self._clean(clean_keys)
+        else:
+            matches = self.matches
 
-        Parameters
-        ----------
-        min_radius : int
-                     The lowest acceptable radius value for points
+        domain = self.source.handle.raster_size
 
-        k : int
-            The desired number of output points
+        # Massage the dataframe into the correct structure
+        coords = self.source.keypoints.loc[matches['source_idx']][['x', 'y']]
+        matches = matches.merge(coords, left_on=['source_idx'], right_index=True)
+        matches['strength'] = self.matches.apply(func, axis=1)
 
-        error_k : float
-                  [0,1) The acceptable epsilon
-        """
-        xy_extent = self.source.handle.xy_extent[1]
-        max_radius = min(xy_extent) / 4
-        k = 100
+        if not hasattr(self, 'suppression'):
+            # Instantiate the suppression object and suppress matches
+            self.suppression = od.SpatialSuppression(matches, domain, **kwargs)
+            self.suppression.suppress()
+        else:
+            for k, v in kwargs.items():
+                if hasattr(self.suppression, k):
+                    setattr(self.suppression, k, v)
+            self.suppression.suppress()
 
-        sp_mask = self.masks['subpixel']
-        sp_values = self.subpixel_offsets[sp_mask]
-
-        coordinates = self.source.keypoints.iloc[sp_values['s_idx']][['x', 'y']]
-        merged = pd.merge(sp_values, coordinates, left_on='s_idx', how='left', right_index=True).sort_values(by='correlation')
-
-        previous_cell_size = 0
-
-        while True:
-            r = (min_radius + max_radius) / 2
-            cell_size = int(r / math.sqrt(2))
-
-            # To prevent cycling
-            if cell_size == previous_cell_size:
-                break
-            previous_cell_size = cell_size
-
-            # Setup to store results
-            result = []
-            # Compute the bin edges and assign points to the appropriate bins
-            x_edges = np.arange(0,xy_extent[0], int(xy_extent[0] / cell_size))
-            y_edges = np.arange(0,xy_extent[1], int(xy_extent[1] / cell_size))
-            grid = np.zeros((len(y_edges), len(x_edges)), dtype=np.bool)
-
-            xbins = np.digitize(merged['x'], bins=x_edges)
-            ybins = np.digitize(merged['y'], bins=y_edges)
-
-            for i, (idx, p) in enumerate(merged.iterrows()):
-                x_center = xbins[i]
-                y_center = ybins[i]
-                cell = grid[y_center-1 , x_center-1]
-                if cell == False:
-                    result.append(idx)
-                    if len(result) > k:
-                        # Search the lower half, the radius is too big
-                        max_radius = r
-                        break
-
-                    # Cover the necessary cells
-                    grid[y_center - 5: y_center + 5,
-                         x_center - 5:x_center + 5] = True
-
-            # Check break conditions
-            if k - k * error_k < len(result) < k + k * error_k:
-                break
-            elif len(result) < k:
-                # Search the upper half, the radius is too small
-                min_radius = r
-            elif abs(max_radius - min_radius) < 5:
-                break
-
-        mask = pd.Series(False, self.masks.index)
-        mask.iloc[np.array(result)] = True
-
+        if clean_keys:
+            mask[mask == True] = self.suppression.mask
+        else:
+            mask = self.suppression.mask
         self.masks = ('suppression', mask)
 
     def coverage_ratio(self, clean_keys=[]):

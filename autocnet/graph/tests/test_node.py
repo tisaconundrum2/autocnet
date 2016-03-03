@@ -50,12 +50,6 @@ class TestNode(unittest.TestCase):
         self.assertNotEqual(find_in_dict(p0, 'nfeatures'),
                             find_in_dict(p1, 'nfeatures'))
 
-    def test_anms(self):
-        image = self.node.get_array()
-        self.node.extract_features(image, extractor_parameters={'nfeatures':100})
-        self.node.anms(nfeatures=10)
-        self.assertIn('anms', self.node.masks)
-        self.assertTrue(sum(self.node._mask_arrays['anms']), 10)
 
     def test_isis_serial(self):
         serial = self.node.isis_serial
