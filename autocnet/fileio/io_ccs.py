@@ -10,45 +10,49 @@ from autocnet.fileio.utils import file_search
 import time
 
 def CCS(input_data):
-    df = pd.DataFrame.from_csv(input_data, header=14)
-    df.rename(columns=lambda x: x.strip(),inplace=True) #strip whitespace from column names
-    df=df.transpose()
+    t=time.time()
     
-    cols=df.columns.tolist()
-    for i,x in enumerate(cols):
-        cols[i]=('wvl',round(float(x),5))
-    df.columns=pd.MultiIndex.from_tuples(cols)
-    #extract info from the file name
+    try:
+        df = pd.read_csv(input_data, header=14,engine='c')
+        cols=list(df.columns.values)
+        df.columns=[i.strip().replace('# ','') for i in cols] #strip whitespace from column names
+        df.set_index(['wave'],inplace=True) #use wavelengths as indices
+        #read the file header and put information into the dataframe as new columns
+        metadata=pd.read_csv(input_data,sep='=',nrows=14,comment=',',engine='c',index_col=0,header=None)
+    
+    except: #handle files with an extra header row containing temperature
+        df = pd.read_csv(input_data, header=15,engine='c')
+        cols=list(df.columns.values)
+        df.columns=[i.strip().replace('# ','') for i in cols] #strip whitespace from column names
+        df.set_index(['wave'],inplace=True) #use wavelengths as indices
+        #read the file header and put information into the dataframe as new columns
+        metadata=pd.read_csv(input_data,sep='=',nrows=15,comment=',',engine='c',index_col=0,header=None)
+    
+    df.index=[['wvl']*len(df.index),df.index.values.round(4)]  #create multiindex so spectra can be easily extracted with a single key
+    df=df.T   #transpose so that each spectrum is a row
+           
+    #remove extraneous stuff from the metadataindices    
+    metadata.index=[i.strip().strip('# ').replace(' FLOAT','').lower() for i in metadata.index.values]
+    metadata=metadata.T
+    
+     #extract info from the file name
     fname=os.path.basename(input_data)
-    df['sclock']=fname[4:13]
-    df['sclock']=pd.to_numeric(df['sclock'])
-    df['seqid']=fname[25:34].upper()
-    df['Pversion']=fname[34:36]        
-    #transpose the data frame
+    metadata['sclock']=fname[4:13]
+    metadata['seqid']=fname[25:34].upper()
+    metadata['Pversion']=fname[34:36]   
     
-    #read the file header and put information into the dataframe as new columns
-    #(inefficient to store this data many times, but much easier to concatenate data from multiple files)
-    with open(input_data,'r') as f:
-        header={}
-        for i,row in enumerate(f.readlines()):
-            if i<14:
-                row=row.split(',')[0]
-                header.update(header_parser(row,'='))    
-                
-    for label,data in header.items(): 
-        if '_float' in label:
-            label=label.replace('_float','')
-        if label=='dark':
-            label='darkspec'
-        df[label]=data 
-    
-    df.index.rename('shotnum',inplace=True)
-    df.reset_index(level=0,inplace=True)
+    dt=time.time()-t
+    t=time.time()
+    #duplicate the metadata for each row in the df
+    metadata=metadata.append([metadata]*(len(df.index)-1),ignore_index=True)    
+    metadata.index=df.index #make the indices match
+    metadata.columns=[['meta']*len(metadata.columns),metadata.columns.values] #make the columns into multiindex
+    df=pd.concat([metadata,df],axis=1) #combine the spectra with the metadata
+    dt2=time.time()-t
     return df
         
 def CCS_SAV(input_data):
-    
-    t=time.time()          
+        
     #read the IDL .SAV file
     data=scipy.io.readsav(input_data,python_dict=True)
     
@@ -82,73 +86,44 @@ def CCS_SAV(input_data):
     
     #extract metadata from the file name and add it to the data frame
     #use the multiindex label "meta" for all metadata
-#    t=time.time()  
+
     fname=os.path.basename(input_data)
-#    
-#    metadata=[fname,
-#              fname[4:13],
-#              fname[25:34].upper(),
-#              fname[34:36],
-#              data['continuumvismin'],
-#              data['continuumvnirmin'],
-#              data['continuumuvmin'],
-#              data['continuumvnirend'],
-#              data['distt'],
-#              data['darkname'],
-#              data['nshots'],
-#              data['dnoiseiter'],
-#              data['dnoisesig'],
-#              data['matchedfilter']]
-#    metadata_cols=['file',
-#                   'sclock',
-#                   'seqid',
-#                   'Pversion',
-#                   'continuumvismin',
-#                   'continuumvnirmin',
-#                   'continuumuvmin',
-#                   'continuumvnirend',
-#                   'distt',
-#                   'darkname',
-#                   'nshots',
-#                   'dnoiseiter',
-#                   'dnoisesig',
-#                   'matchedfilter']
-#    t=time.time()
-#    
-#    for i,j in enumerate(metadata_cols):
-#        temp=pd.DataFrame([metadata[i]]*(data['nshots']+2))
-#        temp.index=df.index
-#        temp.columns=[['meta'],[j]]
-#        df=pd.concat([df,temp],axis=1)
-#        
-#    dt=time.time()-t
-#    df[['meta']*len(metadata_cols),metadata_cols]=metadata          
-#    dt=time.time()-t
-    df['meta','file']=fname
-    df['meta','sclock']=fname[4:13]
-    df['meta','seqid']=fname[25:34].upper()
-    df['meta','Pversion']=fname[34:36]
-    
-    #Add the rest of the metadata from the file to the data frame
-    df['meta','continuumvismin']=data['continuumvismin']
-    df['meta','continuumvnirmin']=data['continuumvnirmin']
-    df['meta','continuumuvmin']=data['continuumuvmin']
-    df['meta','continuumvnirend']=data['continuumvnirend']
-    df['meta','distt']=data['distt']
-    df['meta','darkname']=data['darkname']
-    df['meta','nshots']=data['nshots']
-    df['meta','version']=data['version']
-    df['meta','dnoiseiter']=data['dnoiseiter']
-    df['meta','dnoisesig']=data['dnoisesig']
-    df['meta','matchedfilter']=data['matchedfilter']
-#    
-#    
-    
-    dt=time.time()-t
+    metadata=[fname,
+              fname[4:13],
+              fname[25:34].upper(),
+              fname[34:36],
+              data['continuumvismin'],
+              data['continuumvnirmin'],
+              data['continuumuvmin'],
+              data['continuumvnirend'],
+              data['distt'],
+              data['darkname'],
+              data['nshots'],
+              data['dnoiseiter'],
+              data['dnoisesig'],
+              data['matchedfilter']]
+    metadata=np.tile(metadata,(len(df.index),1))
+    metadata_cols=list(zip(['meta']*len(df.index),['file',
+                   'sclock',
+                   'seqid',
+                   'Pversion',
+                   'continuumvismin',
+                   'continuumvnirmin',
+                   'continuumuvmin',
+                   'continuumvnirend',
+                   'distt',
+                   'dark',
+                   'nshots',
+                   'dnoiseiter',
+                   'dnoisesig',
+                   'matchedfilter']))
+    metadata=pd.DataFrame(metadata,columns=pd.MultiIndex.from_tuples(metadata_cols),index=df.index) 
+
+    df=pd.concat([metadata,df],axis=1)            
                   
     return df    
 
-def ccs_batch(directory,searchstring='*CCS*.csv',is_sav=False):
+def ccs_batch(directory,searchstring='*CCS*.csv',is_sav=False,to_csv=None):
     #Determine if the file is a .csv or .SAV
     if 'SAV' in searchstring:
         is_sav=True
@@ -173,7 +148,6 @@ def ccs_batch(directory,searchstring='*CCS*.csv',is_sav=False):
         filelist_new=np.append(filelist_new,filelist[match][maxP]) #keep only the file with thei highest version
         
     filelist=filelist_new
-    #any way to speed this up for large numbers of files? 
     #Should add a progress bar for importing large numbers of files    
     dt=[]
     for i in filelist:
@@ -182,8 +156,9 @@ def ccs_batch(directory,searchstring='*CCS*.csv',is_sav=False):
             tmp=CCS_SAV(i)
             dt.append(time.time()-t)
         else:
+            t=time.time()
             tmp=CCS(i)
-          
+            dt.append(time.time()-t)
         try:
             #This ensures that rounding errors are not causing mismatches in columns            
             cols1=list(combined['wvl'].columns)
@@ -194,6 +169,8 @@ def ccs_batch(directory,searchstring='*CCS*.csv',is_sav=False):
                 print("Wavelengths don't match!")
         except:
             combined=tmp
+    if to_csv is not None:
+        combined.to_csv(to_csv)
     return combined
     
         
