@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 from autocnet.fileio.utils import file_search
+import time
 #This function reads the lookup tables used to expand metadata from the file names
 #This is separated from parsing the filenames so that for large lists of files the 
 #lookup tables don't need to be read over and over
@@ -66,32 +67,26 @@ def jsc_filename_parse(filename,refdata):
     
 
 def JSC(input_file,refdata):
-    data=pd.read_csv(input_file,skiprows=14,sep='\t')
+    data=pd.read_csv(input_file,skiprows=14,sep='\t',engine='c')
     data=data.rename(columns={data.columns[0]:'time1',data.columns[1]:'time2'})
-    times=data[['time1','time2']] #split the two time columns from the data frame
+    times=data[data.columns[0:2]] #split the two time columns from the data frame
     data=data[data.columns[2:]] #trim the data frame so it is just the spectra
     
     #make a multiindex for each wavlength column so they can be easily isolated from metadata later
-    cols=data.columns.tolist()    
-    for i,x in enumerate(cols):
-        cols[i]=('wvl',round(float(x),5))
-    data.columns=pd.MultiIndex.from_tuples(cols)
+    data.columns=[['wvl']*len(data.columns),np.array(data.columns.values,dtype='float').round(4)]    
     
     #create a metadata frame and add the times to it
     metadata=pd.concat([jsc_filename_parse(input_file,refdata)]*len(data.index))
     metadata.index=data.index
     metadata=pd.concat([metadata,times],axis=1)
-    
-    #add the metadata columns to the data frame
-    for col in metadata.columns.tolist():
-        data[col]=metadata[col]
-    
+    metadata.columns=[['meta']*len(metadata.columns),metadata.columns.values]    
+    data=pd.concat([data,metadata],axis=1)
     return data
    
         
 
 
-def jsc_batch(directory, LUT_files,searchstring='*.txt'):
+def jsc_batch(directory, LUT_files,searchstring='*.txt',to_csv=None):
     #Read in the lookup tables to expand filename metadata                  
     refdata=read_refdata(LUT_files)
     #get the list of files that match the search string in the given directory    
@@ -110,11 +105,13 @@ def jsc_batch(directory, LUT_files,searchstring='*.txt'):
         for file in sublist[1:]:
             temp.append(JSC(file,refdata))
         dfs.append(pd.concat(temp))
-
+        
     #now combine the data frames for the different spectrometers into a single data frame containing all the data    
     combined=dfs[0]
     for df in dfs[1:]:
         combined=combined.merge(df)
-        
+    
+    if to_csv is not None:
+        combined.to_csv(to_csv)
     return combined
                     

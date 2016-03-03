@@ -61,7 +61,7 @@ def CCS_SAV(input_data):
     df_VIS=pd.DataFrame(data['vis'],index=data['defvis'])
     df_VNIR=pd.DataFrame(data['vnir'],index=data['defvnir'])
     df_spect=pd.concat([df_UV,df_VIS,df_VNIR])
-    df_spect.columns=df_spect.columns+1 #add 1 to the columns so they correspond to shot number
+    df_spect.columns=['shot'+str(i+1) for i in df_spect.columns] #add 1 to the columns so they correspond to shot number
     
     df_aUV=pd.DataFrame(data['auv'],index=data['defuv'],columns=['average'])
     df_aVIS=pd.DataFrame(data['avis'],index=data['defvis'],columns=['average'])
@@ -80,9 +80,6 @@ def CCS_SAV(input_data):
     df.index=[['wvl']*len(df.index),df.index.values.round(4)]
     #transpose so that spectra are rows rather than columns   
     df=df.T
-    
-    #name the index to be clear that it represents shot number
-    df.index.rename('shotnum',inplace=True)
     
     #extract metadata from the file name and add it to the data frame
     #use the multiindex label "meta" for all metadata
