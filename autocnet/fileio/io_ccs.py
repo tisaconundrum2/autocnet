@@ -1,4 +1,4 @@
-# This code is used to read individual ChemCam CCS .csv files
+# This code is used to read individual ChemCam CCS files
 # Header data is stored as attributes of the data frame
 # White space is stripped from the column names
 import os
@@ -7,7 +7,7 @@ import pandas as pd
 import scipy
 from autocnet.fileio.header_parser import header_parser
 from autocnet.fileio.utils import file_search
-import copy
+import time
 
 def CCS(input_data):
     df = pd.DataFrame.from_csv(input_data, header=14)
@@ -48,50 +48,108 @@ def CCS(input_data):
         
 def CCS_SAV(input_data):
     
-    d=scipy.io.readsav(input_data,python_dict=True)
-    #combine the three spectrometers
-    spectra=np.vstack([d['uv'],d['vis'],d['vnir']])
-    aspectra=np.array([np.hstack([d['auv'],d['avis'],d['avnir']])]).T
-    mspectra=np.array([np.hstack([d['muv'],d['mvis'],d['mvnir']])]).T
+    t=time.time()          
+    #read the IDL .SAV file
+    data=scipy.io.readsav(input_data,python_dict=True)
     
-    #create tuples for the spectral columns to use as multiindex
-    wvls=list(np.hstack([d['defuv'],d['defvis'],d['defvnir']]))
-    for i,x in enumerate(wvls):
-        wvls[i]=('wvl',round(x,5))
+    #put the spectra into data frames and combine them
+    df_UV=pd.DataFrame(data['uv'],index=data['defuv'])
+    df_VIS=pd.DataFrame(data['vis'],index=data['defvis'])
+    df_VNIR=pd.DataFrame(data['vnir'],index=data['defvnir'])
+    df_spect=pd.concat([df_UV,df_VIS,df_VNIR])
+    df_spect.columns=df_spect.columns+1 #add 1 to the columns so they correspond to shot number
     
-    #define column names
-    shotnums=list(range(1,d['nshots']+1))
-    shots=['shot'+str(i) for i in shotnums]
-    shots.extend(['ave','median'])
+    df_aUV=pd.DataFrame(data['auv'],index=data['defuv'],columns=['average'])
+    df_aVIS=pd.DataFrame(data['avis'],index=data['defvis'],columns=['average'])
+    df_aVNIR=pd.DataFrame(data['avnir'],index=data['defvnir'],columns=['average'])
+    df_ave=pd.concat([df_aUV,df_aVIS,df_aVNIR])
     
-    #create the data frame to hold the spectral data
-    df = pd.DataFrame(np.hstack([spectra,aspectra,mspectra]),columns=shots,index=pd.MultiIndex.from_tuples(wvls))        
-    df=df.transpose()
+    df_mUV=pd.DataFrame(data['muv'],index=data['defuv'],columns=['median'])
+    df_mVIS=pd.DataFrame(data['mvis'],index=data['defvis'],columns=['median'])
+    df_mVNIR=pd.DataFrame(data['mvnir'],index=data['defvnir'],columns=['median'])
+    df_med=pd.concat([df_mUV,df_mVIS,df_mVNIR])            
     
-    #remove the above elements from the dict
-    to_remove=['uv','vis','vnir','auv','avis','avnir','muv','mvis','mvnir','defuv','defvis','defvnir','label_info']
-    for x in to_remove:
-        del d[x]
-           
-    #extract info from the file name
-    fname=os.path.basename(input_data)
-    d['sclock']=fname[4:13]
-    d['seqid']=fname[25:34].upper()
-    d['Pversion']=fname[34:36]
+    df=pd.concat([df_spect,df_ave,df_med],axis=1)
     
-    #Add metadata to the data frame by stepping through the dict
-    for label,data in d.items(): 
-        if type(data) is bytes: data=data.decode()
-        df[label]=data
+    #create multiindex to access wavelength values
+    #also, round the wavlength values to a more reasonable level of precision
+    df.index=[['wvl']*len(df.index),df.index.values.round(4)]
+    #transpose so that spectra are rows rather than columns   
+    df=df.T
     
-    df['sclock']=pd.to_numeric(df['sclock'])
+    #name the index to be clear that it represents shot number
     df.index.rename('shotnum',inplace=True)
-    df.reset_index(level=0,inplace=True)
     
+    #extract metadata from the file name and add it to the data frame
+    #use the multiindex label "meta" for all metadata
+#    t=time.time()  
+    fname=os.path.basename(input_data)
+#    
+#    metadata=[fname,
+#              fname[4:13],
+#              fname[25:34].upper(),
+#              fname[34:36],
+#              data['continuumvismin'],
+#              data['continuumvnirmin'],
+#              data['continuumuvmin'],
+#              data['continuumvnirend'],
+#              data['distt'],
+#              data['darkname'],
+#              data['nshots'],
+#              data['dnoiseiter'],
+#              data['dnoisesig'],
+#              data['matchedfilter']]
+#    metadata_cols=['file',
+#                   'sclock',
+#                   'seqid',
+#                   'Pversion',
+#                   'continuumvismin',
+#                   'continuumvnirmin',
+#                   'continuumuvmin',
+#                   'continuumvnirend',
+#                   'distt',
+#                   'darkname',
+#                   'nshots',
+#                   'dnoiseiter',
+#                   'dnoisesig',
+#                   'matchedfilter']
+#    t=time.time()
+#    
+#    for i,j in enumerate(metadata_cols):
+#        temp=pd.DataFrame([metadata[i]]*(data['nshots']+2))
+#        temp.index=df.index
+#        temp.columns=[['meta'],[j]]
+#        df=pd.concat([df,temp],axis=1)
+#        
+#    dt=time.time()-t
+#    df[['meta']*len(metadata_cols),metadata_cols]=metadata          
+#    dt=time.time()-t
+    df['meta','file']=fname
+    df['meta','sclock']=fname[4:13]
+    df['meta','seqid']=fname[25:34].upper()
+    df['meta','Pversion']=fname[34:36]
+    
+    #Add the rest of the metadata from the file to the data frame
+    df['meta','continuumvismin']=data['continuumvismin']
+    df['meta','continuumvnirmin']=data['continuumvnirmin']
+    df['meta','continuumuvmin']=data['continuumuvmin']
+    df['meta','continuumvnirend']=data['continuumvnirend']
+    df['meta','distt']=data['distt']
+    df['meta','darkname']=data['darkname']
+    df['meta','nshots']=data['nshots']
+    df['meta','version']=data['version']
+    df['meta','dnoiseiter']=data['dnoiseiter']
+    df['meta','dnoisesig']=data['dnoisesig']
+    df['meta','matchedfilter']=data['matchedfilter']
+#    
+#    
+    
+    dt=time.time()-t
+                  
     return df    
 
 def ccs_batch(directory,searchstring='*CCS*.csv',is_sav=False):
-   
+    #Determine if the file is a .csv or .SAV
     if 'SAV' in searchstring:
         is_sav=True
     else:
@@ -105,22 +163,24 @@ def ccs_batch(directory,searchstring='*CCS*.csv',is_sav=False):
     #file per sclock is being read, and that it is the one with the highest version number
     for i,name in enumerate(filelist):
         basenames[i]=os.path.basename(name)
-        sclocks[i]=basenames[i][4:13]
-        P_version[i]=basenames[i][-5:-4]
-    sclocks_unique=np.unique(sclocks)
+        sclocks[i]=basenames[i][4:13] #extract the sclock
+        P_version[i]=basenames[i][-5:-4] #extract the version
+    sclocks_unique=np.unique(sclocks) #find unique sclocks
     filelist_new=np.array([],dtype='str')
     for i in sclocks_unique:
-        match=(sclocks==i)
-        maxP=P_version[match]==max(P_version[match])
-        filelist_new=np.append(filelist_new,filelist[match][maxP])
+        match=(sclocks==i) #find all instances with matching sclocks
+        maxP=P_version[match]==max(P_version[match])  #find the highest version among these files
+        filelist_new=np.append(filelist_new,filelist[match][maxP]) #keep only the file with thei highest version
         
     filelist=filelist_new
     #any way to speed this up for large numbers of files? 
     #Should add a progress bar for importing large numbers of files    
+    dt=[]
     for i in filelist:
         if is_sav:
+            t=time.time()
             tmp=CCS_SAV(i)
-          
+            dt.append(time.time()-t)
         else:
             tmp=CCS(i)
           
