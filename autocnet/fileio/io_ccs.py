@@ -7,6 +7,7 @@ import pandas as pd
 import scipy
 from autocnet.fileio.header_parser import header_parser
 from autocnet.fileio.utils import file_search
+from autocnet.fileio.lookup import lookup
 import time
 
 def CCS(input_data):
@@ -120,7 +121,7 @@ def CCS_SAV(input_data):
                   
     return df    
 
-def ccs_batch(directory,searchstring='*CCS*.csv',is_sav=False,to_csv=None):
+def ccs_batch(directory,searchstring='*CCS*.csv',is_sav=False,to_csv=None,lookupfile=None):
     #Determine if the file is a .csv or .SAV
     if 'SAV' in searchstring:
         is_sav=True
@@ -166,6 +167,10 @@ def ccs_batch(directory,searchstring='*CCS*.csv',is_sav=False,to_csv=None):
                 print("Wavelengths don't match!")
         except:
             combined=tmp
+    combined.loc[:,('meta','sclock')]=pd.to_numeric(combined.loc[:,('meta','sclock')])
+        
+    if lookupfile is not None:
+        combined=lookup(combined,lookupfile=lookupfile)
     if to_csv is not None:
         combined.to_csv(to_csv)
     return combined
