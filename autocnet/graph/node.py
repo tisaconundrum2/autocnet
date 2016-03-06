@@ -36,18 +36,12 @@ class Node(dict, MutableMapping):
     isis_serial : str
                   If the input images have PVL headers, generate an
                   ISIS compatible serial number
-
-     provenance : dict
-                  With key equal to an autoincrementing integer and value
-                  equal to a dict of parameters used to generate this
-                  realization.
     """
 
     def __init__(self, image_name=None, image_path=None):
         self.image_name = image_name
         self.image_path = image_path
         self._mask_arrays = {}
-        self.provenance = {}
 
     def __repr__(self):
         return """
@@ -195,7 +189,7 @@ class Node(dict, MutableMapping):
 
     def _clean(self, clean_keys):
         """
-        Given a list of clean keys and a provenance id compute the
+        Given a list of clean keys compute the
         mask of valid matches
 
         Parameters
