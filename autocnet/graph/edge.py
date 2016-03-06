@@ -284,10 +284,9 @@ class Edge(dict, MutableMapping):
             # Get the template and search window
             s_template = sp.clip_roi(s_img, s_keypoint, template_size)
             d_search = sp.clip_roi(d_img, d_keypoint, search_size)
-
             try:
-                x_off, y_off, strength = sp.subpixel_offset(s_template, d_search, upsampling=upsampling)
-                self.matches.loc[idx, ('x_offset', 'y_offset', 'correlation')] = [x_off, y_off, strength]
+                x_offset, y_offset, strength = sp.subpixel_offset(s_template, d_search, upsampling=upsampling)
+                self.matches.loc[idx, ('x_offset', 'y_offset', 'correlation')] = [x_offset, y_offset, strength]
             except:
                 warnings.warn('Template-Search size mismatch, failing for this correspondence point.')
                 continue
@@ -309,6 +308,22 @@ class Edge(dict, MutableMapping):
         self.masks = ('subpixel', mask)
 
     def suppress(self, func=spf.correlation, clean_keys=[], **kwargs):
+        """
+        Apply a disc based suppression algorithm to get a good spatial
+        distribution of high quality points, where the user defines some
+        function to be used as the quality metric.
+
+        Parameters
+        ----------
+        func : object
+               A function that returns a scalar value to be used
+               as the strength of a given row in the matches data
+               frame.
+
+        clean_keys : list
+                     of mask keys to be used to reduce the total size
+                     of the matches dataframe.
+        """
         if not hasattr(self, 'matches'):
             raise AttributeError('This edge does not yet have any matches computed.')
 
@@ -317,17 +332,16 @@ class Edge(dict, MutableMapping):
             matches, mask = self._clean(clean_keys)
         else:
             matches = self.matches
-
         domain = self.source.handle.raster_size
 
         # Massage the dataframe into the correct structure
-        coords = self.source.keypoints.loc[matches['source_idx']][['x', 'y']]
-        matches = matches.merge(coords, left_on=['source_idx'], right_index=True)
-        matches['strength'] = self.matches.apply(func, axis=1)
+        coords = self.source.keypoints[['x', 'y']]
+        merged = matches.merge(coords, left_on=['source_idx'], right_index=True)
+        merged['strength'] = merged.apply(func, axis=1)
 
         if not hasattr(self, 'suppression'):
             # Instantiate the suppression object and suppress matches
-            self.suppression = od.SpatialSuppression(matches, domain, **kwargs)
+            self.suppression = od.SpatialSuppression(merged, domain, **kwargs)
             self.suppression.suppress()
         else:
             for k, v in kwargs.items():
