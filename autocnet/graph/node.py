@@ -48,7 +48,6 @@ class Node(dict, MutableMapping):
         self.image_path = image_path
         self._mask_arrays = {}
         self.provenance = {}
-        self._pid = 0
 
     def __repr__(self):
         return """
@@ -149,10 +148,6 @@ class Node(dict, MutableMapping):
         self._nkeypoints = len(self.keypoints)
         self.descriptors = descriptors.astype(np.float32)
 
-        self.provenance[self._pid] = {'detector': 'sift',
-                                      'parameters':kwargs}
-        self._pid += 1
-
     def suppress(self, func=spf.response, **kwargs):
         if not hasattr(self, 'keypoints'):
             raise AttributeError('No keypoints extracted for this node.')
@@ -207,9 +202,6 @@ class Node(dict, MutableMapping):
         ----------
         clean_keys : list
                      of columns names (clean keys)
-        pid : int
-              The provenance id of the parameter set to be cleaned.
-              Defaults to the last run.
 
         Returns
         -------
