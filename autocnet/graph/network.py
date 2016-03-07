@@ -520,6 +520,30 @@ class CandidateGraph(nx.Graph):
         for s, d, edge in self.edges_iter(data=True):
             self.edge[s][d] = Edge(self.node[s], self.node[d])
 
+# TODO: Add ability to actually read this out of a file.
+    @classmethod
+    def from_filelist(cls, filelst):
+        """
+        Instantiate the class using a filelist as a python list.
+
+        Parameters
+        ----------
+        filelst : list
+                  A list containing the files to construct an adjacency graph from
+
+        Returns
+        -------
+        : object
+          A Network graph object
+        """
+
+        for file in filelst:
+            # try to open the file, extract its bounding box for now. Also, just support gdal for now.
+            dataset = GeoDataset(get_path(file))
+            print(dataset.latlon_extent)
+
+        return cls()
+
     @classmethod
     def from_adjacency(cls, input_adjacency, basepath=None):
         """

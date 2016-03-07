@@ -73,3 +73,15 @@ class TestNode(unittest.TestCase):
         # Convex hull computation is checked lower in the hull computation
         node = self.graph.node[0]
         self.assertRaises(AttributeError, node.coverage_ratio)
+
+
+class TestInputFileList(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        lst = ["AS15-M-0297_SML.png", "AS15-M-0298_SML.png", "AS15-M-0299_SML.png"]
+        cls.graph = network.CandidateGraph.from_filelist(lst)
+
+    def test_from_filelist(self):
+        self.assertTrue(False)
+
