@@ -36,10 +36,10 @@ def plot_graph(graph, ax=None, cmap='Spectral', **kwargs):
     # Setup edge color based on the health metric
     colors = []
     for s, d, e in graph.edges_iter(data=True):
-        try:
-            colors.append(cmap(e.health))
-        except:
-            colors.append(1)
+        if hasattr(e, 'health'):
+            colors.append(cmap(e.health)[0])
+        else:
+            colors.append(cmap(0)[0])
 
     nx.draw(graph, ax=ax, edge_color=colors)
     return ax
