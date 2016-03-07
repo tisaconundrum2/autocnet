@@ -389,6 +389,10 @@ class CandidateGraph(nx.Graph):
             if clean_keys:
                 matches, mask = edge._clean(clean_keys)
 
+            subpixel = False
+            if 'subpixel' in clean_keys:
+                subpixel = True
+
             kp1 = self.node[source].keypoints
             kp2 = self.node[destination].keypoints
             pt_idx = 0
@@ -400,19 +404,19 @@ class CandidateGraph(nx.Graph):
                 m1 = (source, int(row['source_idx']))
                 m2 = (destination, int(row['destination_idx']))
 
-                values.append([kp1.iloc[m1_pid]['x'],
-                               kp1.iloc[m1_pid]['y'],
+                values.append([kp1.loc[m1_pid]['x'],
+                               kp1.loc[m1_pid]['y'],
                                m1,
                                pt_idx,
                                source,
                                idx])
 
-                kp2x = kp2.iloc[m2_pid]['x']
-                kp2y = kp2.iloc[m2_pid]['y']
-
-                if 'subpixel' in clean_keys:
-                    kp2x += row['x_offset']
-                    kp2y += row['y_offset']
+                if subpixel:
+                    kp2x = kp2.loc[m2_pid]['x'] + row['x_offset']
+                    kp2y = kp2.loc[m2_pid]['y'] + row['y_offset']
+                else:
+                    kp2x = kp2.loc[m2_pid]['x']
+                    kp2y = kp2.loc[m2_pid]['y']
 
                 values.append([kp2x,
                                kp2y,

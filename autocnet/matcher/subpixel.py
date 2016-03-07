@@ -45,7 +45,7 @@ def clip_roi(img, center, img_size):
                           x_start:x_start + x_stop + 1]
     else:
         clipped_img = img.read_array(pixels=[x_start, y_start,
-                                             x_stop, y_stop])
+                                             x_stop + 1, y_stop + 1])
     return clipped_img
 
 

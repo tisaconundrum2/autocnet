@@ -1,3 +1,5 @@
+import warnings
+
 import cv2
 import pandas as pd
 
@@ -10,8 +12,7 @@ DEFAULT_FLANN_PARAMETERS = dict(algorithm=FLANN_INDEX_KDTREE,
                                 trees=3)
 
 
-def pattern_match(template, image, upsampling=16,
-                  func=match_template):
+def pattern_match(template, image, upsampling=16,func=cv2.TM_CCOEFF_NORMED, error_check=False):
     """
     Call an arbitrary pattern matcher
 
@@ -29,6 +30,12 @@ def pattern_match(template, image, upsampling=16,
 
     func : object
            The function to be used to perform the template based matching
+           Options: {cv2.TM_CCORR_NORMED, cv2.TM_CCOEFF_NORMED, cv2.TM_SQDIFF_NORMED}
+           In testing the first two options perform significantly better with Apollo data.
+
+    error_check : bool
+                  If True, also apply a different matcher and test that the values
+                  are not too divergent.  Default, False.
 
     Returns
     -------
@@ -42,34 +49,35 @@ def pattern_match(template, image, upsampling=16,
     strength : float
                The strength of the correlation in the range [-1, 1].
     """
+
+    different = {cv2.TM_SQDIFF_NORMED: cv2.TM_CCOEFF_NORMED,
+                 cv2.TM_CCORR_NORMED: cv2.TM_SQDIFF_NORMED,
+                 cv2.TM_CCOEFF_NORMED: cv2.TM_SQDIFF_NORMED}
+
     if upsampling < 1:
         raise ValueError
 
-    u_template = zoom(template, upsampling)
-    u_image = zoom(image, upsampling, )
-    # Find the the upper left origin of the template in the image
-    match = func(u_image, u_template)
-    y, x = np.unravel_index(np.argmax(match), match.shape)
+    u_template = zoom(template, upsampling, order=1)
+    u_image = zoom(image, upsampling, order=1)
 
-    # Resample the match back to the native image resolution
-    x /= upsampling
-    y /= upsampling
+    result = cv2.matchTemplate(u_image, u_template, method=func)
+    min_corr, max_corr, min_loc, max_loc = cv2.minMaxLoc(result)
+    if func == cv2.TM_SQDIFF or func == cv2.TM_SQDIFF_NORMED:
+        x,y = (min_loc[0], min_loc[1])
+    else:
+        x, y = (max_loc[0], max_loc[1])
 
-    # Offset from the UL origin to the image center
-    x += (template.shape[1] / 2)
-    y += (template.shape[0] / 2)
+    # Compute the idealized shift (image center)
+    ideal_y = u_image.shape[0] / 2
+    ideal_x = u_image.shape[1] / 2
 
-    # Compute the offset to adjust the image match point location
-    ideal_y = image.shape[0] / 2
-    ideal_x = image.shape[1] / 2
+    # Compute the shift from template upper left to template center
+    y += (u_template.shape[0] / 2)
+    x += (u_template.shape[1] / 2)
 
-    x = ideal_x - x
-    y = ideal_y - y
-
-    # Find the maximum correlation
-    strength = np.max(match)
-
-    return x, y, strength
+    x = (ideal_x - x) / upsampling
+    y = (ideal_y - y) / upsampling
+    return x, y, max_corr
 
 
 class FlannMatcher(object):
@@ -168,7 +176,7 @@ class FlannMatcher(object):
                                     i.queryIdx,
                                     i.distance))
                 else:
-                    raise ValueError('Likely self neighbor in query!')
+                    warnings.warn('Likely self neighbor in query!')
         return pd.DataFrame(matched, columns=['source_image', 'source_idx',
                                               'destination_image', 'destination_idx',
                                               'distance'])

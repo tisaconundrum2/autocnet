@@ -39,18 +39,6 @@ class TestNode(unittest.TestCase):
         # Convex hull computation is checked lower in the hull computation
         self.assertRaises(AttributeError, self.node.coverage_ratio)
 
-    def test_provenance(self):
-        image = self.node.get_array()
-        self.node.extract_features(image, extractor_parameters={'nfeatures':10})
-        self.node.extract_features(image, extractor_parameters={'nfeatures':15})
-        p0 = self.node.provenance[0]
-        p1 = self.node.provenance[1]
-        print(self.node.provenance)
-        self.assertEqual(len(self.node.provenance.keys()), 2)
-        self.assertNotEqual(find_in_dict(p0, 'nfeatures'),
-                            find_in_dict(p1, 'nfeatures'))
-
-
     def test_isis_serial(self):
         serial = self.node.isis_serial
         self.assertEqual(None, serial)

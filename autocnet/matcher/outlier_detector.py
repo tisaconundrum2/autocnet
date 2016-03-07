@@ -31,6 +31,10 @@ class DistanceRatio(Observable):
              mask are assumed to have passed the ratio test.  Else
              False.
 
+    References
+    ----------
+    [Lowe2004]_
+
     """
 
     def __init__(self, matches):
@@ -126,6 +130,11 @@ class SpatialSuppression(Observable):
 
     domain : tuple
              The (x,y) extent of the input domain
+
+    References
+    ----------
+    [Gauglitz2011]_
+
     """
 
     def __init__(self, df, domain, min_radius=2, k=250, error_k=0.1):
