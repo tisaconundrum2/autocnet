@@ -1,9 +1,9 @@
 import os
 import sys
 import unittest
+import warnings
 
 import cv2
-import numpy as np
 
 sys.path.append(os.path.abspath('..'))
 
@@ -33,9 +33,10 @@ class TestMatcher(unittest.TestCase):
 
         fmatcher.train()
 
-        self.assertRaises(ValueError, fmatcher.query,self.fd['AS15-M-0296_SML.png'][1],0, k=2 )
-        matches = fmatcher.query(self.fd['AS15-M-0297_SML.png'][1], 1, k=2)
-        self.assertEqual(len(matches), 20)
+        with warnings.catch_warnings(record=True) as w:
+            fmatcher.query(self.fd['AS15-M-0296_SML.png'][1],0, k=2)
+            self.assertEqual(len(w), 1)
+            self.assertEqual(w[0].category, UserWarning)
 
     def tearDown(self):
         pass

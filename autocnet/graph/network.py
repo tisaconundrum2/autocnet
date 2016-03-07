@@ -9,10 +9,10 @@ import pandas as pd
 from autocnet.control.control import C
 from autocnet.fileio import io_json
 from autocnet.matcher.matcher import FlannMatcher
+import autocnet.matcher.suppression_funcs as spf
 from autocnet.graph.edge import Edge
 from autocnet.graph.node import Node
 from autocnet.vis.graph_view import plot_graph
-
 
 class CandidateGraph(nx.Graph):
     """
@@ -317,6 +317,10 @@ class CandidateGraph(nx.Graph):
              edge.subpixel_register(clean_keys=clean_keys, threshold=threshold,
                                     upsampling=upsampling, template_size=template_size,
                                     search_size=search_size, tiled=tiled)
+
+    def suppress(self, clean_keys=[], func=spf.correlation, **kwargs):
+        for s, d, e in self.edges_iter(data=True):
+            e.suppress(clean_keys=clean_keys, func=func, **kwargs)
 
     def to_filelist(self):
         """
