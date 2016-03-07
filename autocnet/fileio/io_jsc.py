@@ -3,7 +3,8 @@ import os
 import numpy as np
 import pandas as pd
 from autocnet.fileio.utils import file_search
-import time
+from autocnet.spectral.spectral_data import spectral_data
+
 #This function reads the lookup tables used to expand metadata from the file names
 #This is separated from parsing the filenames so that for large lists of files the 
 #lookup tables don't need to be read over and over
@@ -113,5 +114,5 @@ def jsc_batch(directory, LUT_files,searchstring='*.txt',to_csv=None):
     
     if to_csv is not None:
         combined.to_csv(to_csv)
-    return combined
+    return spectral_data(combined)
                     

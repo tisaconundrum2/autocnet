@@ -5,9 +5,9 @@ import os
 import numpy as np
 import pandas as pd
 import scipy
-from autocnet.fileio.header_parser import header_parser
 from autocnet.fileio.utils import file_search
 from autocnet.fileio.lookup import lookup
+from autocnet.spectral.spectral_data import spectral_data
 import time
 
 def CCS(input_data):
@@ -86,6 +86,14 @@ def CCS_SAV(input_data):
     #use the multiindex label "meta" for all metadata
 
     fname=os.path.basename(input_data)
+
+    #for some reason, some ChemCam files have the 'darkname' key, others call it 'darkspect'
+    #this try-except pair converts to 'darkname' when needed
+    try:
+        data['darkname']
+    except:
+        data['darkname']=data['darkspec']
+        
     metadata=[fname,
               fname[4:13],
               fname[25:34].upper(),
@@ -173,6 +181,6 @@ def ccs_batch(directory,searchstring='*CCS*.csv',is_sav=False,to_csv=None,lookup
         combined=lookup(combined,lookupfile=lookupfile)
     if to_csv is not None:
         combined.to_csv(to_csv)
-    return combined
+    return spectral_data(combined)
     
         

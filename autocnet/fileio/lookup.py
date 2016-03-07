@@ -22,7 +22,16 @@ def lookup(df,lookupfile=None,lookupdf=None,sep=',',skiprows=1,left_on='sclock',
     metadata=df['meta']
     
     metadata=metadata.merge(lookupdf,left_on=left_on,right_on=right_on,how='inner')
+    
+    #remove metadata columns that already exist in the data frame to avoid non-unique columns
+    meta_cols=set(metadata.columns.values)
+    meta_cols_keep=list(meta_cols-set(df['meta'].columns.values))
+    metadata=metadata[meta_cols_keep]
+    
+    #make metadata into a multiindex
     metadata.columns=[['meta']*len(metadata.columns),metadata.columns.values]
+    #give it the same indices as the df
     metadata.index=df.index
+    #combine the df and the new metadata
     df=pd.concat([metadata,df],axis=1)
     return df

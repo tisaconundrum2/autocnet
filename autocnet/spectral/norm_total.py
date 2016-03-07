@@ -3,6 +3,8 @@
 Created on Thu Feb 11 16:20:38 2016
 
 @author: rbanderson
+
+
 """
 import numpy as np
 import pandas as pd
@@ -12,28 +14,37 @@ def norm_total(df):
     return df
     
 def norm_spect(df,ranges):
-  #this is all a mess, trying to work around pandas idiosyncracies. should be re-written  
     df_spect=df['wvl']
+    df_meta=df['meta']
     wvls=df_spect.columns.values
-    df_spect_sub=[]
+    df_sub_norm=[]
     allind=[]    
     for i in ranges:
+        #Find the indices for the range
         ind=(wvls>=i[0])&(wvls<=i[1])
+        #find the columns for the range
         cols=wvls[ind]
+        #keep track of the indices used for all ranges
         allind.append(ind)
-        df_spect_sub.append(df_spect[cols])
-    for i,j in enumerate(df_spect_sub):
-        df_spect_sub[i]=norm_total(j)
-              
-#        try:
-#            df_spect_combined=pd.concat([df_spect_combined,df_spect_sub[i]],ignore_index=True)
-#        except:
-#            df_spect_combined=df_spect_sub[i]
+        #add the subset of the full df to a list of dfs to normalize
+        df_sub_norm.append(norm_total(df_spect[cols]))
+    
+    #collapse the list of indices used to a single array
     allind=np.sum(allind,axis=0)
-    wvls_excluded=wvls[np.where(allind!=1)]
+    #identify wavelengths that were not used by where the allind array is less than 1
+    wvls_excluded=wvls[np.where(allind<1)]
+    #create a separate data frame containing the un-normalized columns
     df_excluded=df_spect[wvls_excluded]
-    df_spect_combined=pd.concat(df_spect_sub,axis=1)
     
-    df['wvl']=pd.concat([df_excluded,df_spect_combined],axis=1)
+    #combine the normalized data frames into one
+    df_norm=pd.concat(df_sub_norm,axis=1)
     
-    return df
+    #make the columns into multiindex
+    df_excluded.columns=[['masked']*len(df_excluded.columns),df_excluded.columns]    
+    df_norm.columns=[['wvl']*len(df_norm.columns),df_norm.columns.values] 
+    df_meta.columns=[['meta']*len(df_meta.columns),df_meta.columns.values]
+    
+    #combine the normalized data frames, the excluded columns, and the metadata into a single data frame
+    df_new=pd.concat([df_meta,df_norm,df_excluded],axis=1)
+    
+    return df_new
