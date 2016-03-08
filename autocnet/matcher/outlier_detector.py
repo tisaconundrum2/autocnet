@@ -1,11 +1,14 @@
 from collections import deque
+import math
 
 import cv2
 import numpy as np
 import pandas as pd
 
+from autocnet.utils.observable import Observable
 
-class DistanceRatio(object):
+
+class DistanceRatio(Observable):
 
     """
     A stateful object to store ratio test results and provenance.
@@ -28,6 +31,10 @@ class DistanceRatio(object):
              mask are assumed to have passed the ratio test.  Else
              False.
 
+    References
+    ----------
+    [Lowe2004]_
+
     """
 
     def __init__(self, matches):
@@ -37,12 +44,15 @@ class DistanceRatio(object):
         self._observers = set()
         self.matches = matches
         self.mask = None
+        self.clean_keys = None
+        self.single = None
+        self.attrs = ['mask', 'ratio', 'clean_keys', 'single']
 
     @property
     def nvalid(self):
         return self.mask.sum()
 
-    def compute(self, ratio, mask=None, mask_name=None, single=False):
+    def compute(self, ratio=0.8, mask=None, mask_name=None, single=False):
         """
         Compute and return a mask for a matches dataframe
         using Lowe's ratio test.  If keypoints have a single
@@ -74,83 +84,193 @@ class DistanceRatio(object):
             return res
 
         self.single = single
-
         if mask is not None:
             self.mask = mask.copy()
             new_mask = self.matches[mask].groupby('source_idx')['distance'].transform(func).astype('bool')
             self.mask[mask==True] = new_mask
         else:
-            new_mask = self.matches.groupby('source_idx')['distance'].transform(func).astype('bool')
-            self.mask = new_mask.copy()
+            self.mask = self.matches.groupby('source_idx')['distance'].transform(func).astype('bool')
 
         state_package = {'ratio': ratio,
                          'mask': self.mask.copy(),
                          'clean_keys': mask_name,
                          'single': single
                          }
+
         self._action_stack.append(state_package)
         self._current_action_stack = len(self._action_stack) - 1
 
-    def subscribe(self, func):
+
+class SpatialSuppression(Observable):
+    """
+    Spatial suppression using disc based method.
+
+    Attributes
+    ----------
+    df : dataframe
+         Input dataframe used for suppressing
+
+    mask : series
+           pandas boolean series
+
+    max_radius : float
+                 Maximum allowable point radius
+
+    min_radius : float
+                 The smallest allowable radius size
+
+    nvalid : int
+             The number of valid points after suppression
+
+    k : int
+        The number of points to be saved
+
+    error_k : float
+              [0,1] the acceptable error in k
+
+    domain : tuple
+             The (x,y) extent of the input domain
+
+    References
+    ----------
+    [Gauglitz2011]_
+
+    """
+
+    def __init__(self, df, domain, min_radius=2, k=250, error_k=0.1):
+        columns = df.columns
+        for i in ['x', 'y', 'strength']:
+            if i not in columns:
+                raise ValueError('The dataframe is missing a {} column.'.format(i))
+        self._df = df.sort_values(by=['strength'], ascending=False).copy()
+        self.max_radius = max(domain)
+        self.min_radius = min_radius
+        self.domain = domain
+        self.mask = None
+        self._k = k
+        self._error_k = error_k
+
+        self.attrs = ['mask', 'k', 'error_k']
+
+        self._action_stack = deque(maxlen=10)
+        self._current_action_stack = 0
+        self._observers = set()
+
+    @property
+    def nvalid(self):
+        return self.mask.sum()
+
+    @property
+    def k(self):
+        return self._k
+
+    @k.setter
+    def k(self, v):
+        self._k = v
+
+    @property
+    def error_k(self):
+        return self._error_k
+
+    @error_k.setter
+    def error_k(self, v):
+        self._error_k = v
+
+    @property
+    def df(self):
+        return self._df
+
+    def suppress(self):
         """
-        Subscribe some observer to the edge
+        Suppress subpixel registered points to that k +- k * error_k
+        points, with good spatial distribution, remain
+
+        Adds a suppression mask to the edge mask dataframe.
 
         Parameters
         ----------
-        func : object
-               The callable that is to be executed on update
-        """
-        self._observers.add(func)
+        k : int
+            The desired number of output points
 
-    def _notify_subscribers(self, *args, **kwargs):
+        error_k : float
+                  [0,1) The acceptable epsilon
         """
-        The 'update' call to notify all subscribers of
-        a change.
-        """
-        for update_func in self._observers:
-            update_func(self, *args, **kwargs)
+        if self.k > len(self.df):
+           raise ValueError('Only {} valid points, but {} points requested'.format(len(self.df), self.k))
+        search_space = np.linspace(self.min_radius, self.max_radius / 16, 250)
+        cell_sizes = (search_space / math.sqrt(2)).astype(np.int)
+        min_idx = 0
+        max_idx = len(search_space) - 1
+        while True:
+            mid_idx = int((min_idx + max_idx) / 2)
+            r = search_space[mid_idx]
+            cell_size = cell_sizes[mid_idx]
+            n_x_cells = int(self.domain[0] / cell_size)
+            n_y_cells = int(self.domain[1] / cell_size)
+            grid = np.zeros((n_x_cells, n_y_cells), dtype=np.bool)
 
-    def rollforward(self, n=1):
-        """
-        Roll forwards in the object history, e.g. do
+            # Setup to store results
+            result = []
 
-        Parameters
-        ----------
-        n : int
-            the number of steps to roll forwards
-        """
-        idx = self._current_action_stack + n
-        if idx > len(self._action_stack) - 1:
-            idx = len(self._action_stack) - 1
-        self._current_action_stack = idx
-        state = self._action_stack[idx]
-        setattr(self, 'mask', state['mask'])
-        setattr(self, 'ratio', state['ratio'])
-        setattr(self, 'clean_keys', state['clean_keys'])
-        setattr(self, 'single', state['single'])
-        # Reset attributes (could also cache)
+            # Assign all points to bins
+            x_edges = np.linspace(0, self.domain[0], n_x_cells)
+            y_edges = np.linspace(0, self.domain[1], n_y_cells)
+            xbins = np.digitize(self.df['x'], bins=x_edges)
+            ybins = np.digitize(self.df['y'], bins=y_edges)
+
+            # Convert bins to cells
+            xbins -= 1
+            ybins -= 1
+            pts = []
+            for i, (idx, p) in enumerate(self.df.iterrows()):
+                x_center = xbins[i]
+                y_center = ybins[i]
+                cell = grid[y_center, x_center]
+
+                if cell == False:
+                    result.append(idx)
+                    pts.append((p[['x', 'y']]))
+                    if len(result) > self.k + self.k * self.error_k:
+                        # Too many points, break
+                        min_idx = mid_idx
+                        break
+
+                    y_min = y_center - 5
+                    if y_min < 0:
+                        y_min = 0
+
+                    x_min = x_center - 5
+                    if x_min < 0:
+                        x_min = 0
+
+                    y_max = y_center + 5
+                    if y_max > grid.shape[0]:
+                        y_max = grid.shape[0]
+
+                    x_max = x_center + 5
+                    if x_max > grid.shape[1]:
+                        x_max = grid.shape[1]
+
+                    # Cover the necessary cells
+                    grid[y_min: y_max,
+                         x_min: x_max] = True
+
+            #  Check break conditions
+            if self.k - self.k * self.error_k <= len(result) <= self.k + self.k * self.error_k:
+                break
+            elif len(result) < self.k:
+                # The radius is too large
+                max_idx = mid_idx
+
+        self.mask = pd.Series(False, self.df.index)
+        self.mask.loc[list(result)] = True
+        state_package = {'mask':self.mask,
+                         'k': self.k,
+                         'error_k': self.error_k}
+
+        self._action_stack.append(state_package)
         self._notify_subscribers(self)
-
-    def rollback(self, n=1):
-        """
-        Roll backward in the object histroy, e.g. undo
-
-        Parameters
-        ----------
-        n : int
-            the number of steps to roll backwards
-        """
-        idx = self._current_action_stack - n
-        if idx < 0:
-            idx = 0
-        self._current_action_stack = idx
-        state = self._action_stack[idx]
-        setattr(self, 'mask', state['mask'])
-        setattr(self, 'ratio', state['ratio'])
-        setattr(self, 'clean_keys', state['clean_keys'])
-        setattr(self, 'single', state['single'])
-        # Reset attributes (could also cache)
-        self._notify_subscribers(self)
+        self._current_action_stack = len(self._action_stack) - 1  # 0 based vs. 1 based
 
 
 def self_neighbors(matches):
@@ -197,8 +317,10 @@ def mirroring_test(matches):
                  otherwise, they will be false. Keypoints with only one match will be False. Removes
                  duplicate rows.
     """
-    duplicates = matches.duplicated(keep='first').astype(bool)
-    return duplicates
+    duplicate_mask = matches.duplicated(subset=['source_idx', 'destination_idx', 'distance'],
+                                    keep='last')
+
+    return duplicate_mask
 
 
 def compute_fundamental_matrix(kp1, kp2, method='ransac', reproj_threshold=5.0, confidence=0.99):

@@ -1,3 +1,4 @@
+import math
 import warnings
 from collections import MutableMapping
 
@@ -9,6 +10,7 @@ from autocnet.cg.cg import convex_hull_ratio
 from autocnet.cg.cg import overlapping_polygon_area
 from autocnet.matcher import health
 from autocnet.matcher import outlier_detector as od
+from autocnet.matcher import suppression_funcs as spf
 from autocnet.matcher import subpixel as sp
 from autocnet.transformation.transformations import FundamentalMatrix, Homography
 from autocnet.vis.graph_view import plot_edge
@@ -111,7 +113,7 @@ class Edge(dict, MutableMapping):
         else:
             raise AttributeError('No matches have been computed for this edge.')
 
-    def ratio_check(self, ratio=0.8, clean_keys=[]):
+    def ratio_check(self, clean_keys=[], **kwargs):
         if hasattr(self, 'matches'):
 
             if clean_keys:
@@ -119,13 +121,14 @@ class Edge(dict, MutableMapping):
             else:
                 mask = pd.Series(True, self.matches.index)
 
+
             self.distance_ratio = od.DistanceRatio(self.matches)
-            self.distance_ratio.compute(ratio, mask=mask, mask_name=None)
+            self.distance_ratio.compute(mask=mask, **kwargs)
 
             # Setup to be notified
             self.distance_ratio._notify_subscribers(self.distance_ratio)
 
-            self.masks = ('ratio', mask)
+            self.masks = ('ratio', self.distance_ratio.mask)
         else:
             raise AttributeError('No matches have been computed for this edge.')
 
@@ -253,17 +256,16 @@ class Edge(dict, MutableMapping):
                       The maximum (positive) value that a pixel can shift in the y direction
                       without being considered an outlier
         """
-
         matches = self.matches
-        self.subpixel_offsets = pd.DataFrame(0, index=matches.index, columns=['x_offset',
-                                                                              'y_offset',
-                                                                              'correlation',
-                                                                              's_idx', 'd_idx'])
+        for column in ['x_offset', 'y_offset', 'correlation']:
+            if not column in self.matches.columns:
+                self.matches[column] = 0
 
         # Build up a composite mask from all of the user specified masks
         if clean_keys:
             matches, mask = self._clean(clean_keys)
 
+        # Grab the full images, or handles
         if tiled is True:
             s_img = self.source.handle
             d_img = self.destination.handle
@@ -282,25 +284,21 @@ class Edge(dict, MutableMapping):
             # Get the template and search window
             s_template = sp.clip_roi(s_img, s_keypoint, template_size)
             d_search = sp.clip_roi(d_img, d_keypoint, search_size)
-
             try:
-                x_off, y_off, strength = sp.subpixel_offset(s_template, d_search, upsampling=upsampling)
-                self.subpixel_offsets.loc[idx] = [x_off, y_off, strength,s_idx, d_idx]
+                x_offset, y_offset, strength = sp.subpixel_offset(s_template, d_search, upsampling=upsampling)
+                self.matches.loc[idx, ('x_offset', 'y_offset', 'correlation')] = [x_offset, y_offset, strength]
             except:
                 warnings.warn('Template-Search size mismatch, failing for this correspondence point.')
                 continue
 
-        self.subpixel_offsets.to_sparse(fill_value=0.0)
-
         # Compute the mask for correlations less than the threshold
-        threshold_mask = self.subpixel_offsets['correlation'] >= threshold
+        threshold_mask = self.matches['correlation'] >= threshold
 
         # Compute the mask for the point shifts that are too large
-        subp= self.subpixel_offsets
         query_string = 'x_offset <= -{0} or x_offset >= {0} or y_offset <= -{1} or y_offset >= {1}'.format(max_x_shift,
                                                                                                            max_y_shift)
-        sp_shift_outliers = subp.query(query_string)
-        shift_mask = pd.Series(True, index=self.subpixel_offsets.index)
+        sp_shift_outliers = self.matches.query(query_string)
+        shift_mask = pd.Series(True, index=self.matches.index)
         shift_mask[sp_shift_outliers.index] = False
 
         # Generate the composite mask and write the masks to the mask data structure
@@ -308,6 +306,54 @@ class Edge(dict, MutableMapping):
         self.masks = ('shift', shift_mask)
         self.masks = ('threshold', threshold_mask)
         self.masks = ('subpixel', mask)
+
+    def suppress(self, func=spf.correlation, clean_keys=[], **kwargs):
+        """
+        Apply a disc based suppression algorithm to get a good spatial
+        distribution of high quality points, where the user defines some
+        function to be used as the quality metric.
+
+        Parameters
+        ----------
+        func : object
+               A function that returns a scalar value to be used
+               as the strength of a given row in the matches data
+               frame.
+
+        clean_keys : list
+                     of mask keys to be used to reduce the total size
+                     of the matches dataframe.
+        """
+        if not hasattr(self, 'matches'):
+            raise AttributeError('This edge does not yet have any matches computed.')
+
+        # Build up a composite mask from all of the user specified masks
+        if clean_keys:
+            matches, mask = self._clean(clean_keys)
+        else:
+            matches = self.matches
+        domain = self.source.handle.raster_size
+
+        # Massage the dataframe into the correct structure
+        coords = self.source.keypoints[['x', 'y']]
+        merged = matches.merge(coords, left_on=['source_idx'], right_index=True)
+        merged['strength'] = merged.apply(func, axis=1)
+
+        if not hasattr(self, 'suppression'):
+            # Instantiate the suppression object and suppress matches
+            self.suppression = od.SpatialSuppression(merged, domain, **kwargs)
+            self.suppression.suppress()
+        else:
+            for k, v in kwargs.items():
+                if hasattr(self.suppression, k):
+                    setattr(self.suppression, k, v)
+            self.suppression.suppress()
+
+        if clean_keys:
+            mask[mask == True] = self.suppression.mask
+        else:
+            mask = self.suppression.mask
+        self.masks = ('suppression', mask)
 
     def coverage_ratio(self, clean_keys=[]):
         """

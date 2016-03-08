@@ -1,3 +1,5 @@
+import warnings
+
 import cv2
 import pandas as pd
 
@@ -10,8 +12,7 @@ DEFAULT_FLANN_PARAMETERS = dict(algorithm=FLANN_INDEX_KDTREE,
                                 trees=3)
 
 
-def pattern_match(template, image, upsampling=16,
-                  func=match_template):
+def pattern_match(template, image, upsampling=16,func=cv2.TM_CCOEFF_NORMED, error_check=False):
     """
     Call an arbitrary pattern matcher
 
@@ -29,6 +30,12 @@ def pattern_match(template, image, upsampling=16,
 
     func : object
            The function to be used to perform the template based matching
+           Options: {cv2.TM_CCORR_NORMED, cv2.TM_CCOEFF_NORMED, cv2.TM_SQDIFF_NORMED}
+           In testing the first two options perform significantly better with Apollo data.
+
+    error_check : bool
+                  If True, also apply a different matcher and test that the values
+                  are not too divergent.  Default, False.
 
     Returns
     -------
@@ -42,34 +49,35 @@ def pattern_match(template, image, upsampling=16,
     strength : float
                The strength of the correlation in the range [-1, 1].
     """
+
+    different = {cv2.TM_SQDIFF_NORMED: cv2.TM_CCOEFF_NORMED,
+                 cv2.TM_CCORR_NORMED: cv2.TM_SQDIFF_NORMED,
+                 cv2.TM_CCOEFF_NORMED: cv2.TM_SQDIFF_NORMED}
+
     if upsampling < 1:
         raise ValueError
 
-    u_template = zoom(template, upsampling)
-    u_image = zoom(image, upsampling, )
-    # Find the the upper left origin of the template in the image
-    match = func(u_image, u_template)
-    y, x = np.unravel_index(np.argmax(match), match.shape)
+    u_template = zoom(template, upsampling, order=1)
+    u_image = zoom(image, upsampling, order=1)
 
-    # Resample the match back to the native image resolution
-    x /= upsampling
-    y /= upsampling
+    result = cv2.matchTemplate(u_image, u_template, method=func)
+    min_corr, max_corr, min_loc, max_loc = cv2.minMaxLoc(result)
+    if func == cv2.TM_SQDIFF or func == cv2.TM_SQDIFF_NORMED:
+        x,y = (min_loc[0], min_loc[1])
+    else:
+        x, y = (max_loc[0], max_loc[1])
 
-    # Offset from the UL origin to the image center
-    x += (template.shape[1] / 2)
-    y += (template.shape[0] / 2)
+    # Compute the idealized shift (image center)
+    ideal_y = u_image.shape[0] / 2
+    ideal_x = u_image.shape[1] / 2
 
-    # Compute the offset to adjust the image match point location
-    ideal_y = image.shape[0] / 2
-    ideal_x = image.shape[1] / 2
+    # Compute the shift from template upper left to template center
+    y += (u_template.shape[0] / 2)
+    x += (u_template.shape[1] / 2)
 
-    x = ideal_x - x
-    y = ideal_y - y
-
-    # Find the maximum correlation
-    strength = np.max(match)
-
-    return x, y, strength
+    x = (ideal_x - x) / upsampling
+    y = (ideal_y - y) / upsampling
+    return x, y, max_corr
 
 
 class FlannMatcher(object):
@@ -92,10 +100,10 @@ class FlannMatcher(object):
 
     def __init__(self, flann_parameters=DEFAULT_FLANN_PARAMETERS):
         self._flann_matcher = cv2.FlannBasedMatcher(flann_parameters, {})
-        self.image_indices = {}
-        self.image_index_counter = 0
+        self.nid_lookup = {}
+        self.node_counter = 0
 
-    def add(self, descriptor, key):
+    def add(self, descriptor, nid):
         """
         Add a set of descriptors to the matcher and add the image
         index key to the image_indices attribute
@@ -105,12 +113,21 @@ class FlannMatcher(object):
         descriptor : ndarray
                      The descriptor to be added
 
-        key : hashable
-              The identifier for this image, e.g. the image name
+        nid : int
+              The node ids
         """
         self._flann_matcher.add([descriptor])
-        self.image_indices[self.image_index_counter] = key
-        self.image_index_counter += 1
+        self.nid_lookup[self.node_counter] = nid
+        self.node_counter += 1
+
+    def clear(self):
+        """
+        Remove all nodes from the tree and resets
+        all counters
+        """
+        self._flann_matcher.clear()
+        self.nid_lookup = {}
+        self.node_counter = 0
 
     def train(self):
         """
@@ -144,23 +161,22 @@ class FlannMatcher(object):
         matched = []
         for m in matches:
             for i in m:
-                # This checks for self neighbor and never allows them into the graph
-                if self.image_indices[i.imgIdx] == query_image:
-                    continue
-
-                # Ensure ordering in the source / destination
-                if query_image < self.image_indices[i.imgIdx]:
+                source = query_image
+                destination = self.nid_lookup[i.imgIdx]
+                if source < destination:
                     matched.append((query_image,
                                     i.queryIdx,
-                                    self.image_indices[i.imgIdx],
+                                    destination,
                                     i.trainIdx,
                                     i.distance))
-                else:
-                    matched.append((self.image_indices[i.imgIdx],
+                elif source > destination:
+                    matched.append((destination,
                                     i.trainIdx,
                                     query_image,
                                     i.queryIdx,
                                     i.distance))
+                else:
+                    warnings.warn('Likely self neighbor in query!')
         return pd.DataFrame(matched, columns=['source_image', 'source_idx',
                                               'destination_image', 'destination_idx',
                                               'distance'])

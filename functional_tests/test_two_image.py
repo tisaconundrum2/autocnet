@@ -60,24 +60,24 @@ class TestTwoImageMatching(unittest.TestCase):
             #node.anms()
             #self.assertNotEqual(node.nkeypoints, sum(node._mask_arrays['anms']))
 
-        cg.match_features(k=5)
+        cg.match_features(k=2)
 
         for source, destination, edge in cg.edges_iter(data=True):
 
             # Perform the symmetry check
             edge.symmetry_check()
-            self.assertIn(edge.masks['symmetry'].sum(), range(430, 461))
+            self.assertIn(edge.masks['symmetry'].sum(), range(400, 600))
 
             # Perform the ratio test
-            edge.ratio_check(ratio=0.9, clean_keys=['symmetry'])
-            self.assertIn(edge.masks['ratio'].sum(), range(25, 50))
+            edge.ratio_check(clean_keys=['symmetry'])
+            self.assertIn(edge.masks['ratio'].sum(), range(40, 100))
 
         # Step: Compute the homographies and apply RANSAC
         cg.compute_homographies(clean_keys=['symmetry', 'ratio'])
 
         # Step: Compute the overlap ratio and coverage ratio
         for s, d, edge in cg.edges_iter(data=True):
-            ratio = edge.coverage_ratio(clean_keys=['symmetry', 'ratio'])
+            edge.coverage_ratio(clean_keys=['symmetry', 'ratio'])
 
         # Step: Compute subpixel offsets for candidate points
         cg.subpixel_register(clean_keys=['ransac'])

@@ -7,6 +7,7 @@ from scipy.misc import bytescale
 from autocnet.fileio.io_gdal import GeoDataset
 from autocnet.matcher import feature_extractor as fe
 from autocnet.matcher import outlier_detector as od
+from autocnet.matcher import suppression_funcs as spf
 from autocnet.cg.cg import convex_hull_ratio
 from autocnet.utils.isis_serial_numbers import generate_serial_number
 from autocnet.vis.graph_view import plot_node
@@ -35,20 +36,12 @@ class Node(dict, MutableMapping):
     isis_serial : str
                   If the input images have PVL headers, generate an
                   ISIS compatible serial number
-
-     provenance : dict
-                  With key equal to an autoincrementing integer and value
-                  equal to a dict of parameters used to generate this
-                  realization.
     """
 
     def __init__(self, image_name=None, image_path=None):
         self.image_name = image_name
         self.image_path = image_path
-        self._masks = set()
         self._mask_arrays = {}
-        self.provenance = {}
-        self._pid = 0
 
     def __repr__(self):
         return """
@@ -79,12 +72,35 @@ class Node(dict, MutableMapping):
 
     @property
     def masks(self):
+        mask_lookup = {'suppression': 'suppression'}
+        if not hasattr(self, '_masks'):
+            self._masks = pd.DataFrame()
+        # If the mask is coming form another object that tracks
+        # state, dynamically draw the mask from the object.
+        for c in self._masks.columns:
+            if c in mask_lookup:
+                self._masks[c] = getattr(self, mask_lookup[c]).mask
         return self._masks
 
     @masks.setter
     def masks(self, v):
-        self._masks.add(v[0])
-        self._mask_arrays[v[0]] = v[1]
+        column_name = v[0]
+        boolean_mask = v[1]
+        self.masks[column_name] = boolean_mask
+
+    @property
+    def isis_serial(self):
+        """
+        Generate an ISIS compatible serial number using the data file
+        associated with this node.  This assumes that the data file
+        has a PVL header.
+        """
+        if not hasattr(self, '_isis_serial'):
+            try:
+                self._isis_serial = generate_serial_number(self.image_path)
+            except:
+                self._isis_serial = None
+        return self._isis_serial
 
     def get_array(self, band=1):
         """
@@ -126,13 +142,25 @@ class Node(dict, MutableMapping):
         self._nkeypoints = len(self.keypoints)
         self.descriptors = descriptors.astype(np.float32)
 
-        self.provenance[self._pid] = {'detector': 'sift',
-                                      'parameters':kwargs}
-        self._pid += 1
+    def suppress(self, func=spf.response, **kwargs):
+        if not hasattr(self, 'keypoints'):
+            raise AttributeError('No keypoints extracted for this node.')
 
-    def anms(self, nfeatures=100, robust=0.9):
-        mask = od.adaptive_non_max_suppression(self.keypoints,nfeatures,robust)
-        self.masks = ('anms', mask)
+        domain = self.handle.raster_size
+        self.keypoints['strength'] = self.keypoints.apply(func, axis=1)
+
+        if not hasattr(self, 'suppression'):
+            # Instantiate a suppression object and suppress keypoints
+            self.suppression = od.SpatialSuppression(self.keypoints, domain, **kwargs)
+            self.suppression.suppress()
+        else:
+            # Update the suppression object attributes and process
+            for k, v in kwargs.items():
+                if hasattr(self.suppression, k):
+                    setattr(self.suppression, k, v)
+            self.suppression.suppress()
+
+        self.masks = ('suppression', self.suppression.mask)
 
     def coverage_ratio(self, clean_keys=[]):
         """
@@ -159,16 +187,28 @@ class Node(dict, MutableMapping):
     def plot(self, clean_keys=[], **kwargs):  # pragma: no cover
         return plot_node(self, clean_keys=clean_keys, **kwargs)
 
-    @property
-    def isis_serial(self):
+    def _clean(self, clean_keys):
         """
-        Generate an ISIS compatible serial number using the data file
-        associated with this node.  This assumes that the data file
-        has a PVL header.
+        Given a list of clean keys compute the
+        mask of valid matches
+
+        Parameters
+        ----------
+        clean_keys : list
+                     of columns names (clean keys)
+
+        Returns
+        -------
+        matches : dataframe
+                  A masked view of the matches dataframe
+
+        mask : series
+                    A boolean series to inflate back to the full match set
         """
-        if not hasattr(self, '_isis_serial'):
-            try:
-                self._isis_serial = generate_serial_number(self.image_path)
-            except:
-                self._isis_serial = None
-        return self._isis_serial
+        if not hasattr(self, 'keypoints'):
+            raise AttributeError('Keypoints have not been extracted for this node.')
+        panel = self.masks
+        mask = panel[clean_keys].all(axis=1)
+        matches = self.keypoints[mask]
+        return matches, mask
+
