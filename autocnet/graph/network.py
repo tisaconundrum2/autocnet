@@ -55,15 +55,9 @@ class CandidateGraph(nx.Graph):
 
         nx.relabel_nodes(self, node_labels, copy=False)
 
-
         # Add the Edge class as a edge data structure
         for s, d, edge in self.edges_iter(data=True):
-            if s < d:
-                self.edge[s][d] = Edge(self.node[s], self.node[d])
-            else:
-                self.remove_edge(s, d)
-                self.add_edge(d, s)
-                self.edge[d][s] = Edge(self.node[d], self.node[s])
+            self.edge[s][d] = Edge(self.node[s], self.node[d])
 
     @classmethod
     def from_graph(cls, graph):
@@ -253,13 +247,17 @@ class CandidateGraph(nx.Graph):
         source_groups = matches.groupby('source_image')
         for i, source_group in source_groups:
             for j, dest_group in source_group.groupby('destination_image'):
-                source_key = dest_group['source_image'].values[0]
-                destination_key = dest_group['destination_image'].values[0]
+                destination_key = int(dest_group['destination_image'].values[0])
+                source_key = int(dest_group['source_image'].values[0])
                 if (source_key, destination_key) in edges:
                     edge = self.edge[source_key][destination_key]
                 else:
                     edge = self.edge[destination_key][source_key]
-
+                    dest_group.rename(columns={'source_image': 'destination_image',
+                                               'source_idx': 'destination_idx',
+                                               'destination_image': 'source_image',
+                                               'destination_idx': 'source_idx'},
+                                      inplace=False)
                 if hasattr(edge, 'matches'):
                     df = edge.matches
                     edge.matches = df.append(dest_group, ignore_index=True)
@@ -309,14 +307,14 @@ class CandidateGraph(nx.Graph):
             edge.compute_fundamental_matrix(clean_keys=clean_keys, **kwargs)
 
     def subpixel_register(self, clean_keys=[], threshold=0.8, upsampling=10,
-                                 template_size=9, search_size=27, tiled=False):
+                                 template_size=9, search_size=27, tiled=False, **kwargs):
          """
          Compute subpixel offsets for all edges using identical parameters
          """
          for s, d, edge in self.edges_iter(data=True):
              edge.subpixel_register(clean_keys=clean_keys, threshold=threshold,
                                     upsampling=upsampling, template_size=template_size,
-                                    search_size=search_size, tiled=tiled)
+                                    search_size=search_size, tiled=tiled, **kwargs)
 
     def suppress(self, clean_keys=[], func=spf.correlation, **kwargs):
         for s, d, e in self.edges_iter(data=True):
@@ -394,8 +392,10 @@ class CandidateGraph(nx.Graph):
                 matches, mask = edge._clean(clean_keys)
 
             subpixel = False
+            point_type = 2
             if 'subpixel' in clean_keys:
                 subpixel = True
+                point_type = 3
 
             kp1 = self.node[source].keypoints
             kp2 = self.node[destination].keypoints
@@ -408,12 +408,14 @@ class CandidateGraph(nx.Graph):
                 m1 = (source, int(row['source_idx']))
                 m2 = (destination, int(row['destination_idx']))
 
+
                 values.append([kp1.loc[m1_pid]['x'],
                                kp1.loc[m1_pid]['y'],
                                m1,
                                pt_idx,
                                source,
-                               idx])
+                               idx,
+                               point_type])
 
                 if subpixel:
                     kp2x = kp2.loc[m2_pid]['x'] + row['x_offset']
@@ -427,10 +429,11 @@ class CandidateGraph(nx.Graph):
                                m2,
                                pt_idx,
                                destination,
-                               idx])
+                               idx,
+                               point_type])
                 pt_idx += 1
 
-            columns = ['x', 'y', 'idx', 'pid', 'nid', 'mid']
+            columns = ['x', 'y', 'idx', 'pid', 'nid', 'mid', 'point_type']
 
             cnet = C(values, columns=columns)
 

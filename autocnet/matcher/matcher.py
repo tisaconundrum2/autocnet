@@ -1,11 +1,12 @@
+from collections import deque
 import warnings
 
 import cv2
 import pandas as pd
 
-import numpy as np
-from skimage.feature import match_template
 from scipy.ndimage.interpolation import zoom
+
+from autocnet.utils.observable import Observable
 
 FLANN_INDEX_KDTREE = 1  # Algorithm to set centers,
 DEFAULT_FLANN_PARAMETERS = dict(algorithm=FLANN_INDEX_KDTREE,

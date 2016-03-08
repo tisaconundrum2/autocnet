@@ -1,5 +1,6 @@
 from collections import deque
 import math
+import warnings
 
 import cv2
 import numpy as np
@@ -196,7 +197,8 @@ class SpatialSuppression(Observable):
                   [0,1) The acceptable epsilon
         """
         if self.k > len(self.df):
-           raise ValueError('Only {} valid points, but {} points requested'.format(len(self.df), self.k))
+            warnings.warn('Only {} valid points, but {} points requested'.format(len(self.df), self.k))
+            self.k = len(self.df)
         search_space = np.linspace(self.min_radius, self.max_radius / 16, 250)
         cell_sizes = (search_space / math.sqrt(2)).astype(np.int)
         min_idx = 0
