@@ -69,5 +69,11 @@ class Observable(object):
         self._notify_subscribers(self)
 
     @abc.abstractmethod
+    def _update_stack(self, state):
+        self._action_stack.append(state)
+        self._current_action_stack = len(self._action_stack) - 1
+        self._notify_subscribers
+
+    @abc.abstractmethod
     def _clean_attrs(self):
         pass
