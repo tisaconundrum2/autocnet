@@ -2,11 +2,11 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
-import numpy as np
 import unittest
 
+import numpy as np
+
 from autocnet.examples import get_path
-from autocnet.fileio.io_gdal import GeoDataset
 
 from .. import network
 
@@ -15,7 +15,10 @@ class TestCandidateGraph(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.graph = network.CandidateGraph.from_adjacency(get_path('adjacency.json'))
+        basepath = get_path('Apollo15')
+        cls.graph = network.CandidateGraph.from_adjacency(get_path('three_image_adjacency.json'),
+                                                          basepath=basepath)
+        cls.disconnected_graph = network.CandidateGraph.from_adjacency(get_path('adjacency.json'))
 
     def test_get_name(self):
         node_number = self.graph.node_name_map['AS15-M-0297_SML.png']
@@ -35,53 +38,37 @@ class TestCandidateGraph(unittest.TestCase):
             pass
 
     def test_island_nodes(self):
-        self.assertEqual(len(self.graph.island_nodes()), 1)
+        self.assertEqual(len(self.disconnected_graph.island_nodes()), 1)
 
     def test_connected_subgraphs(self):
-        subgraph_list = self.graph.connected_subgraphs()
+        subgraph_list = self.disconnected_graph.connected_subgraphs()
         self.assertEqual(len(subgraph_list), 2)
-        island = self.graph.island_nodes()[0]
-        self.assertTrue(island in subgraph_list[1])
+        islands = self.disconnected_graph.island_nodes()
+        self.assertTrue(islands[0] in subgraph_list[1])
+
+        subgraph_list = self.graph.connected_subgraphs()
+        self.assertEqual(len(subgraph_list), 1)
+
+
+    def test_save_load(self):
+        self.graph.save('test_save.cg')
+        loaded = self.graph.from_graph('test_save.cg')
+        self.assertEqual(self.graph.node[0].nkeypoints, loaded.node[0].nkeypoints)
+        self.assertEqual(self.graph.edge[0][1], loaded.edge[0][1])
+
+        a = self.graph.node[0].handle.read_array()
+        b = loaded.node[0].handle.read_array()
+        np.testing.assert_array_equal(a, b)
+
+        os.remove('test_save.cg')
 
     def tearDown(self):
         pass
 
 
-class TestNode(unittest.TestCase):
+class TestEdge(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
         cls.graph = network.CandidateGraph.from_adjacency(get_path('adjacency.json'))
-
-    def test_get_handle(self):
-        self.assertIsInstance(self.graph.node[0].handle, GeoDataset)
-
-    def test_get_array(self):
-        image = self.graph.node[0].get_array()
-        self.assertEqual((1012, 1012), image.shape)
-        self.assertEqual(np.uint8, image.dtype)
-
-    def test_extract_features(self):
-        node = self.graph.node[0]
-        image = node.get_array()
-        node.extract_features(image, extractor_parameters={'nfeatures':10})
-        self.assertEquals(len(node.keypoints), 10)
-        self.assertEquals(len(node.descriptors), 10)
-        self.assertIsInstance(node.descriptors[0], np.ndarray)
-
-    def test_convex_hull_ratio_fail(self):
-        # Convex hull computation is checked lower in the hull computation
-        node = self.graph.node[0]
-        self.assertRaises(AttributeError, node.coverage_ratio)
-
-
-class TestInputFileList(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        lst = ["AS15-M-0297_SML.png", "AS15-M-0298_SML.png", "AS15-M-0299_SML.png"]
-        cls.graph = network.CandidateGraph.from_filelist(lst)
-
-    def test_from_filelist(self):
-        self.assertTrue(False)
 

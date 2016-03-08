@@ -6,7 +6,6 @@ from autocnet.examples import get_path
 from autocnet.fileio.io_controlnetwork import to_isis
 from autocnet.fileio.io_controlnetwork import write_filelist
 from autocnet.graph.network import CandidateGraph
-from autocnet.matcher.matcher import FlannMatcher
 
 
 class TestTwoImageMatching(unittest.TestCase):
@@ -61,27 +60,27 @@ class TestTwoImageMatching(unittest.TestCase):
             #node.anms()
             #self.assertNotEqual(node.nkeypoints, sum(node._mask_arrays['anms']))
 
-        cg.match_features(k=5)
+        cg.match_features(k=2)
 
         for source, destination, edge in cg.edges_iter(data=True):
 
             # Perform the symmetry check
             edge.symmetry_check()
-            self.assertIn(edge._mask_arrays['symmetry'].sum(), range(430, 461))
+            self.assertIn(edge.masks['symmetry'].sum(), range(400, 600))
 
             # Perform the ratio test
-            edge.ratio_check(ratio=0.8)
-            self.assertIn(edge._mask_arrays['ratio'].sum(), range(250, 350))
+            edge.ratio_check(clean_keys=['symmetry'])
+            self.assertIn(edge.masks['ratio'].sum(), range(40, 100))
 
         # Step: Compute the homographies and apply RANSAC
         cg.compute_homographies(clean_keys=['symmetry', 'ratio'])
 
         # Step: Compute the overlap ratio and coverage ratio
         for s, d, edge in cg.edges_iter(data=True):
-            ratio = edge.coverage_ratio(clean_keys=['symmetry', 'ratio'])
+            edge.coverage_ratio(clean_keys=['symmetry', 'ratio'])
 
         # Step: Compute subpixel offsets for candidate points
-        cg.compute_subpixel_offsets(clean_keys=['ransac'])
+        cg.subpixel_register(clean_keys=['ransac'])
 
         # Step: And create a C object
         cnet = cg.to_cnet(clean_keys=['symmetry', 'ratio', 'ransac', 'subpixel'])

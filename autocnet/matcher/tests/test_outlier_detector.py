@@ -9,37 +9,18 @@ import pandas as pd
 sys.path.append(os.path.abspath('..'))
 
 from .. import matcher, outlier_detector
-from autocnet.examples import get_path
 
 
 class TestOutlierDetector(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(self):
-        # actually set up everything for matches
-        im1 = cv2.imread(get_path('AS15-M-0296_SML.png'))
-        im2 = cv2.imread(get_path('AS15-M-0297_SML.png'))
-
-        fd = {}
-
-        sift = cv2.xfeatures2d.SIFT_create(10)
-
-        fd['AS15-M-0296_SML.png'] = sift.detectAndCompute(im1, None)
-        fd['AS15-M-0297_SML.png'] = sift.detectAndCompute(im2, None)
-
-        fmatcher = matcher.FlannMatcher()
-        truth_image_indices = {}
-        counter = 0
-        for imageid, (keypoint, descriptor) in fd.items():
-            truth_image_indices[counter] = imageid
-            fmatcher.add(descriptor, imageid)
-            counter += 1
-
-        fmatcher.train()
-        self.matches = fmatcher.query(fd['AS15-M-0296_SML.png'][1],'AS15-M-0296_SML.png', k=3)
-
     def test_distance_ratio(self):
-        self.assertTrue(len(outlier_detector.distance_ratio(self.matches)), 13)
+        df = pd.DataFrame(np.array([[0, 0, 1, 1, 2, 2, 2],
+                           [3, 4, 5, 6, 7, 8, 9],
+                           [1.25, 10.1, 2.3, 2.4, 1.2, 5.5, 5.7]]).T,
+                          columns=['source_idx', 'destination_idx', 'distance'])
+        d = outlier_detector.DistanceRatio(df)
+        d.compute()
+        self.assertEqual(d.mask.sum(), 2)
 
     def test_distance_ratio_unique(self):
         data = [['A', 0, 'B', 1, 10],
@@ -47,16 +28,18 @@ class TestOutlierDetector(unittest.TestCase):
         df = pd.DataFrame(data, columns=['source_image', 'source_idx',
                                          'destination_image', 'destination_idx',
                                          'distance'])
-        mask = outlier_detector.distance_ratio(df)
-        self.assertTrue(mask.all() == False)
-
-    def test_self_neighbors(self):
-        # returned mask should be same length as input df
-        self.assertEquals(len(outlier_detector.self_neighbors(self.matches)), len(self.matches))
+        d = outlier_detector.DistanceRatio(df)
+        d.compute(0.9)
+        self.assertTrue(d.mask.all() == False)
 
     def test_mirroring_test(self):
         # returned mask should be same length as input df
-        self.assertEquals(len(outlier_detector.mirroring_test(self.matches)), len(self.matches))
+        df = pd.DataFrame(np.array([[0,0,0,1,1,1],
+                           [1,2,1, 1,2,3],
+                           [5,2,5,5,2,3]]).T,
+                          columns=['source_idx', 'destination_idx', 'distance'])
+        mask = outlier_detector.mirroring_test(df)
+        self.assertEqual(mask.sum(), 1)
 
     def test_compute_fundamental_matrix(self):
         np.random.seed(12345)
