@@ -69,16 +69,13 @@ class TestCandidateGraph(unittest.TestCase):
 class TestFromList(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        #cls.graph = network.CandidateGraph.from_filelist('/scratch/autocnet/autocnet/examples/Apollo15/fromlist.txt')
-        #cls.graph = network.CandidateGraph.from_filelist(['/scratch/autocnet/autocnet/examples/Apollo15/AS15-M-0297_SML.png'])
-         cls.graph = network.CandidateGraph.from_filelist(
-             ['/home/kree/usgs/autocnet/autocnet/examples/Projections/Mars_MGS_MOLA_ClrShade_MAP2_0.0N0.0_MERC.tif',
-              '/home/kree/usgs/autocnet/autocnet/examples/Projections/Lunar_LRO_LOLA_Shade_MAP2_90.0N20.0_LAMB.tif',
-              '/home/kree/usgs/autocnet/autocnet/examples/Projections/Mars_MGS_MOLA_ClrShade_MAP2_90.0N0.0_POLA.tif'])
+        filelist = [get_path('Mars_MGS_MOLA_ClrShade_MAP2_0.0N0.0_MERC.tif'),
+                    get_path('Lunar_LRO_LOLA_Shade_MAP2_90.0N20.0_LAMB.tif'),
+                    get_path('Mars_MGS_MOLA_ClrShade_MAP2_90.0N0.0_POLA.tif')]
+        cls.graph = network.CandidateGraph.from_filelist(filelist)
 
-    def testfail(self):
-        self.assertTrue(False)
-
+    def test_graph_length(self):
+        self.assertEqual(self.graph.__len__(), 3)
 
 class TestEdge(unittest.TestCase):
 

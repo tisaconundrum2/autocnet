@@ -85,16 +85,18 @@ class CandidateGraph(nx.Graph):
             graph = pickle.load(f)
         return graph
 
-# TODO: Add ability to actually read this out of a file.
+# TODO: Add ability to actually read this out of a file?
     @classmethod
     def from_filelist(cls, filelst):
         """
         Instantiate the class using a filelist as a python list.
+        An adjacency structure is calculated using the lat/lon information in the
+        input images. Currently only images with this information are supported.
 
         Parameters
         ----------
         filelst : list
-                  A list containing the files to construct an adjacency graph from
+                  A list containing the files (with full paths) to construct an adjacency graph from
 
         Returns
         -------
@@ -102,7 +104,7 @@ class CandidateGraph(nx.Graph):
           A Network graph object
         """
 
-        # TODO: Reject unsupported file formats (pngs, cubes, anything without usable geospatial data?)
+        # TODO: Reject unsupported file formats + work with more file formats
 
         dataset_list = []
         for file in filelst:
@@ -118,7 +120,6 @@ class CandidateGraph(nx.Graph):
                 if(cg.standalone.bbcommon(data.bounding_box, other.bounding_box)):
                     adjacent_images.append(other.base_name)
             adjacency_dict[data.base_name] = adjacent_images
-        print(adjacency_dict)
         return cls(adjacency_dict)
 
 

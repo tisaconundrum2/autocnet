@@ -45,6 +45,9 @@ class GeoDataset(object):
     base_name : str
                 The base name of the input image, extracted from the full path.
 
+    bounding_box : object
+                 The bounding box of the image in lat/lon space
+
     geotransform : object
                    Geotransform reference OGR object as an array of size 6 containing the affine 
                    transformation coefficients for transforming from raw sample/line to projected x/y.
