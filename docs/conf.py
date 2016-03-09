@@ -24,24 +24,30 @@ from unittest.mock import MagicMock
 # sys.path.insert(0, os.path.abspath('.'))
 
 # Get the project root dir, which is the parent dir of this
-cwd = os.getcwd()
-project_root = os.path.dirname(cwd)
 
 # Insert the project root dir as the first element in the PYTHONPATH.
 # This lets us ensure that the source package is imported, and that its
 # version is used.
-sys.path.insert(0, project_root)
+
+sys.path.insert(0, os.path.abspath('../'))
 
 import autocnet
+import autocnet.cg.cg
+import autocnet.control.control
+
 
 # -- General configuration ---------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-# needs_sphinx = '1.0'
+needs_sphinx = '1.3'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode', 'sphinx.ext.napoleon']
+
+# NumpyDoc Options
+numpydoc_show_class_members = True
+numpydoc_class_members_toctree = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -112,23 +118,12 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'default'
+html_theme = 'alabaster'
 
 # Theme options are theme-specific and customize the look and feel of a
 # theme further.  For a list of options available for each theme, see the
 # documentation.
-html_theme_options = {
-    "rightsidebar": "true",
-    "relbarbgcolor": "CornflowerBlue",
-    "sidebartextcolor": "black",
-    "sidebarlinkcolor": "#355f7c",
-    "sidebarbgcolor": "#F2F2F2",
-    "codebgcolor": "AliceBlue",
-    "footerbgcolor": "Black",
-    "externalrefs": "false",
-    "bodyfont": "Optima",
-    "headfont": "Optima "
-}
+#html_theme_options = {}
 
 # Add any paths that contain custom themes here, relative to this directory.
 # html_theme_path = []
@@ -285,19 +280,6 @@ texinfo_documents = [
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 # texinfo_no_detailmenu = False
 
+auto_mock_imports = ['proj4', 'gdal', 'osr', 'cv2', 'scikit-image', 'skimage', 'skimage.feature', 'sklearn']
 
 
-
-class Mock(MagicMock):
-    @classmethod
-    def __getter__(cls, name):
-        return Mock()
-
-# All imported libraries should be added to this mock modules list.
-MOCK_MODULES = ['proj4', 'numpy', 'pandas', 'scipy', 'osgeo', 'cv2',
-                'scikit-image', 'skimage', 'skimage.feature', 'scipy', 'scipy.misc']
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
-
-# NumpyDoc Options
-numpydoc_show_class_members = True
-numpydoc_class_members_toctree = False

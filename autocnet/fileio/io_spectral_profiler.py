@@ -11,12 +11,12 @@ class Spectral_Profiler(object):
 
     """
     Attributes
-    ==========
+    ----------
 
     spectra : dict
               A dictionary with k as the integer observation id and value
               as a pandas DataFrame.
-    
+
     ancillary_data : dataframe
                      A pandas DataFrame of the parsed ancillary data (PVL label)
 
@@ -29,10 +29,11 @@ class Spectral_Profiler(object):
         Read the .spc file, parse the label, and extract the spectra
 
         Parameters
-        ==========
+        ----------
 
         input_data : string
                      The PATH to the input .spc file
+
         cleaned : boolean
                   If True, mask the data based on the QA array.
         """
@@ -45,7 +46,7 @@ class Spectral_Profiler(object):
         self._label = label 
         with open(input_data, 'rb') as indata:
 
-            #Get the offsets
+            # Get the offsets
             ancillary_data_offset = find_in_dict(label, 
                                     "^ANCILLARY_AND_SUPPLEMENT_DATA").value
             wavelength_offset = find_in_dict(label, "^SP_SPECTRUM_WAV").value

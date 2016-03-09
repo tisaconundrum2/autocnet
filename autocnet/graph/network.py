@@ -326,6 +326,7 @@ class CandidateGraph(nx.Graph):
 
         Returns
         -------
+
         filelist : list
                    A list where each entry is a string containing the full path to an image in the graph.
         """
@@ -340,6 +341,7 @@ class CandidateGraph(nx.Graph):
 
         Parameters
         ----------
+
         clean_keys : list
              of strings identifying the masking arrays to use, e.g. ratio, symmetry
 
@@ -349,6 +351,7 @@ class CandidateGraph(nx.Graph):
 
         Returns
         -------
+
         merged_cnet : C
                       A control network object
         """
@@ -474,7 +477,7 @@ class CandidateGraph(nx.Graph):
         Write the edge structure to a JSON adjacency list
 
         Parameters
-        ==========
+        ----------
 
         outputfile : str
                      PATH where the JSON will be written
@@ -501,8 +504,9 @@ class CandidateGraph(nx.Graph):
 
         Returns
         -------
-       : list
-          A list of connected sub-graphs of nodes, with the largest sub-graph first. Each subgraph is a set.
+
+         : list
+           A list of connected sub-graphs of nodes, with the largest sub-graph first. Each subgraph is a set.
         """
         return sorted(nx.connected_components(self), key=len, reverse=True)
 

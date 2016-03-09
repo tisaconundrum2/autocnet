@@ -8,8 +8,7 @@ from pvl._collections import PVLModule
 
 
 def get_isis_translation(label):
-    """
-    Compute the ISIS serial number for a given image using
+    """Compute the ISIS serial number for a given image using
     the input cube or the label extracted from the cube.
 
     Parameters

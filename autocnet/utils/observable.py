@@ -3,6 +3,12 @@ import abc
 
 class Observable(object):
 
+    """
+    Abstract Base Class representing some observable object that can
+    register observers and update them on change.  The object is stateful
+    and managed do/undo functionality.
+    """
+
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod

@@ -31,13 +31,16 @@ def checkbandnumbers(bands, checkbands):
     which is required for TES atmosphere calculations.
 
     Parameters
-    -----------
-    bands       tuple of bands in the input image
-    checkbands  list of bands to check against
+    ----------
+    bands : tuple
+            of bands in the input image
+    checkbands : list
+                 of bands to check against
 
     Returns
-    --------
-    Boolean     True if the bands are present, else False
+    -------
+     : bool
+       True if the bands are present, else False
     """
     for c in checkbands:
         if c not in bands:
@@ -50,8 +53,9 @@ def checkdeplaid(incidence):
     Given an incidence angle, select the appropriate deplaid method.
 
     Parameters
-    -----------
-    incidence       float incidence angle extracted from the campt results.
+    ----------
+    incidence : float
+                incidence angle extracted from the campt results.
 
     """
     if incidence >= 95 and incidence <= 180:

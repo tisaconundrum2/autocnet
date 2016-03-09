@@ -6,9 +6,9 @@ The :mod:`fileio.io_gdal` and :mod:`fileio.extract_metadata` modules provide con
 .. versionadded:: 0.1.0
 
 .. automodule:: autocnet.fileio.io_gdal
-   :synopsis: This is the synopsis
+   :synopsis: GDAL wrapper
    :members:
 
 .. automodule:: autocnet.fileio.extract_metadata
-   :synopsis: This is the synopsis
+   :synopsis: Metadata parsing
    :members:
