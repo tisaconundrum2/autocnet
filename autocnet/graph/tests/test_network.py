@@ -71,10 +71,10 @@ class TestFromList(unittest.TestCase):
     def setUpClass(cls):
         #cls.graph = network.CandidateGraph.from_filelist('/scratch/autocnet/autocnet/examples/Apollo15/fromlist.txt')
         #cls.graph = network.CandidateGraph.from_filelist(['/scratch/autocnet/autocnet/examples/Apollo15/AS15-M-0297_SML.png'])
-         cls.grpah = network.CandidateGraph.from_filelist(
-             ['/scratch/autocnet/autocnet/examples/Projections/Mars_MGS_MOLA_ClrShade_MAP2_0.0N0.0_MERC.tif',
-              '/scratch/autocnet/autocnet/examples/Projections/Lunar_LRO_LOLA_Shade_MAP2_90.0N20.0_LAMB.tif',
-              '/scratch/autocnet/autocnet/examples/Projections/Mars_MGS_MOLA_ClrShade_MAP2_90.0N0.0_POLA.tif'])
+         cls.graph = network.CandidateGraph.from_filelist(
+             ['/home/kree/usgs/autocnet/autocnet/examples/Projections/Mars_MGS_MOLA_ClrShade_MAP2_0.0N0.0_MERC.tif',
+              '/home/kree/usgs/autocnet/autocnet/examples/Projections/Lunar_LRO_LOLA_Shade_MAP2_90.0N20.0_LAMB.tif',
+              '/home/kree/usgs/autocnet/autocnet/examples/Projections/Mars_MGS_MOLA_ClrShade_MAP2_90.0N0.0_POLA.tif'])
 
     def testfail(self):
         self.assertTrue(False)

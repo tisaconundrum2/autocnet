@@ -104,22 +104,23 @@ class CandidateGraph(nx.Graph):
 
         # TODO: Reject unsupported file formats (pngs, cubes, anything without usable geospatial data?)
 
-        bblist = []
+        dataset_list = []
         for file in filelst:
-            # try to open the file, extract its bounding box.
             dataset = GeoDataset(file)
-            latlons = dataset.latlon_extent # This is the step that fails without geospatial data.
-            bb = cg.standalone.get_bounding_box([cg.shapes.LineSegment(latlons[0], latlons[1])]) #should move at least some of this into GeoDataset
-            bblist += bb
-        print(bblist)
-        #for b in bblist:
-        #    templist = bblist.copy()
-        #    templist.remove(b)
-        #    for other in templist:
-        #        print("COMPARING", b, other)
-        #        print(cg.standalone.bbcommon(b, other))
+            dataset_list.append(dataset)
 
-        return cls()
+        adjacency_dict = {}
+        for data in dataset_list:
+            adjacent_images = []
+            other_datasets = dataset_list.copy()
+            other_datasets.remove(data)
+            for other in other_datasets:
+                if(cg.standalone.bbcommon(data.bounding_box, other.bounding_box)):
+                    adjacent_images.append(other.base_name)
+            adjacency_dict[data.base_name] = adjacent_images
+        print(adjacency_dict)
+        return cls(adjacency_dict)
+
 
     @classmethod
     def from_adjacency(cls, input_adjacency, basepath=None):
@@ -149,7 +150,7 @@ class CandidateGraph(nx.Graph):
                 for k, v in input_adjacency.items():
                     input_adjacency[k] = [os.path.join(basepath, i) for i in v]
                     input_adjacency[os.path.join(basepath, k)] = input_adjacency.pop(k)
-
+#        print(input_adjacency)
         return cls(input_adjacency)
 
     def get_name(self, node_index):

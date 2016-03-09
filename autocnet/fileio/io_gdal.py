@@ -6,6 +6,7 @@ import gdal
 import osr
 
 from autocnet.fileio import extract_metadata
+from pysal import cg
 
 gdal.UseExceptions()
 
@@ -208,6 +209,19 @@ class GeoDataset(object):
         return self._xy_extent
 
     @property
+    def bounding_box(self):
+        """
+        A bounding box in lat/lon space
+        Returns
+        -------
+
+        """
+        if not getattr(self, '_bounding_box', None):
+            latlons = self.latlon_extent # Will fail without geospatial data
+            self._bounding_box = cg.standalone.get_bounding_box([cg.shapes.LineSegment(latlons[0], latlons[1])])
+        return self._bounding_box
+
+    @property
     def pixel_polygon(self):
         """
         A bounding polygon in pixel space
@@ -324,8 +338,6 @@ class GeoDataset(object):
         geotransform = self.geotransform
         x = geotransform[0] + (x * geotransform[1]) + (y * geotransform[2])
         y = geotransform[3] + (x * geotransform[4]) + (y * geotransform[5])
-        print("X: ", x)
-        print("Y: ", y)
         lon, lat, _ = self.coordinate_transformation.TransformPoint(x, y)
 
         return lat, lon
