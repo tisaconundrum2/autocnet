@@ -9,6 +9,7 @@ Development Team
 * Kristin Berry <kberry@usgs.gov>
 * Jeannie Backer <jwbacker@usgs.gov>
 * Dyer Lytle <dmlytle@usgs.gov>
+* Kelvin Rodriguez <krodriguez@usgs.gov>
 
 Contributors
 ------------
