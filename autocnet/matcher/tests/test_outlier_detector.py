@@ -89,10 +89,8 @@ class TestSpatialSuppression(unittest.TestCase):
 
         self.assertEqual(self.suppression_obj.mask.sum(), 28)
 
-
     def test_suppress(self):
         self.suppression_obj.k = 30
         self.suppression_obj.suppress()
         self.assertIn(self.suppression_obj.mask.sum(), list(range(27, 34)))
 
-        self.assertTrue(False)
