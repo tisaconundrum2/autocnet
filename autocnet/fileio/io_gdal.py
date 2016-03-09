@@ -324,6 +324,8 @@ class GeoDataset(object):
         geotransform = self.geotransform
         x = geotransform[0] + (x * geotransform[1]) + (y * geotransform[2])
         y = geotransform[3] + (x * geotransform[4]) + (y * geotransform[5])
+        print("X: ", x)
+        print("Y: ", y)
         lon, lat, _ = self.coordinate_transformation.TransformPoint(x, y)
 
         return lat, lon

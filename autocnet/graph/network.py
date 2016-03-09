@@ -5,7 +5,9 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-
+from pysal import cg
+from autocnet.examples import get_path
+from autocnet.fileio.io_gdal import GeoDataset
 from autocnet.control.control import C
 from autocnet.fileio import io_json
 from autocnet.matcher.matcher import FlannMatcher
@@ -100,10 +102,22 @@ class CandidateGraph(nx.Graph):
           A Network graph object
         """
 
+        # TODO: Reject unsupported file formats (pngs, cubes, anything without usable geospatial data?)
+
+        bblist = []
         for file in filelst:
-            # try to open the file, extract its bounding box for now. Also, just support gdal for now.
-            dataset = GeoDataset(get_path(file))
-            print(dataset.latlon_extent)
+            # try to open the file, extract its bounding box.
+            dataset = GeoDataset(file)
+            latlons = dataset.latlon_extent # This is the step that fails without geospatial data.
+            bb = cg.standalone.get_bounding_box([cg.shapes.LineSegment(latlons[0], latlons[1])]) #should move at least some of this into GeoDataset
+            bblist += bb
+        print(bblist)
+        #for b in bblist:
+        #    templist = bblist.copy()
+        #    templist.remove(b)
+        #    for other in templist:
+        #        print("COMPARING", b, other)
+        #        print(cg.standalone.bbcommon(b, other))
 
         return cls()
 
