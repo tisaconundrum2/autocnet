@@ -18,9 +18,10 @@ class EdgeHealth(object):
         Pass through called when the observable (model) changes.
         *args and **kwargs are passed through from the observable.
         """
-        for a in args:
-            if hasattr(self, a.__class__.__name__):
-                setattr(self, a.__class__.__name__, a)
+        for k, v in kwargs.items():
+            if hasattr(self, k):
+                print(k)
+                setattr(self, k, v)
 
     def recompute_health(self):
         """
