@@ -5,7 +5,9 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-
+from pysal import cg
+from autocnet.examples import get_path
+from autocnet.fileio.io_gdal import GeoDataset
 from autocnet.control.control import C
 from autocnet.fileio import io_json
 from autocnet.matcher.matcher import FlannMatcher
@@ -77,6 +79,44 @@ class CandidateGraph(nx.Graph):
             graph = pickle.load(f)
         return graph
 
+# TODO: Add ability to actually read this out of a file?
+    @classmethod
+    def from_filelist(cls, filelst):
+        """
+        Instantiate the class using a filelist as a python list.
+        An adjacency structure is calculated using the lat/lon information in the
+        input images. Currently only images with this information are supported.
+
+        Parameters
+        ----------
+        filelst : list
+                  A list containing the files (with full paths) to construct an adjacency graph from
+
+        Returns
+        -------
+        : object
+          A Network graph object
+        """
+
+        # TODO: Reject unsupported file formats + work with more file formats
+
+        dataset_list = []
+        for file in filelst:
+            dataset = GeoDataset(file)
+            dataset_list.append(dataset)
+
+        adjacency_dict = {}
+        for data in dataset_list:
+            adjacent_images = []
+            other_datasets = dataset_list.copy()
+            other_datasets.remove(data)
+            for other in other_datasets:
+                if(cg.standalone.bbcommon(data.bounding_box, other.bounding_box)):
+                    adjacent_images.append(other.base_name)
+            adjacency_dict[data.base_name] = adjacent_images
+        return cls(adjacency_dict)
+
+
     @classmethod
     def from_adjacency(cls, input_adjacency, basepath=None):
         """
@@ -105,7 +145,7 @@ class CandidateGraph(nx.Graph):
                 for k, v in input_adjacency.items():
                     input_adjacency[k] = [os.path.join(basepath, i) for i in v]
                     input_adjacency[os.path.join(basepath, k)] = input_adjacency.pop(k)
-
+#        print(input_adjacency)
         return cls(input_adjacency)
 
     def get_name(self, node_index):

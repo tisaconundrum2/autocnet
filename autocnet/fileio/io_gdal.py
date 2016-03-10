@@ -6,6 +6,7 @@ import gdal
 import osr
 
 from autocnet.fileio import extract_metadata
+from pysal import cg
 
 gdal.UseExceptions()
 
@@ -43,6 +44,9 @@ class GeoDataset(object):
 
     base_name : str
                 The base name of the input image, extracted from the full path.
+
+    bounding_box : object
+                 The bounding box of the image in lat/lon space
 
     geotransform : object
                    Geotransform reference OGR object as an array of size 6 containing the affine 
@@ -206,6 +210,19 @@ class GeoDataset(object):
             self._xy_extent = [(minx, miny), (maxx, maxy)]
 
         return self._xy_extent
+
+    @property
+    def bounding_box(self):
+        """
+        A bounding box in lat/lon space
+        Returns
+        -------
+
+        """
+        if not getattr(self, '_bounding_box', None):
+            latlons = self.latlon_extent # Will fail without geospatial data
+            self._bounding_box = cg.standalone.get_bounding_box([cg.shapes.LineSegment(latlons[0], latlons[1])])
+        return self._bounding_box
 
     @property
     def pixel_polygon(self):
