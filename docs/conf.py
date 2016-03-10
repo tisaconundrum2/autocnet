@@ -287,6 +287,6 @@ class Mock(MagicMock):
             return Mock()
 
 MOCK_MODULES = ['proj4', 'gdal', 'osr','ogr', 'cv2', 'scikit-image', 'skimage', 'skimage.feature', 'sklearn',
-                'scipy', 'scipy.spatial', 'scipy.ndimage', 'scipy.ndimage.interpolation', 'scipy.constants',
-                'osgeo']
+                'scipy', 'scipy.spatial', 'scipy.spatial.distance', 'scipy.ndimage', 'scipy.ndimage.interpolation',
+                'scipy.constants', 'osgeo']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
