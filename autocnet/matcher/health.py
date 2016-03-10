@@ -20,7 +20,6 @@ class EdgeHealth(object):
         """
         for k, v in kwargs.items():
             if hasattr(self, k):
-                print(k)
                 setattr(self, k, v)
 
     def recompute_health(self):
