@@ -1,2 +1,4 @@
 pvl
 pysal
+pandas
+numpy
