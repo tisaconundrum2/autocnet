@@ -3,3 +3,4 @@ pysal
 pandas
 dill
 networkx
+sqlalchemy
