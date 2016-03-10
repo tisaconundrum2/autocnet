@@ -2,6 +2,5 @@ pvl
 pysal
 pandas
 numpy
-scipy
 matplotlib
 dill
