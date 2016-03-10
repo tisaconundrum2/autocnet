@@ -4,3 +4,4 @@ pandas
 dill
 networkx
 sqlalchemy
+matplotlib
