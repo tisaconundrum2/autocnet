@@ -32,7 +32,6 @@ from unittest.mock import MagicMock
 sys.path.insert(0, os.path.abspath('../'))
 
 import autocnet
-import autocnet.cg.cg
 import autocnet.control.control
 
 
