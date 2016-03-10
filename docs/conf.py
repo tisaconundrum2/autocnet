@@ -286,5 +286,5 @@ class Mock(MagicMock):
     def __getattr__(cls, name):
             return Mock()
 
-MOCK_MODULES = ['proj4', 'gdal', 'osr','ogr', 'cv2', 'scikit-image', 'skimage', 'skimage.feature', 'sklearn']
+MOCK_MODULES = ['proj4', 'gdal', 'osr','ogr', 'cv2', 'scikit-image', 'skimage', 'skimage.feature', 'sklearn','scipy']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
