@@ -1,7 +1,5 @@
 pvl
 pysal
 pandas
-numpy
-matplotlib
 dill
 networkx
