@@ -279,6 +279,12 @@ texinfo_documents = [
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 # texinfo_no_detailmenu = False
 
-auto_mock_imports = ['proj4', 'gdal', 'osr','ogr', 'cv2', 'scikit-image', 'skimage', 'skimage.feature', 'sklearn']
+from unittest.mock import MagicMock
 
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+            return Mock()
 
+MOCK_MODULES = ['proj4', 'gdal', 'osr','ogr', 'cv2', 'scikit-image', 'skimage', 'skimage.feature', 'sklearn']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
