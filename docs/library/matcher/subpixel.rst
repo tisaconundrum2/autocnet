@@ -1,5 +1,5 @@
 :mod:`matcher.subpixel` --- Performing subpixel registration between images
-====================================================================
+===========================================================================
 
 The :mod:`matcher.subpixel` module
 

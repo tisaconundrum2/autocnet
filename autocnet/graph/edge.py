@@ -151,8 +151,10 @@ class Edge(dict, MutableMapping):
         transformation_matrix, fundam_mask = od.compute_fundamental_matrix(s_keypoints[['x', 'y']].values,
                                                                            d_keypoints[['x', 'y']].values,
                                                                            **kwargs)
-
-        fundam_mask = fundam_mask.ravel()
+        try:
+            fundam_mask = fundam_mask.ravel()
+        except:
+            return
         # Convert the truncated RANSAC mask back into a full length mask
         if clean_keys:
             mask[mask == True] = fundam_mask
@@ -220,9 +222,9 @@ class Edge(dict, MutableMapping):
         # Finalize the array to get custom attrs to propagate
         self.homography.__array_finalize__(self.homography)
 
-    def subpixel_register(self, clean_keys=[], threshold=0.8, upsampling=16,
+    def subpixel_register(self, clean_keys=[], threshold=0.8,
                           template_size=19, search_size=53, max_x_shift=1.0,
-                          max_y_shift=1.0, tiled=False):
+                          max_y_shift=1.0, tiled=False, **kwargs):
         """
         For the entire graph, compute the subpixel offsets using pattern-matching and add the result
         as an attribute to each edge of the graph.
@@ -257,9 +259,9 @@ class Edge(dict, MutableMapping):
                       without being considered an outlier
         """
         matches = self.matches
-        for column in ['x_offset', 'y_offset', 'correlation']:
+        for column, default in {'x_offset': 0, 'y_offset': 0, 'correlation': 0, 'reference': -1}.items():
             if not column in self.matches.columns:
-                self.matches[column] = 0
+                self.matches[column] = default
 
         # Build up a composite mask from all of the user specified masks
         if clean_keys:
@@ -273,6 +275,8 @@ class Edge(dict, MutableMapping):
             s_img = self.source.handle.read_array()
             d_img = self.destination.handle.read_array()
 
+        source_image = (matches.iloc[0]['source_image'])
+
         # for each edge, calculate this for each keypoint pair
         for i, (idx, row) in enumerate(matches.iterrows()):
             s_idx = int(row['source_idx'])
@@ -285,8 +289,9 @@ class Edge(dict, MutableMapping):
             s_template = sp.clip_roi(s_img, s_keypoint, template_size)
             d_search = sp.clip_roi(d_img, d_keypoint, search_size)
             try:
-                x_offset, y_offset, strength = sp.subpixel_offset(s_template, d_search, upsampling=upsampling)
-                self.matches.loc[idx, ('x_offset', 'y_offset', 'correlation')] = [x_offset, y_offset, strength]
+                x_offset, y_offset, strength = sp.subpixel_offset(s_template, d_search, **kwargs)
+                self.matches.loc[idx, ('x_offset', 'y_offset',
+                                       'correlation', 'reference')] = [x_offset, y_offset, strength, source_image]
             except:
                 warnings.warn('Template-Search size mismatch, failing for this correspondence point.')
                 continue
@@ -299,7 +304,7 @@ class Edge(dict, MutableMapping):
                                                                                                            max_y_shift)
         sp_shift_outliers = self.matches.query(query_string)
         shift_mask = pd.Series(True, index=self.matches.index)
-        shift_mask[sp_shift_outliers.index] = False
+        shift_mask.loc[sp_shift_outliers.index] = False
 
         # Generate the composite mask and write the masks to the mask data structure
         mask = threshold_mask & shift_mask

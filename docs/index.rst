@@ -9,8 +9,7 @@ AutoCNet
 .. raw:: html
 
  <div class="section" id="showcase">
-      <a href="http://nbviewer.ipython.org/github/pysal/pysal/blob/master/pysal/contrib/viz/taz_example.ipynb?create=1"><img     src="_static/images/socal_2.jpg" border="0" alt="So. Cal. taz network"/></a>
-      <a href="http://nbviewer.ipython.org/github/pysal/pysal/blob/master/pysal/contrib/viz/taz_example.ipynb?create=1"><img     src="_static/images/socal_3.jpg" border="0" alt="County components"/></a>
+      <a href=""><img     src="_static/images/matched.png" border="0" alt="So. Cal. taz network"/></a>
   </div>
 
 
@@ -19,13 +18,14 @@ AutoCNet
     - `Development 0.1.0dev  <http://github.com/USGS-Astrogeology/autocnet>`_
 
 AutoCNet is an open source library for the automated generation of sparse n-image
-control networks.  AutoCNet is licensed in `the public domain` _.
+control networks.  AutoCNet is licensed in `the public domain`.
 
 .. _the public domain: license.html
 
 
 .. toctree::
     :maxdepth: 1
+
     users/index
     developers/index
     library/index

@@ -5,5 +5,3 @@
 
    gdal
    json
-   libs
-   spectral_profiler

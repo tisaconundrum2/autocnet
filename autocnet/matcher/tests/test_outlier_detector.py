@@ -1,6 +1,7 @@
 import os
 import sys
 import unittest
+import warnings
 
 import cv2
 import numpy as np
@@ -20,7 +21,7 @@ class TestOutlierDetector(unittest.TestCase):
                           columns=['source_idx', 'destination_idx', 'distance'])
         d = outlier_detector.DistanceRatio(df)
         d.compute()
-        self.assertEqual(d.mask.sum(), 2)
+        self.assertEqual(d.nvalid, 2)
 
     def test_distance_ratio_unique(self):
         data = [['A', 0, 'B', 1, 10],
@@ -55,3 +56,41 @@ class TestOutlierDetector(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+
+class TestSpatialSuppression(unittest.TestCase):
+
+    def setUp(self):
+        seed = np.random.RandomState(12345)
+        x = seed.randint(0,100,100).astype(np.float32)
+        y = seed.randint(0,100,100).astype(np.float32)
+        strength = seed.rand(100)
+        data = np.vstack((x, y, strength)).T
+        df = pd.DataFrame(data, columns=['x', 'y', 'strength'])
+        self.suppression_obj = outlier_detector.SpatialSuppression(df,(100,100), k=25)
+
+    def test_properties(self):
+        self.assertEqual(self.suppression_obj.k, 25)
+        self.suppression_obj.k = 26
+        self.assertTrue(self.suppression_obj.k, 26)
+
+        self.assertEqual(self.suppression_obj.error_k, 0.1)
+        self.suppression_obj.error_k = 0.05
+        self.assertEqual(self.suppression_obj.error_k, 0.05)
+
+        self.assertEqual(self.suppression_obj.nvalid, None)
+        self.assertIsInstance(self.suppression_obj.df, pd.DataFrame)
+
+    def test_suppress_non_optimal(self):
+        with warnings.catch_warnings(record=True) as w:
+            self.suppression_obj.suppress()
+            self.assertEqual(len(w), 1)
+            self.assertEqual(w[0].category, UserWarning)
+
+        self.assertEqual(self.suppression_obj.mask.sum(), 28)
+
+    def test_suppress(self):
+        self.suppression_obj.k = 30
+        self.suppression_obj.suppress()
+        self.assertIn(self.suppression_obj.mask.sum(), list(range(27, 34)))
+

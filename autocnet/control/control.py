@@ -5,6 +5,7 @@ import pandas as pd
 POINT_TYPE = 2
 MEASURE_TYPE = 2
 
+
 class CSeries(pd.Series):
     """
     A custom pandas series that can accept additional methods
@@ -16,10 +17,7 @@ class CSeries(pd.Series):
 
 class C(pd.DataFrame):
     """
-    Control network.
-
-    Parameters
-    ----------
+    Control network designed in the ISIS format.
 
     Attributes
     ----------

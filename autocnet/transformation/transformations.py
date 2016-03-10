@@ -11,6 +11,10 @@ from autocnet.utils.utils import make_homogeneous
 
 
 class TransformationMatrix(np.ndarray):
+    """
+    Abstract Base Class representing a 3x3 transformation matrix.
+    This ABC subclasses numpy ndarrays.
+    """
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
@@ -86,6 +90,7 @@ class TransformationMatrix(np.ndarray):
 
         Parameters
         ----------
+
         n : int
             the number of steps to roll backwards
         """
@@ -107,6 +112,7 @@ class TransformationMatrix(np.ndarray):
 
         Parameters
         ----------
+
         n : int
             the number of steps to roll forwards
         """
@@ -128,6 +134,7 @@ class TransformationMatrix(np.ndarray):
 
         Parameters
         ----------
+
         func : object
                The callable that is to be executed on update
         """
@@ -161,6 +168,7 @@ class FundamentalMatrix(TransformationMatrix):
 
     Attributes
     ----------
+
     determinant : float
                   The determinant of the matrix
 
@@ -181,6 +189,7 @@ class FundamentalMatrix(TransformationMatrix):
 
         Parameters
         ----------
+
         method : object
                  A function that accepts and ndarray and returns an object
                  with a bins attribute
@@ -240,6 +249,7 @@ class FundamentalMatrix(TransformationMatrix):
 
         Parameters
         ----------
+
         a : ndarray
             n,2 array of x,y coordinates
 
@@ -251,6 +261,7 @@ class FundamentalMatrix(TransformationMatrix):
 
         Returns
         -------
+
         df : dataframe
              With columns for x_residual, y_residual, rmse, and
              error contribution.  The dataframe also has cumulative
@@ -300,6 +311,7 @@ class Homography(TransformationMatrix):
 
     Attributes
     ----------
+
     determinant : float
                   The determinant of the matrix
 
@@ -318,6 +330,7 @@ class Homography(TransformationMatrix):
 
         Parameters
         ----------
+
         a : ndarray
             n,2 array of x,y coordinates
 
@@ -329,6 +342,7 @@ class Homography(TransformationMatrix):
 
         Returns
         -------
+
         df : dataframe
              With columns for x_residual, y_residual, rmse, and
              error contribution.  The dataframe also has cumulative

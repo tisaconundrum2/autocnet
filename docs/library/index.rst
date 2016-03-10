@@ -1,5 +1,3 @@
-.. _library-index
-
 #################
 Library Reference
 #################
@@ -16,8 +14,12 @@ Sub-packages
 .. toctree::
    :maxdepth: 1
 
+   cg/index
+   control/index
    fileio/index
    graph/index
    matcher/index
+   transformation/index
    spectral/index
    utils/index
+   vis/index

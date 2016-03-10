@@ -38,10 +38,10 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
                    self.serials[2], self.serials[3]]
 
 
-        columns = ['x', 'y', 'idx', 'pid', 'nid']
+        columns = ['x', 'y', 'idx', 'pid', 'nid', 'point_type']
         self.data_length = 5
 
-        data = [x,y, idx, pid, serials]
+        data = [x,y, idx, pid, serials, [2] * self.data_length]
 
         self.creation_time = strftime("%Y-%m-%d %H:%M:%S", gmtime())
         cnet = C(data, index=columns).T
@@ -69,14 +69,14 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
             self.assertEqual('Not modified', header_protocol.lastModified)
 
             #Repeating
-            self.assertEqual([133, 197], header_protocol.pointMessageSizes)
+            self.assertEqual([135, 199], header_protocol.pointMessageSizes)
 
     def test_create_point(self):
         with open('test.net', 'rb') as f:
 
             with open('test.net', 'rb') as f:
                 f.seek(self.point_start_byte)
-                for i, length in enumerate([133, 197]):
+                for i, length in enumerate([135, 199]):
                     point_protocol = cnf.ControlPointFileEntryV0002()
                     raw_point = f.read(length)
                     point_protocol.ParseFromString(raw_point)
@@ -96,7 +96,7 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
         self.assertEqual(5, mpoints)
 
         points_bytes = find_in_dict(pvl_header, 'PointsBytes')
-        self.assertEqual(330, points_bytes)
+        self.assertEqual(334, points_bytes)
 
         points_start_byte = find_in_dict(pvl_header, 'PointsStartByte')
         self.assertEqual(65621, points_start_byte)

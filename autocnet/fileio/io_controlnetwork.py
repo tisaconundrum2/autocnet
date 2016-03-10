@@ -161,12 +161,15 @@ class IsisStore(object):
                 point_spec.id = str(pid)
             point_spec.type = POINT_TYPE
 
+            # The reference index should always be the image with the lowest index
+            point_spec.referenceIndex = 0
+
             # A single extend call is cheaper than many add calls to pack points
             measure_iterable = []
             for name, row in point.iterrows():
                 measure_spec = point_spec.Measure()
                 measure_spec.serialnumber = row.nid
-                measure_spec.type = MEASURE_TYPE
+                measure_spec.type = row.point_type
                 measure_spec.sample = row.x
                 measure_spec.line = row.y
 

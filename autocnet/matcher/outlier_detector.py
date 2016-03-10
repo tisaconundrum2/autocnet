@@ -1,5 +1,6 @@
 from collections import deque
 import math
+import warnings
 
 import cv2
 import numpy as np
@@ -158,7 +159,10 @@ class SpatialSuppression(Observable):
 
     @property
     def nvalid(self):
-        return self.mask.sum()
+        try:
+            return self.mask.sum()
+        except:
+            return None
 
     @property
     def k(self):
@@ -184,19 +188,10 @@ class SpatialSuppression(Observable):
         """
         Suppress subpixel registered points to that k +- k * error_k
         points, with good spatial distribution, remain
-
-        Adds a suppression mask to the edge mask dataframe.
-
-        Parameters
-        ----------
-        k : int
-            The desired number of output points
-
-        error_k : float
-                  [0,1) The acceptable epsilon
         """
         if self.k > len(self.df):
-           raise ValueError('Only {} valid points, but {} points requested'.format(len(self.df), self.k))
+            warnings.warn('Only {} valid points, but {} points requested'.format(len(self.df), self.k))
+            self.k = len(self.df)
         search_space = np.linspace(self.min_radius, self.max_radius / 16, 250)
         cell_sizes = (search_space / math.sqrt(2)).astype(np.int)
         min_idx = 0
@@ -204,6 +199,7 @@ class SpatialSuppression(Observable):
         while True:
             mid_idx = int((min_idx + max_idx) / 2)
             r = search_space[mid_idx]
+
             cell_size = cell_sizes[mid_idx]
             n_x_cells = int(self.domain[0] / cell_size)
             n_y_cells = int(self.domain[1] / cell_size)
@@ -261,6 +257,9 @@ class SpatialSuppression(Observable):
             elif len(result) < self.k:
                 # The radius is too large
                 max_idx = mid_idx
+            elif min_idx == mid_idx or mid_idx == max_idx:
+                warnings.warn('Unable to optimally solve.  Returning with {} points'.format(len(result)))
+                break
 
         self.mask = pd.Series(False, self.df.index)
         self.mask.loc[list(result)] = True
@@ -432,51 +431,3 @@ def compute_homography(kp1, kp2, method='ransac', **kwargs):
     if mask is not None:
         mask = mask.astype(bool)
     return transformation_matrix, mask
-
-
-# TODO: CITATION and better design?
-def adaptive_non_max_suppression(keypoints, n, robust):
-    """
-    Select the top n keypoints, using Adaptive Non-Maximal Suppression (see: Brown (2005) [Brown2005]_)
-    to rank the keypoints in order of largest minimum suppression
-    radius. A mask with only the positions of the top n keypoints set to 1 (and all else set to 0) is returned.
-
-    Parameters
-    ----------
-    keypoints : list
-               List of KeyPoint objects from a node of the graph or equivalently, for 1 image.
-
-    n : int
-        The number of top-ranked keypoints to return.
-
-    Returns
-    -------
-    keypoint_mask : list
-                    A list containing a 1 in the positions of the top n selected keypoints and 0 in the positions
-                    of all the other keypoints.
-    """
-    minimum_suppression_radius = {}
-    for i, kp1 in keypoints.iterrows():
-        x1 = kp1['x']
-        y1 = kp1['y']
-        temp = []
-        for j, kp2 in keypoints.iterrows(): #includes kp1 for now
-            if kp1['response'] < robust*kp2['response']:
-                x2 = kp2['x']
-                y2 = kp2['y']
-                temp.append(np.sqrt((x2-x1)**2 + (y2-y1)**2))
-        if(len(temp) > 0):
-            minimum_suppression_radius[i] = np.min(np.array(temp))
-        else:
-            minimum_suppression_radius[i] = np.nan
-    df = pd.DataFrame(list(minimum_suppression_radius.items()), columns=['keypoint', 'radius'])
-    top_n = df.sort_values(by='radius', ascending=False).head(n)
-    temp_df = df.mask(df.radius < top_n.radius.min(), other=np.nan)
-    temp_df = temp_df.where(np.isnan(temp_df.keypoint), other=1)
-    temp_df = temp_df.mask(np.isnan(temp_df.keypoint), other=0)
-    return np.array(temp_df.radius, dtype=np.bool)
-
-
-
-
-
