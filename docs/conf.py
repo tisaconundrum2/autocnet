@@ -280,6 +280,6 @@ texinfo_documents = [
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 # texinfo_no_detailmenu = False
 
-auto_mock_imports = ['proj4', 'gdal', 'osr', 'cv2', 'scikit-image', 'skimage', 'skimage.feature', 'sklearn']
+auto_mock_imports = ['proj4', 'gdal', 'osr','ogr', 'cv2', 'scikit-image', 'skimage', 'skimage.feature', 'sklearn']
 
 
