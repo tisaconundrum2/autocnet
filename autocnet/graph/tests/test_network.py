@@ -65,7 +65,7 @@ class TestCandidateGraph(unittest.TestCase):
     def tearDown(self):
         pass
 
-'''
+
 class TestFromList(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -78,7 +78,7 @@ class TestFromList(unittest.TestCase):
         self.assertEqual(self.graph.__len__(), 3)
         self.assertEqual(self.graph.number_of_nodes(), 3)
 
-
+'''
 class TestFromListCubes(unittest.TestCase):
     @classmethod
 
