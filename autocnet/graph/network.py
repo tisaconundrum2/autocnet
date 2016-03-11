@@ -1,4 +1,3 @@
-import collections
 import itertools
 import os
 import dill as pickle
@@ -7,7 +6,6 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-from pysal import cg
 from autocnet.fileio.io_gdal import GeoDataset
 from autocnet.control.control import C
 from autocnet.fileio import io_json
@@ -16,6 +14,7 @@ import autocnet.matcher.suppression_funcs as spf
 from autocnet.graph.edge import Edge
 from autocnet.graph.node import Node
 from autocnet.vis.graph_view import plot_graph
+
 
 class CandidateGraph(nx.Graph):
     """

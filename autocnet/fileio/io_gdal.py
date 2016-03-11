@@ -1,3 +1,5 @@
+import json
+
 import pvl
 import os
 
@@ -200,6 +202,7 @@ class GeoDataset(object):
     @property
     def latlon_extent(self):
         if not getattr(self, '_latlon_extent', None):
+
             try:
                 # If we have a footprint, no need to compute pixel to latlon
                 lowerlon, upperlon, lowerlat, upperlat = self.footprint.GetEnvelope()
@@ -208,7 +211,6 @@ class GeoDataset(object):
                 lowerlat, lowerlon = self.pixel_to_latlon(xy_extent[0][0], xy_extent[0][1])
                 upperlat, upperlon = self.pixel_to_latlon(xy_extent[1][0], xy_extent[1][1])
             self._latlon_extent = [(lowerlat, lowerlon), (upperlat, upperlon)]
-
         return self._latlon_extent
 
     @property
@@ -236,7 +238,14 @@ class GeoDataset(object):
                     self._footprint = ogr.CreateGeometryFromWkt(stream)
             except:
                 # Handle GDAL here
-                self._footprint = None
+                llat, llon, ulat, ulon = self.latlon_extent
+                geom = {"type": "Polygon", "coordinates": [[llat, llon],
+                                                           [llat, ulon],
+                                                           [ulat, ulon],
+                                                           [llon, ulat],
+                                                           [llat, llon]]}
+                self._footprint = ogr.CreateGeometryFromJson(json.dumps(geom))
+            print(self._footprint)
         return self._footprint
 
     @property
