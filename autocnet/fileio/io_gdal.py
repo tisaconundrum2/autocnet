@@ -245,7 +245,6 @@ class GeoDataset(object):
                                                            [llon, ulat],
                                                            [llat, llon]]}
                 self._footprint = ogr.CreateGeometryFromJson(json.dumps(geom))
-            print(self._footprint)
         return self._footprint
 
     @property

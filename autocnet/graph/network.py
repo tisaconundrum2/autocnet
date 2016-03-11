@@ -149,7 +149,6 @@ class CandidateGraph(nx.Graph):
                 for k, v in input_adjacency.items():
                     input_adjacency[k] = [os.path.join(basepath, i) for i in v]
                     input_adjacency[os.path.join(basepath, k)] = input_adjacency.pop(k)
-#        print(input_adjacency)
         return cls(input_adjacency)
 
     def get_name(self, node_index):
