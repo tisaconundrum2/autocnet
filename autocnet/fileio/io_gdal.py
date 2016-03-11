@@ -1,16 +1,16 @@
+import json
+
 import pvl
 import os
-import warnings
 
 from pysal.cg.shapes import Polygon
-from autocnet.utils.utils import find_in_dict, find_nested_in_dict
+from autocnet.utils.utils import find_in_dict
 from osgeo import ogr
 import numpy as np
 import gdal
 import osr
 
 from autocnet.fileio import extract_metadata
-from pysal import cg
 
 gdal.UseExceptions()
 
@@ -33,6 +33,7 @@ for k, v in iter(NP2GDAL_CONVERSION.items()):
     GDAL2NP_CONVERSION[v] = k
 
 GDAL2NP_CONVERSION[1] = 'int8'
+
 
 class GeoDataset(object):
     """
@@ -124,6 +125,12 @@ class GeoDataset(object):
     no_data_value : float
                     Special value used to indicate pixels that are not valid.
 
+    metadata : dict
+               A dictionary of available image metadata
+
+    footprint : object
+                An OGR footprint object
+
     """
     def __init__(self, file_name):
         """
@@ -195,34 +202,50 @@ class GeoDataset(object):
     @property
     def latlon_extent(self):
         if not getattr(self, '_latlon_extent', None):
+
             try:
+                # If we have a footprint, no need to compute pixel to latlon
+                lowerlon, upperlon, lowerlat, upperlat = self.footprint.GetEnvelope()
+            except:
                 xy_extent = self.xy_extent
                 lowerlat, lowerlon = self.pixel_to_latlon(xy_extent[0][0], xy_extent[0][1])
                 upperlat, upperlon = self.pixel_to_latlon(xy_extent[1][0], xy_extent[1][1])
-                self._latlon_extent = [(lowerlat, lowerlon), (upperlat, upperlon)]
-            except:
-                warnings.warn("Couldn't calculate a Latitude/Longitude extent")
-                self._latlon_extent = None
-
+            self._latlon_extent = [(lowerlat, lowerlon), (upperlat, upperlon)]
         return self._latlon_extent
 
     @property
-    def footprint_polygon(self):
-        if not getattr(self, '_pvl_header', None):
-            self._pvl_header = pvl.load(self.file_name) # Should be a member variable?
-            polygon_pvl = find_in_dict(self._pvl_header, 'Polygon')
-            start_polygon_byte = find_in_dict(polygon_pvl, 'StartByte')
-            num_polygon_bytes = find_in_dict(polygon_pvl, 'Bytes')
+    def metadata(self):
+        if not hasattr(self, '_metadata'):
+            try:
+                self._metadata = pvl.load(self.file_name)
+            except:
+                self._metadata = self.dataset.GetMetadata()
+        return self._metadata
 
-            # TODO: Do we really need to re-open the file here? self.dataset does not work
-            f = open(self.file_name, 'r+')
-            f.seek(start_polygon_byte - 1)
-            wkt = f.read(num_polygon_bytes)
-            polygon = ogr.CreateGeometryFromWkt(wkt)
-            self._footprint_polygon = polygon
-            f.close()
-        return self._footprint_polygon
+    @property
+    def footprint(self):
+        if not hasattr(self, '_footprint'):
+            try:
+                polygon_pvl = find_in_dict(self.metadata, 'Polygon')
+                start_polygon_byte = find_in_dict(polygon_pvl, 'StartByte')
+                num_polygon_bytes = find_in_dict(polygon_pvl, 'Bytes')
 
+                # I too dislike the additional open here.  Not sure a good option
+                with open(self.file_name, 'r+') as f:
+                    f.seek(start_polygon_byte - 1)
+                    # Sloppy unicode to string because GDAL pukes on unicode
+                    stream = str(f.read(num_polygon_bytes))
+                    self._footprint = ogr.CreateGeometryFromWkt(stream)
+            except:
+                # Handle GDAL here
+                llat, llon, ulat, ulon = self.latlon_extent
+                geom = {"type": "Polygon", "coordinates": [[llat, llon],
+                                                           [llat, ulon],
+                                                           [ulat, ulon],
+                                                           [llon, ulat],
+                                                           [llat, llon]]}
+                self._footprint = ogr.CreateGeometryFromJson(json.dumps(geom))
+        return self._footprint
 
     @property
     def xy_extent(self):
@@ -237,25 +260,6 @@ class GeoDataset(object):
             self._xy_extent = [(minx, miny), (maxx, maxy)]
 
         return self._xy_extent
-
-    @property
-    def bounding_box(self):
-        """
-        A bounding box in lat/lon space
-        Returns
-        -------
-
-        """
-        if not getattr(self, '_bounding_box', None):
-            try:
-                latlons = self.latlon_extent # Will fail without geospatial data
-                self._bounding_box = cg.standalone.get_bounding_box([cg.shapes.LineSegment(latlons[0], latlons[1])])
-                print(list(self._bounding_box))
-            except:
-                envelope = self.footprint_polygon.GetEnvelope()
-                self._bounding_box = [envelope[0], envelope[2], envelope[1], envelope[3]] # TODO: check me?
-                print(self.bounding_box)
-        return self._bounding_box
 
     @property
     def pixel_polygon(self):
