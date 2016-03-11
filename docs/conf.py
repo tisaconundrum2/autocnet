@@ -41,8 +41,6 @@ sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 sys.path.insert(0, os.path.abspath('../'))
 
 import autocnet
-import autocnet.control.control
-
 
 # -- General configuration ---------------------------------------------
 
