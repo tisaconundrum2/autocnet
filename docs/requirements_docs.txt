@@ -6,4 +6,3 @@ networkx
 sqlalchemy
 matplotlib
 numpy
-scipy
