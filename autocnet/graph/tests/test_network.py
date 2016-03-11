@@ -76,6 +76,20 @@ class TestFromList(unittest.TestCase):
 
     def test_graph_length(self):
         self.assertEqual(self.graph.__len__(), 3)
+        self.assertEqual(self.graph.number_of_nodes(), 3)
+
+class TestFromListCubes(unittest.TestCase):
+    @classmethod
+
+    def setUpClass(cls):
+        filelist = [get_path('AS15-M-0297_sub4.cub'),
+                    get_path('AS15-M-0298_sub4.cub'),
+                    get_path('AS15-M-0299_sub4.cub')]
+        cls.graph = network.CandidateGraph.from_filelist(filelist)
+
+    def test_graph_length(self):
+        self.assertEqual(self.graph.number_of_nodes(), 3)
+        self.assertEqual(self.graph.number_of_edges(), 3)
 
 class TestEdge(unittest.TestCase):
 
