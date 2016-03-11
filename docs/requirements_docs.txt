@@ -5,3 +5,5 @@ dill
 networkx
 sqlalchemy
 matplotlib
+numpy
+scipy
