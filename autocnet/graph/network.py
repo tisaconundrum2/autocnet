@@ -1,3 +1,5 @@
+import collections
+import itertools
 import os
 import dill as pickle
 
@@ -6,7 +8,6 @@ import numpy as np
 import pandas as pd
 
 from pysal import cg
-from autocnet.examples import get_path
 from autocnet.fileio.io_gdal import GeoDataset
 from autocnet.control.control import C
 from autocnet.fileio import io_json
@@ -79,9 +80,9 @@ class CandidateGraph(nx.Graph):
             graph = pickle.load(f)
         return graph
 
-# TODO: Add ability to actually read this out of a file?
+
     @classmethod
-    def from_filelist(cls, filelst):
+    def from_filelist(cls, filelist):
         """
         Instantiate the class using a filelist as a python list.
         An adjacency structure is calculated using the lat/lon information in the
@@ -89,8 +90,8 @@ class CandidateGraph(nx.Graph):
 
         Parameters
         ----------
-        filelst : list
-                  A list containing the files (with full paths) to construct an adjacency graph from
+        filelist : list
+                   A list containing the files (with full paths) to construct an adjacency graph from
 
         Returns
         -------
@@ -100,20 +101,24 @@ class CandidateGraph(nx.Graph):
 
         # TODO: Reject unsupported file formats + work with more file formats
 
-        dataset_list = []
-        for file in filelst:
-            dataset = GeoDataset(file)
-            dataset_list.append(dataset)
+        datasets = [GeoDataset(f) for f in filelist]
 
+        # This is brute force for now, could swap to an RTree at some point.
         adjacency_dict = {}
-        for data in dataset_list:
-            adjacent_images = []
-            other_datasets = dataset_list.copy()
-            other_datasets.remove(data)
-            for other in other_datasets:
-                if(cg.standalone.bbcommon(data.bounding_box, other.bounding_box)):
-                    adjacent_images.append(other.base_name)
-            adjacency_dict[data.base_name] = adjacent_images
+
+        for i, j in itertools.permutations(datasets,2):
+            if not i.base_name in adjacency_dict.keys():
+                adjacency_dict[i.base_name] = []
+            if not j.base_name in adjacency_dict.keys():
+                adjacency_dict[j.base_name] = []
+
+            # Grab the footprints and test for intersection
+            i_fp = i.footprint
+            j_fp = j.footprint
+            if i_fp.Intersects(j_fp):
+                adjacency_dict[i.base_name].append(j.base_name)
+                adjacency_dict[j.base_name].append(i.base_name)
+
         return cls(adjacency_dict)
 
 
