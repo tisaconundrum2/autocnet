@@ -54,4 +54,4 @@ class TestSRSProjectionExtraction(unittest.TestCase):
 
     def test_latitude_of_origin(self):
         lo = em.get_latitude_of_origin(self.srs)
-        self.assertEqual(lo, 90.0)
+        self.assertEqual(lo, 0.0)
