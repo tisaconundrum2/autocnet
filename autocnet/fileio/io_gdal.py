@@ -204,8 +204,9 @@ class GeoDataset(object):
     def latlon_extent(self):
         if not getattr(self, '_latlon_extent', None):
             try:
+                fp = self.footprint
                 # If we have a footprint, no need to compute pixel to latlon
-                lowerlon, upperlon, lowerlat, upperlat = self.footprint.GetEnvelope()
+                lowerlat, upperlat, lowerlon, upperlon = fp.GetEnvelope()
             except:
                 xy_extent = self.xy_extent
                 lowerlat, lowerlon = self.pixel_to_latlon(xy_extent[0][0], xy_extent[0][1])
