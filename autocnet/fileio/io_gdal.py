@@ -1,4 +1,5 @@
 import json
+import warnings
 
 import pvl
 import os
@@ -202,14 +203,19 @@ class GeoDataset(object):
     @property
     def latlon_extent(self):
         if not getattr(self, '_latlon_extent', None):
-
             try:
+                fp = self.footprint
                 # If we have a footprint, no need to compute pixel to latlon
-                lowerlon, upperlon, lowerlat, upperlat = self.footprint.GetEnvelope()
+                lowerlat, upperlat, lowerlon, upperlon = fp.GetEnvelope()
             except:
                 xy_extent = self.xy_extent
                 lowerlat, lowerlon = self.pixel_to_latlon(xy_extent[0][0], xy_extent[0][1])
                 upperlat, upperlon = self.pixel_to_latlon(xy_extent[1][0], xy_extent[1][1])
+                geom = {"type": "Polygon", "coordinates": [[[lowerlat, lowerlon],
+                                                           [lowerlat, upperlon],
+                                                           [upperlat, upperlon],
+                                                           [upperlat, lowerlon],
+                                                           [lowerlat, lowerlon]]]}
             self._latlon_extent = [(lowerlat, lowerlon), (upperlat, upperlon)]
         return self._latlon_extent
 
@@ -237,14 +243,18 @@ class GeoDataset(object):
                     stream = str(f.read(num_polygon_bytes))
                     self._footprint = ogr.CreateGeometryFromWkt(stream)
             except:
-                # Handle GDAL here
-                llat, llon, ulat, ulon = self.latlon_extent
-                geom = {"type": "Polygon", "coordinates": [[llat, llon],
-                                                           [llat, ulon],
-                                                           [ulat, ulon],
-                                                           [llon, ulat],
-                                                           [llat, llon]]}
+                # I dislike that this is copied from latlonext, but am unsure
+                # how to avoid the cyclical footprint to latlon_extent property hits.
+                xy_extent = self.xy_extent
+                lowerlat, lowerlon = self.pixel_to_latlon(xy_extent[0][0], xy_extent[0][1])
+                upperlat, upperlon = self.pixel_to_latlon(xy_extent[1][0], xy_extent[1][1])
+                geom = {"type": "Polygon", "coordinates": [[[lowerlat, lowerlon],
+                                                           [lowerlat, upperlon],
+                                                           [upperlat, upperlon],
+                                                           [upperlat, lowerlon],
+                                                           [lowerlat, lowerlon]]]}
                 self._footprint = ogr.CreateGeometryFromJson(json.dumps(geom))
+
         return self._footprint
 
     @property
@@ -375,10 +385,14 @@ class GeoDataset(object):
                    (Latitude, Longitude) corresponding to the given (x,y).
         
         """
-        geotransform = self.geotransform
-        x = geotransform[0] + (x * geotransform[1]) + (y * geotransform[2])
-        y = geotransform[3] + (x * geotransform[4]) + (y * geotransform[5])
-        lon, lat, _ = self.coordinate_transformation.TransformPoint(x, y)
+        try:
+            geotransform = self.geotransform
+            x = geotransform[0] + (x * geotransform[1]) + (y * geotransform[2])
+            y = geotransform[3] + (x * geotransform[4]) + (y * geotransform[5])
+            lon, lat, _ = self.coordinate_transformation.TransformPoint(x, y)
+        except:
+            lat = lon = None
+            warnings.warn('Unable to compute pixel to geographic conversion without projection information.')
 
         return lat, lon
 

@@ -40,7 +40,7 @@ class TestMercator(unittest.TestCase):
         self.assertEqual(xy_extent, [(0.0, 3921610.0), (10667520.0, -3921610.0)])
 
     def test_latlon_extent(self):
-        self.assertEqual(self.dataset.latlon_extent, [(-90.0, 0.0), (90.0, -150.4067721290261)])
+        self.assertEqual(self.dataset.latlon_extent, [(-90, -150.4067721290261), (90.0, 0.0)])
 
     def test_spheroid(self):
         sphere = self.dataset.spheroid
@@ -121,8 +121,6 @@ class TestLambert(unittest.TestCase):
         xy_extent = self.dataset.xy_extent
         self.assertEqual(xy_extent, [(-464400.0, -506970.0), (460530.0, -1571220.0)])
 
-    def test_latlon_extent(self):
-        self.assertEqual(self.dataset.latlon_extent, [(-89.95903191125286, -140.8933768668104),(-89.98515758604582, -148.48059053073257)])
 
 class TestPolar(unittest.TestCase):
     def setUp(self):
