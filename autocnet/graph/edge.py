@@ -44,7 +44,7 @@ class Edge(dict, MutableMapping):
 
         self._observers = set()
 
-        #Subscribe the heatlh observer
+        # Subscribe the heatlh observer
         self._health = health.EdgeHealth()
 
     def __repr__(self):
@@ -61,7 +61,7 @@ class Edge(dict, MutableMapping):
         if not hasattr(self, '_masks'):
             if hasattr(self, 'matches'):
                 self._masks = pd.DataFrame(True, columns=['symmetry'],
-                                       index=self.matches.index)
+                                           index=self.matches.index)
             else:
                 self._masks = pd.DataFrame()
         # If the mask is coming form another object that tracks
@@ -120,7 +120,6 @@ class Edge(dict, MutableMapping):
                 _, mask = self._clean(clean_keys)
             else:
                 mask = pd.Series(True, self.matches.index)
-
 
             self.distance_ratio = od.DistanceRatio(self.matches)
             self.distance_ratio.compute(mask=mask, **kwargs)
