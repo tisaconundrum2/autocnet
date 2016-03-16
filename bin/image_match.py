@@ -1,6 +1,6 @@
 import os
 import sys
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('../autocnet/'))
 
 from autocnet.examples import get_path
 from autocnet.graph.network import CandidateGraph
@@ -29,8 +29,6 @@ cg.compute_fundamental_matrices(clean_keys=['ratio', 'symmetry'])
 cg.subpixel_register(clean_keys=['fundamental', 'symmetry', 'ratio'],template_size=5, search_size=15)
 
 cnet = cg.to_cnet(clean_keys = ['subpixel'], isis_serials=True)
-
-print(cnet)
 
 filelist = cg.to_filelist()
 write_filelist(filelist, 'TestList.lis')
