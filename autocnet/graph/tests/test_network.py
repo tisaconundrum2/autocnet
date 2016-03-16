@@ -49,7 +49,6 @@ class TestCandidateGraph(unittest.TestCase):
         subgraph_list = self.graph.connected_subgraphs()
         self.assertEqual(len(subgraph_list), 1)
 
-
     def test_save_load(self):
         self.graph.save('test_save.cg')
         loaded = self.graph.from_graph('test_save.cg')
