@@ -36,8 +36,6 @@ write_filelist(filelist, 'TestList.lis')
 
 to_isis('TestList.net', cnet, mode='wb', targetname='Moon')
 
-if __
-
 # Ticket calls for a user specified "file list".
 # What kind of "file list" should this ui take? Should it be in the form of a .json file or should we allow the user
 # to enter the images he/she wants to look at in particular and parse them into a .json?
