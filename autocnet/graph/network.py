@@ -111,17 +111,17 @@ class CandidateGraph(nx.Graph):
         adjacency_dict = {}
 
         for i, j in itertools.permutations(datasets,2):
-            if not i.base_name in adjacency_dict.keys():
-                adjacency_dict[i.base_name] = []
-            if not j.base_name in adjacency_dict.keys():
-                adjacency_dict[j.base_name] = []
+            if not i.file_name in adjacency_dict.keys():
+                adjacency_dict[i.file_name] = []
+            if not j.file_name in adjacency_dict.keys():
+                adjacency_dict[j.file_name] = []
 
             # Grab the footprints and test for intersection
             i_fp = i.footprint
             j_fp = j.footprint
             if i_fp.Intersects(j_fp):
-                adjacency_dict[i.base_name].append(j.base_name)
-                adjacency_dict[j.base_name].append(i.base_name)
+                adjacency_dict[i.file_name].append(j.file_name)
+                adjacency_dict[j.file_name].append(i.file_name)
 
         return cls(adjacency_dict)
 
