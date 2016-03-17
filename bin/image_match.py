@@ -13,8 +13,8 @@ if __name__ == '__main__':
     # parses command line arguments into a single args variable
     def parse_arguments():
         parser = argparse.ArgumentParser()
-        parser.add_argument('filename', action='store', help='Provide the name of the file list/adjacency list')
-        parser.add_argument('config', action='store')
+        parser.add_argument('input_filename', action='store', help='Provide the name of the file list/adjacency list')
+        parser.add_argument('output_filename', action='store', help='Provide the name of the output file')
         args = parser.parse_args()
 
         return args
@@ -22,7 +22,7 @@ if __name__ == '__main__':
     # Matches the images in the input file using various candidate graph methods
     # produces two files usable in isis
     def match_images(args):
-        cg = CandidateGraph.from_adjacency(args.filename, basepath='/home/acpaquette/Desktop/')
+        cg = CandidateGraph.from_adjacency(args.input_filename, basepath='/home/acpaquette/Desktop/')
 
         # Apply SIFT to extract features
         cg.extract_features(method='sift', extractor_parameters={'nfeatures': 1000})
@@ -46,9 +46,9 @@ if __name__ == '__main__':
         cnet = cg.to_cnet(clean_keys=['subpixel'], isis_serials=True)
 
         filelist = cg.to_filelist()
-        write_filelist(filelist, 'TestList.lis')
+        write_filelist(filelist, args.input_filename + '.lis')
 
-        to_isis('TestList.net', cnet, mode='wb', targetname='Moon')
+        to_isis(args.input_filename + '.net', cnet, mode='wb', targetname='Moon')
 
         # Ticket calls for a user specified "file list".
         # What kind of "file list" should this ui take? Should it be in the form of a .json file or should we allow the user
