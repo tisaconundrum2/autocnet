@@ -13,7 +13,8 @@ if __name__ == '__main__':
     # parses command line arguments into a single args variable
     def parse_arguments():
         parser = argparse.ArgumentParser()
-        parser.add_argument('filename', action='store')
+        parser.add_argument('filename', action='store', help='Provide the name of the file list/adjacency list')
+        parser.add_argument('config', action='store')
         args = parser.parse_args()
 
         return args
