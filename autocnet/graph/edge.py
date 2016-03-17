@@ -1,4 +1,3 @@
-import math
 import warnings
 from collections import MutableMapping
 
@@ -259,7 +258,7 @@ class Edge(dict, MutableMapping):
         """
         matches = self.matches
         for column, default in {'x_offset': 0, 'y_offset': 0, 'correlation': 0, 'reference': -1}.items():
-            if not column in self.matches.columns:
+            if column not in self.matches.columns:
                 self.matches[column] = default
 
         # Build up a composite mask from all of the user specified masks
