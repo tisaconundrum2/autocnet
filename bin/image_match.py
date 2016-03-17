@@ -8,35 +8,50 @@ from autocnet.graph.network import CandidateGraph
 from autocnet.fileio.io_controlnetwork import to_isis
 from autocnet.fileio.io_controlnetwork import write_filelist
 
-cg = CandidateGraph.from_adjacency(args.filename, basepath='/home/acpaquette/Desktop/')
+if __name__ == '__main__':
 
-# Apply SIFT to extract features
-cg.extract_features(method='sift', extractor_parameters={'nfeatures': 1000})
+    # parses command line arguments into a single args variable
+    def parse_arguments():
+        parser = argparse.ArgumentParser()
+        parser.add_argument('filename', action='store')
+        args = parser.parse_args()
 
-# Match
-cg.match_features()
+        return args
 
-# Apply outlier detection
-cg.symmetry_checks()
-cg.ratio_checks()
+    # Matches the images in the input file using various candidate graph methods
+    # produces two files usable in isis
+    def match_images(args):
+        cg = CandidateGraph.from_adjacency(args.filename, basepath='/home/acpaquette/Desktop/')
 
-m = cg.edge[0][1].masks
+        # Apply SIFT to extract features
+        cg.extract_features(method='sift', extractor_parameters={'nfeatures': 1000})
 
-# Compute a homography and apply RANSAC
-cg.compute_fundamental_matrices(clean_keys=['ratio', 'symmetry'])
+        # Match
+        cg.match_features()
 
-cg.subpixel_register(clean_keys=['fundamental', 'symmetry', 'ratio'], template_size=5, search_size=15)
+        # Apply outlier detection
+        cg.symmetry_checks()
+        cg.ratio_checks()
 
-cg.suppress(clean_keys=['fundamental'], k=50)
+        m = cg.edge[0][1].masks
 
-cnet = cg.to_cnet(clean_keys=['subpixel'], isis_serials=True)
+        # Compute a homography and apply RANSAC
+        cg.compute_fundamental_matrices(clean_keys=['ratio', 'symmetry'])
 
-filelist = cg.to_filelist()
-write_filelist(filelist, 'TestList.lis')
+        cg.subpixel_register(clean_keys=['fundamental', 'symmetry', 'ratio'], template_size=5, search_size=15)
 
-to_isis('TestList.net', cnet, mode='wb', targetname='Moon')
+        cg.suppress(clean_keys=['fundamental'], k=50)
 
-# Ticket calls for a user specified "file list".
-# What kind of "file list" should this ui take? Should it be in the form of a .json file or should we allow the user
-# to enter the images he/she wants to look at in particular and parse them into a .json?
+        cnet = cg.to_cnet(clean_keys=['subpixel'], isis_serials=True)
 
+        filelist = cg.to_filelist()
+        write_filelist(filelist, 'TestList.lis')
+
+        to_isis('TestList.net', cnet, mode='wb', targetname='Moon')
+
+        # Ticket calls for a user specified "file list".
+        # What kind of "file list" should this ui take? Should it be in the form of a .json file or should we allow the user
+        # to enter the images he/she wants to look at in particular and parse them into a .json?
+
+    command_line_args = parse_arguments()
+    match_images(command_line_args)
