@@ -1,11 +1,19 @@
 import os
 import sys
+import argparse
+
+sys.path.insert(0, os.path.abspath('../autocnet'))
 
 from autocnet.graph.network import CandidateGraph
 from autocnet.fileio.io_controlnetwork import to_isis
 from autocnet.fileio.io_controlnetwork import write_filelist
 
-sys.path.insert(0, os.path.abspath('../autocnet/'))
+'''
+parser = argparse.ArgumentParser()
+parser.add_argument('filename', action='store')
+
+print(parser.parse_args())
+'''
 
 cg = CandidateGraph.from_adjacency(sys.argv[1], basepath='/home/acpaquette/Desktop/')
 
@@ -24,7 +32,7 @@ m = cg.edge[0][1].masks
 # Compute a homography and apply RANSAC
 cg.compute_fundamental_matrices(clean_keys=['ratio', 'symmetry'])
 
-# add ANMS
+cg.suppress(clean_keys=['fundamental'])
 
 cg.subpixel_register(clean_keys=['fundamental', 'symmetry', 'ratio'], template_size=5, search_size=15)
 
@@ -38,3 +46,4 @@ to_isis('TestList.net', cnet, mode='wb', targetname='Moon')
 # Ticket calls for a user specified "file list".
 # What kind of "file list" should this ui take? Should it be in the form of a .json file or should we allow the user
 # to enter the images he/she wants to look at in particular and parse them into a .json?
+
