@@ -97,6 +97,10 @@ class CandidateGraph(nx.Graph):
         : object
           A Network graph object
         """
+        if not isinstance(filelist, list):
+            with open(filelist, 'r') as f:
+                filelist = f.readlines()
+                filelist = map(str.rstrip, filelist)
 
         # TODO: Reject unsupported file formats + work with more file formats
 
