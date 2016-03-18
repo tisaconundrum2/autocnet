@@ -1,5 +1,0 @@
-{
-	"AS15-M-0414_sub4.cub": ["AS15-M-0413_sub4.cub", "AS15-M-0412_sub4.cub"],
-	"AS15-M-0413_sub4.cub": ["AS15-M-0414_sub4.cub", "AS15-M-0412_sub4.cub"],
-	"AS15-M-0412_sub4.cub": ["AS15-M-0413_sub4.cub", "AS15-M-0414_sub4.cub"]
-}
