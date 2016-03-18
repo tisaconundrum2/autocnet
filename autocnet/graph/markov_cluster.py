@@ -22,7 +22,7 @@ def mcl(g, expand_factor=2, inflate_factor=2, max_loop=10, mult_factor=1):
                     Parameter to manage flow connection between different regions of the graph.
 
     mult_factor : int
-                  Value to set for self loops.
+                  Value to set for self loops.  That is, the flow between a node and itself.
 
     max_loop : int
                Number of iterations to perform before terminating (or convergence).
@@ -97,7 +97,6 @@ def mcl(g, expand_factor=2, inflate_factor=2, max_loop=10, mult_factor=1):
     arr = _normalize(arr)
 
     for i in range(max_loop):
-        #logging.info("loop", i)
         arr = _inflate(arr, inflate_factor)
         arr = _expand(arr, expand_factor)
 
