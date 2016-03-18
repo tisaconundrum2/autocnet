@@ -106,7 +106,6 @@ class CandidateGraph(nx.Graph):
             with open(filelist, 'r') as f:
                 filelist = f.readlines()
                 filelist = map(str.rstrip, filelist)
-                print(list(filelist))
 
         # TODO: Reject unsupported file formats + work with more file formats
 

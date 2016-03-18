@@ -14,10 +14,7 @@ def parse_arguments():
     parser.add_argument('-i', action='store', dest='input_file', default='No_Input', help='Provide the name of the file list/adjacency list')
     parser.add_argument('-o', action='store', dest='output_file', help='Provide the name of the output file')
     args = parser.parse_args()
-    print(args)
-
     return args
-
 
 def match_images(args):
 
@@ -26,7 +23,6 @@ def match_images(args):
     try:
         cg = CandidateGraph.from_adjacency(args.input_file, basepath='/home/acpaquette/Desktop/')
     except:
-        print('here')
         cg = CandidateGraph.from_filelist(args.input_file)
 
     # Apply SIFT to extract features
@@ -38,8 +34,6 @@ def match_images(args):
     # Apply outlier detection
     cg.symmetry_checks()
     cg.ratio_checks()
-
-    m = cg.edge[0][1].masks
 
     # Compute a homography and apply RANSAC
     cg.compute_fundamental_matrices(clean_keys=['ratio', 'symmetry'])
@@ -58,11 +52,3 @@ def match_images(args):
 if __name__ == '__main__':
     command_line_args = parse_arguments()
     match_images(command_line_args)
-
-'''
-    file = CandidateGraph.from_filelist(["/home/acpaquette/Desktop/AS15-M-0414_sub4.cub",
-      "/home/acpaquette/Desktop/AS15-M-0413_sub4.cub",
-      "/home/acpaquette/Desktop/AS15-M-0412_sub4.cub"])
-
-    file2 = CandidateGraph.from_filelist('/home/acpaquette/autocnet/autocnet/examples/Apollo15/user_image_list.json')
-'''
