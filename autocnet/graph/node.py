@@ -124,7 +124,7 @@ class Node(dict, MutableMapping):
         array : ndarray
 
         kwargs : dict
-                 KWargs passed to autocnet.feature_extractor.extract_features
+                 kwargs passed to autocnet.feature_extractor.extract_features
 
         """
         keypoint_objs, descriptors = fe.extract_features(array, **kwargs)
