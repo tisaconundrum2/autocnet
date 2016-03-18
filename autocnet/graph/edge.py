@@ -1,4 +1,3 @@
-import math
 import warnings
 from collections import MutableMapping
 
@@ -44,7 +43,7 @@ class Edge(dict, MutableMapping):
 
         self._observers = set()
 
-        #Subscribe the heatlh observer
+        # Subscribe the heatlh observer
         self._health = health.EdgeHealth()
 
     def __repr__(self):
@@ -61,7 +60,7 @@ class Edge(dict, MutableMapping):
         if not hasattr(self, '_masks'):
             if hasattr(self, 'matches'):
                 self._masks = pd.DataFrame(True, columns=['symmetry'],
-                                       index=self.matches.index)
+                                           index=self.matches.index)
             else:
                 self._masks = pd.DataFrame()
         # If the mask is coming form another object that tracks
@@ -120,7 +119,6 @@ class Edge(dict, MutableMapping):
                 _, mask = self._clean(clean_keys)
             else:
                 mask = pd.Series(True, self.matches.index)
-
 
             self.distance_ratio = od.DistanceRatio(self.matches)
             self.distance_ratio.compute(mask=mask, **kwargs)
@@ -260,7 +258,7 @@ class Edge(dict, MutableMapping):
         """
         matches = self.matches
         for column, default in {'x_offset': 0, 'y_offset': 0, 'correlation': 0, 'reference': -1}.items():
-            if not column in self.matches.columns:
+            if column not in self.matches.columns:
                 self.matches[column] = default
 
         # Build up a composite mask from all of the user specified masks
