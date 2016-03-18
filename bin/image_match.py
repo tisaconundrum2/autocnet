@@ -8,7 +8,7 @@ from autocnet.graph.network import CandidateGraph
 from autocnet.fileio.io_controlnetwork import to_isis
 from autocnet.fileio.io_controlnetwork import write_filelist
 
-cg = CandidateGraph.from_adjacency(args.filename, basepath='')
+cg = CandidateGraph.from_adjacency(sys.argv[1], basepath='')
 
 # Apply SIFT to extract features
 cg.extract_features(method='sift', extractor_parameters={'nfeatures': 1000})
