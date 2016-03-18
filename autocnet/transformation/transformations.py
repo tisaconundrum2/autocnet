@@ -37,8 +37,8 @@ class TransformationMatrix(np.ndarray):
             state_package = {'arr': obj.copy(),
                              'mask': obj.mask.copy()}
         else:
-            state_package = {'arr':obj.copy(),
-                             'mask':None}
+            state_package = {'arr': obj.copy(),
+                             'mask': None}
         obj._action_stack.append(state_package)
 
         return obj
@@ -179,6 +179,7 @@ class FundamentalMatrix(TransformationMatrix):
             describing the error of the points used to
             compute this homography
     """
+
     def refine(self, method=ps.esda.mapclassify.Fisher_Jenks, bin_id=0, **kwargs):
         """
         Refine the fundamental matrix by accepting some data classification
@@ -214,14 +215,14 @@ class FundamentalMatrix(TransformationMatrix):
         bins = fj.bins
         # Mask the data that falls outside the provided bins
         mask = self.error['Reprojection Error'] <= bins[bin_id]
-        new_x1 = self.x1.iloc[mask[mask==True].index]
-        new_x2 = self.x2.iloc[mask[mask==True].index]
+        new_x1 = self.x1.iloc[mask[mask == True].index]
+        new_x2 = self.x2.iloc[mask[mask == True].index]
         fmatrix, new_mask = compute_fundamental_matrix(new_x1.values, new_x2.values)
-        mask[mask==True] = new_mask
+        mask[mask == True] = new_mask
 
         # Update the current state
         self[:] = fmatrix
-        self.mask[self.mask==True] = mask
+        self.mask[self.mask == True] = mask
 
         # Update the action stack
         try:
@@ -240,7 +241,8 @@ class FundamentalMatrix(TransformationMatrix):
         for a in ['_error', '_determinant', '_condition']:
             try:
                 delattr(self, a)
-            except: pass
+            except:
+                pass
 
     def compute_error(self, x1, x2, mask=None):
         """
@@ -273,7 +275,7 @@ class FundamentalMatrix(TransformationMatrix):
             mask = mask
         else:
             mask = self.mask
-        index = mask[mask==True].index
+        index = mask[mask == True].index
 
         x1 = self.x1.iloc[index].values
         x2 = self.x2.iloc[index].values
@@ -281,21 +283,21 @@ class FundamentalMatrix(TransformationMatrix):
 
         # TODO: Vectorize the error computation
         for i, j in enumerate(x1):
-            a = self[0,0] * j[0] + self[0,1] * j[1] + self[0,2]
-            b = self[1,0] * j[0] + self[1,1] * j[1] + self[1,2]
-            c = self[2,0] * j[0] + self[2,1] * j[1] + self[2,2]
+            a = self[0, 0] * j[0] + self[0, 1] * j[1] + self[0, 2]
+            b = self[1, 0] * j[0] + self[1, 1] * j[1] + self[1, 2]
+            c = self[2, 0] * j[0] + self[2, 1] * j[1] + self[2, 2]
 
-            s2 = 1 / (a*a + b*b)
+            s2 = 1 / (a * a + b * b)
             d2 = x2[i][0] * a + x2[i][1] * b + c
 
-            a = self[0,0] * x2[i][0] + self[0,1] * x2[i][1] + self[0,2]
-            b = self[1,0] * x2[i][0] + self[1,1] * x2[i][1] + self[1,2]
-            c = self[2,0] * x2[i][0] + self[2,1] * x2[i][1] + self[2,2]
+            a = self[0, 0] * x2[i][0] + self[0, 1] * x2[i][1] + self[0, 2]
+            b = self[1, 0] * x2[i][0] + self[1, 1] * x2[i][1] + self[1, 2]
+            c = self[2, 0] * x2[i][0] + self[2, 1] * x2[i][1] + self[2, 2]
 
-            s1 = 1 / (a*a + b*b)
-            d1 = j[0]*a + j[1]*b + c
+            s1 = 1 / (a * a + b * b)
+            d1 = j[0] * a + j[1] * b + c
 
-            err[i] = max(d1*d1*s1, d2*d2*s2)
+            err[i] = max(d1 * d1 * s1, d2 * d2 * s2)
 
         error = pd.DataFrame(err, columns=['Reprojection Error'], index=index)
 
@@ -354,7 +356,7 @@ class Homography(TransformationMatrix):
             mask = mask
         else:
             mask = self.mask
-        index = mask[mask==True].index
+        index = mask[mask == True].index
 
         a = a.iloc[index].values
         b = b.iloc[index].values
@@ -371,14 +373,14 @@ class Homography(TransformationMatrix):
 
         data = np.empty((a.shape[0], 4))
 
-        data[:,0] = x_res = b[:,0] - a[:,0]
-        data[:,1] = y_res = b[:,1] - a[:,1]
-        data[:,2] = rms = np.sqrt(x_res**2 + y_res**2)
+        data[:, 0] = x_res = b[:, 0] - a[:, 0]
+        data[:, 1] = y_res = b[:, 1] - a[:, 1]
+        data[:, 2] = rms = np.sqrt(x_res**2 + y_res**2)
         total_rms = np.sqrt(np.mean(x_res**2 + y_res**2))
         x_rms = np.sqrt(np.mean(x_res**2))
         y_rms = np.sqrt(np.mean(y_res**2))
 
-        data[:,3] = rms / total_rms
+        data[:, 3] = rms / total_rms
 
         df = pd.DataFrame(data,
                           columns=['x_residuals',
