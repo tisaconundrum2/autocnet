@@ -13,10 +13,8 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', action='store', dest='input_file', default='No_Input', help='Provide the name of the file list/adjacency list')
     parser.add_argument('-o', action='store', dest='output_file', help='Provide the name of the output file')
-    parser.add_argument('-l', '--list', nargs='*', dest='list', default=[], required=False)
     args = parser.parse_args()
     print(args)
-    print(len(args.list))
 
     return args
 
@@ -25,13 +23,11 @@ def match_images(args):
 
     # Matches the images in the input file using various candidate graph methods
     # produces two files usable in isis
-    if len(args.list) > 1:
-        cg = CandidateGraph.from_filelist(args.list)
-    else:
-        try:
-            cg = CandidateGraph.from_adjacency(args.input_file, basepath='/home/acpaquette/Desktop/')
-        except:
-            cg = CandidateGraph.from_filelist(args.input_file)
+    try:
+        cg = CandidateGraph.from_adjacency(args.input_file, basepath='/home/acpaquette/Desktop/')
+    except:
+        print('here')
+        cg = CandidateGraph.from_filelist(args.input_file)
 
     # Apply SIFT to extract features
     cg.extract_features(method='sift', extractor_parameters={'nfeatures': 1000})
