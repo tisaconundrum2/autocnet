@@ -9,17 +9,17 @@ from autocnet.graph.network import CandidateGraph
 from autocnet.fileio.io_controlnetwork import to_isis, write_filelist
 from autocnet.fileio.io_yaml import read_yaml
 
-
+# reads in config file
 def read_config(yaml_file):
     config_dict = read_yaml(yaml_file)
+
     return config_dict
 
-
-# parses command line arguments into a single args variable
+# parses command line arguments into a single args list
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', action='store', dest='input_file', default='No_Input', help='Provide the name of the file list/adjacency list')
-    parser.add_argument('-o', action='store', dest='output_file', help='Provide the name of the output file.')
+    parser.add_argument('input_file', action='store', help='Provide the name of the file list/adjacency list')
+    parser.add_argument('output_file', action='store', help='Provide the name of the output file.')
     args = parser.parse_args()
 
     return args
