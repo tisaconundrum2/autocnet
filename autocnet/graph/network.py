@@ -45,6 +45,7 @@ class CandidateGraph(nx.Graph):
         self.node_counter = 0
         node_labels = {}
         self.node_name_map = {}
+        self.graph_masks = {}
 
         # the node_name is the relative path for the image
         for node_name, node in self.nodes_iter(data=True):
@@ -290,6 +291,45 @@ class CandidateGraph(nx.Graph):
                  of keyword arguments to be passed through to the func
         """
         _, self.clusters = func(self, *args, **kwargs)
+
+    def apply_func_to_edges(self, func, *args, graph_mask_keys=[], **kwargs):
+        """
+        Iterates over edges using an optional mask and and applies the given function.
+        If func is not an attribute of Edge, raises AttributeError
+        Parameters
+        ----------
+        func : string
+               function to be called on every edge
+        graph_mask_keys : list
+                          of keys in graph_masks
+        """
+
+        merged_graph_mask = self.graph_masks[graph_mask_keys].all(axis=1)
+        edges_to_iter = merged_graph_mask[merged_graph_mask].index
+
+        for s, d in edges_to_iter:
+            curr_edge = self.get_edge_data(s, d)
+            try:
+                function = getattr(curr_edge, func)
+            except:
+                raise AttributeError('The passed function is not an attribute of Edge')
+            else:
+                function(*args, **kwargs)
+
+    def minimum_spanning_tree(self):
+        """
+        Calculates the minimum spanning tree of the graph
+
+        Returns
+        -------
+
+         : DataFrame
+           boolean mask for edges in the minimum spanning tree
+        """
+
+        self.graph_masks = pd.DataFrame(False, index=self.edges(), columns=['mst'])
+        mst = nx.minimum_spanning_tree(self)
+        self.graph_masks['mst'][mst.edges()] = True
 
     def symmetry_checks(self):
         """

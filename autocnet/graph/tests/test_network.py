@@ -99,3 +99,27 @@ class TestEdge(unittest.TestCase):
     def setUpClass(cls):
         cls.graph = network.CandidateGraph.from_adjacency(get_path('adjacency.json'))
 
+
+class TestMSTGraph(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.test_dict = {"0": ["4", "2", "1", "3"],
+                         "1": ["0", "3", "2", "6", "5"],
+                         "2": ["1", "0", "3", "4", "7"],
+                         "3": ["2", "0", "1", "5"],
+                         "4": ["2", "0"],
+                         "5": ["1", "3"],
+                         "6": ["1"],
+                         "7": ["2"]}
+
+        cls.graph = network.CandidateGraph.from_adjacency(cls.test_dict)
+        cls.graph.minimum_spanning_tree()
+        cls.mst_graph = cls.graph.copy()
+
+        for s, d, edge in cls.graph.edges_iter(data=True):
+            if not cls.graph.graph_masks['mst'][(s, d)]:
+                cls.mst_graph.remove_edge(s, d)
+
+    def test_mst_output(self):
+        self.assertEqual(self.mst_graph.nodes(), self.graph.nodes())
+        self.assertEqual(self.mst_graph.number_of_edges(), self.graph.number_of_edges()-5)
