@@ -13,7 +13,9 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', action='store', dest='input_file', default='No_Input', help='Provide the name of the file list/adjacency list')
     parser.add_argument('-o', action='store', dest='output_file', help='Provide the name of the output file')
+    parser.add_argument('-p', action='store', dest='basepath', help='Provide the path to the image files')
     args = parser.parse_args()
+
     return args
 
 def match_images(args):
@@ -21,7 +23,7 @@ def match_images(args):
     # Matches the images in the input file using various candidate graph methods
     # produces two files usable in isis
     try:
-        cg = CandidateGraph.from_adjacency(args.input_file, basepath='/home/acpaquette/Desktop/')
+        cg = CandidateGraph.from_adjacency(args.input_file, basepath=args.basepath)
     except:
         cg = CandidateGraph.from_filelist(args.input_file)
 
