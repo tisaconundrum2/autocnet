@@ -19,7 +19,7 @@ def read_yaml(inputfile):
     """
     try:
         with open(inputfile, 'r') as f:
-            doc = yaml.load(f)
+            ydict = yaml.load(f)
 
     except:
         raise IOError('Unable to load YAML file.')
