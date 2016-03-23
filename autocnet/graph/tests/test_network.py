@@ -40,6 +40,23 @@ class TestCandidateGraph(unittest.TestCase):
     def test_island_nodes(self):
         self.assertEqual(len(self.disconnected_graph.island_nodes()), 1)
 
+    def test_apply_func_to_edges(self):
+        graph = self.graph.copy()
+        graph.minimum_spanning_tree()
+
+        try:
+            graph.apply_func_to_edges('incorrect_func')
+        except AttributeError:
+            pass
+
+        graph.extract_features(extractor_parameters={'nfeatures': 500})
+        graph.match_features()
+        graph.apply_func_to_edges("symmetry_check", graph_mask_keys=['mst'])
+
+        self.assertFalse(graph[0][2].masks['symmetry'].all())
+        self.assertFalse(graph[0][1].masks['symmetry'].all())
+        self.assertTrue(graph[1][2].masks['symmetry'].all())
+
     def test_connected_subgraphs(self):
         subgraph_list = self.disconnected_graph.connected_subgraphs()
         self.assertEqual(len(subgraph_list), 2)
@@ -100,7 +117,7 @@ class TestEdge(unittest.TestCase):
         cls.graph = network.CandidateGraph.from_adjacency(get_path('adjacency.json'))
 
 
-class TestMSTGraph(unittest.TestCase):
+class TestGraphMasks(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.test_dict = {"0": ["4", "2", "1", "3"],
