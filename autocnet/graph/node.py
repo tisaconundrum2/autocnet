@@ -1,16 +1,20 @@
 from collections import MutableMapping
+import os
+import warnings
 
 import numpy as np
 import pandas as pd
 from scipy.misc import bytescale
 
 from autocnet.fileio.io_gdal import GeoDataset
+from autocnet.fileio import io_hdf
 from autocnet.matcher import feature_extractor as fe
 from autocnet.matcher import outlier_detector as od
 from autocnet.matcher import suppression_funcs as spf
 from autocnet.cg.cg import convex_hull_ratio
 from autocnet.utils.isis_serial_numbers import generate_serial_number
 from autocnet.vis.graph_view import plot_node
+from autocnet.utils import utils
 
 
 class Node(dict, MutableMapping):
@@ -141,6 +145,73 @@ class Node(dict, MutableMapping):
                                                           'angle', 'octave', 'layer'])
         self._nkeypoints = len(self.keypoints)
         self.descriptors = descriptors.astype(np.float32)
+
+    def load_features(self, in_path):
+        """
+        Load keypoints and descriptors for the given image
+        from a HDF file.
+
+        Parameters
+        ----------
+        in_path : str or object
+                  PATH to the hdf file or a HDFDataset object handle
+        """
+        if isinstance(in_path, str):
+            hdf = io_hdf.HDFDataset(in_path, mode='r')
+        else:
+            hdf = in_path
+
+        self.descriptors = hdf['{}/descriptors'.format(self.image_name)][:]
+        raw_kps = hdf['{}/keypoints'.format(self.image_name)][:]
+        index = raw_kps['index']
+        clean_kps = utils.remove_field_name(raw_kps, 'index')
+        columns = clean_kps.dtype.names
+        self.keypoints = pd.DataFrame(data=clean_kps, columns=columns, index=index)
+
+        if isinstance(in_path, str):
+            hdf = None
+
+    def save_features(self, out_path):
+        """
+        Save the extracted keypoints and descriptors to
+        the given HDF5 file.
+
+        Parameters
+        ----------
+        out_path : str or object
+                   PATH to the hdf file or a HDFDataset object handle
+        """
+        if not hasattr(self, 'keypoints'):
+            warnings.warn('Node {} has not had features extracted.'.format(i))
+            return
+
+        # If the out_path is a string, access the HDF5 file
+        if isinstance(out_path, str):
+            if os.path.exists(out_path):
+                mode = 'a'
+            else:
+                mode = 'w'
+            hdf = io_hdf.HDFDataset(out_path, mode=mode)
+        else:
+            hdf = out_path
+
+        try:
+            hdf.create_dataset('{}/descriptors'.format(self.image_name),
+                               data=self.descriptors,
+                               compression=io_hdf.DEFAULT_COMPRESSION,
+                               compression_opts=io_hdf.DEFAULT_COMPRESSION_VALUE)
+            hdf.create_dataset('{}/keypoints'.format(self.image_name),
+                               data=hdf.df_to_sarray(self.keypoints.reset_index()),
+                               compression=io_hdf.DEFAULT_COMPRESSION,
+                               compression_opts=io_hdf.DEFAULT_COMPRESSION_VALUE)
+        except:
+            warnings.warn('Descriptors for the node {} are already stored'.format(self.image_name))
+
+        # If the out_path is a string, assume this method is being called as a singleton
+        # and close the hdf file gracefully.  If an object, let the instantiator of the
+        # object close the file
+        if isinstance(out_path, str):
+            hdf = None
 
     def suppress(self, func=spf.response, **kwargs):
         if not hasattr(self, 'keypoints'):

@@ -92,3 +92,12 @@ class TestUtils(unittest.TestCase):
         pts = utils.make_homogeneous(pts)
         self.assertEqual(pts.shape, (25,3))
         np.testing.assert_array_equal(pts[:, -1], np.ones(25))
+
+
+    def test_remove_field_name(self):
+        starray = np.array([(1 ,2.,'String'), (2, 3.,"String2")],
+              dtype=[('index', 'i4'),('bar', 'f4'), ('baz', 'S10')])
+        truth = np.array([(2.,'String'), (3.,"String2")],
+              dtype=[('bar', 'f4'), ('baz', 'S10')])
+        cleaned_array = utils.remove_field_name(starray, 'index')
+        np.testing.assert_array_equal(cleaned_array, truth)

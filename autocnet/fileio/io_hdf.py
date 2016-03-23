@@ -3,6 +3,9 @@ import numpy as np
 import pandas as pd
 
 
+DEFAULT_COMPRESSION = 'gzip'
+DEFAULT_COMPRESSION_VALUE = 8  # 0 - 9
+
 class HDFDataset(h5.File):
     """
     Read / Write an HDF5 dataset using h5py.  If HDF5 is compiled with
@@ -35,7 +38,6 @@ class HDFDataset(h5.File):
         z : ndarray
             a numpy structured array representation of df
         """
-
         v = df.values
         cols = df.columns
         types = [(cols[i], df[k].dtype.type) for (i, k) in enumerate(cols)]
@@ -54,6 +56,9 @@ class HDFDataset(h5.File):
         ----------
         sarray : array
                  numpy structured array
+
+        index_column : str
+                       The name of the index column.  Default: 'index'
 
         Returns
         -------

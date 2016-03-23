@@ -101,6 +101,6 @@ class TestTwoImageMatching(unittest.TestCase):
 
     def tearDown(self):
         try:
-            os.path.remove('TestTwoImageMatching.net')
-            os.path.remove('fromlist.lis')
+            os.remove('TestTwoImageMatching.net')
+            os.remove('fromlist.lis')
         except: pass
