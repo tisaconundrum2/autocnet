@@ -2,4 +2,20 @@ match_image:
   inputfile_path: /home/acpaquette/autocnet/autocnet/examples/Apollo15/
   basepath: /home/acpaquette/Desktop/
   outputfile_path: /home/acpaquette/autocnet/autocnet/examples/Apollo15/
- 
+
+extract_features:
+  method:
+  extractor_parameters:
+
+match_features:
+  number_of_matching_features: 
+
+ratio_checks:
+  clean_keys:
+
+fundamental_matrces:
+  clean_keys:
+  
+subpixel_register:
+
+suppression:
