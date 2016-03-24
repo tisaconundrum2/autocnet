@@ -1,0 +1,5 @@
+match_image: 
+  inputfile_path: /home/acpaquette/autocnet/autocnet/examples/Apollo15/
+  basepath: /home/acpaquette/Desktop/
+  outputfile_path: /home/acpaquette/autocnet/autocnet/examples/Apollo15/
+ 

@@ -59,6 +59,6 @@ def match_images(args, config_dict):
     to_isis(config['match_image']['outputfile_path'] + args.output_file + '.net', cnet, mode='wb', targetname='Moon')
 
 if __name__ == '__main__':
-    config = read_config('/home/acpaquette/image_match_config.yml')
+    config = read_config('/home/acpaquette/autocnet/.image_match_config.yml')
     command_line_args = parse_arguments()
     match_images(command_line_args, config)
