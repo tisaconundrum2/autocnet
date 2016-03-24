@@ -5,6 +5,7 @@ omit =
     autocnet/fileio/ControlNetFileV0002_pb2.py
     autocnet/vis/graph_view.py
     autocnet/fileio/sqlalchemy_json/*
+    bin/*
 exclude_lines =
     pragma: no cover
     def __repr__
