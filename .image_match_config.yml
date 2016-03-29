@@ -51,6 +51,6 @@ cnet_conversion:
         - subpixel
 to_isis:
     networkid: None
-    targetname: moon
+    targetname: Moon
     description: None
     username: DEFAULTUSERNAME
