@@ -27,10 +27,10 @@ def match_images(args, config_dict):
     # Matches the images in the input file using various candidate graph methods
     # produces two files usable in isis
     try:
-        cg = CandidateGraph.from_adjacency(config['inputfile_path'] +
+        cg = CandidateGraph.from_adjacency(config_dict['inputfile_path'] +
                                            args.input_file, basepath=config['basepath'])
     except:
-        cg = CandidateGraph.from_filelist(config['inputfile_path'] + args.input_file)
+        cg = CandidateGraph.from_filelist(config_dict['inputfile_path'] + args.input_file)
 
     # Apply SIFT to extract features
     cg.extract_features(method='sift', extractor_parameters={'nfeatures': 1000})
@@ -52,9 +52,9 @@ def match_images(args, config_dict):
     cnet = cg.to_cnet(clean_keys=['subpixel'], isis_serials=True)
 
     filelist = cg.to_filelist()
-    write_filelist(filelist, config['outputfile_path'] + args.output_file + '.lis')
+    write_filelist(filelist, config_dict['outputfile_path'] + args.output_file + '.lis')
 
-    to_isis(config['outputfile_path'] + args.output_file + '.net', cnet, mode='wb', targetname='Moon')
+    to_isis(config_dict['outputfile_path'] + args.output_file + '.net', cnet, mode='wb', targetname='Moon')
 
 if __name__ == '__main__':
     config = read_config()
