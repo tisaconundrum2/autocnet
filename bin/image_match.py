@@ -1,10 +1,10 @@
 import os
 import sys
 import argparse
-import yaml
 
 sys.path.insert(0, os.path.abspath('../autocnet'))
 
+from autocnet.utils.utils import find_in_dict
 from autocnet.graph.network import CandidateGraph
 from autocnet.fileio.io_controlnetwork import to_isis, write_filelist
 from autocnet.fileio.io_yaml import read_yaml
@@ -27,13 +27,14 @@ def match_images(args, config_dict):
     # Matches the images in the input file using various candidate graph methods
     # produces two files usable in isis
     try:
-        cg = CandidateGraph.from_adjacency(config['inputfile_path'] +
-                                           args.input_file, basepath=config['basepath'])
+        cg = CandidateGraph.from_adjacency(find_in_dict(config_dict, 'inputfile_path') +
+                                           args.input_file, basepath=find_in_dict(config_dict, 'basepath'))
     except:
-        cg = CandidateGraph.from_filelist(config['inputfile_path'] + args.input_file)
+        cg = CandidateGraph.from_filelist(find_in_dict(config_dict, 'inputfile_path') + args.input_file)
 
     # Apply SIFT to extract features
-    cg.extract_features(method='sift', extractor_parameters={'nfeatures': 1000})
+    cg.extract_features(method=find_in_dict(config_dict, 'method'),
+                        extractor_parameters={'nfeatures': find_in_dict(config_dict, 'nfeatures')})
 
     # Match
     cg.match_features()
@@ -52,11 +53,11 @@ def match_images(args, config_dict):
     cnet = cg.to_cnet(clean_keys=['subpixel'], isis_serials=True)
 
     filelist = cg.to_filelist()
-    write_filelist(filelist, config['outputfile_path'] + args.output_file + '.lis')
+    write_filelist(filelist, find_in_dict(config_dict, 'outputfile_path') + args.output_file + '.lis')
 
-    to_isis(config['outputfile_path'] + args.output_file + '.net', cnet, mode='wb', targetname='Moon')
+    to_isis(find_in_dict(config_dict, 'outputfile_path') + args.output_file + '.net', cnet, mode='wb', targetname='Moon')
 
 if __name__ == '__main__':
-    config = read_config()
+    config = read_config('/home/acpaquette/autocnet/.image_match_config.yml')
     command_line_args = parse_arguments()
     match_images(command_line_args, config)

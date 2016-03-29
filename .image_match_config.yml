@@ -1,42 +1,50 @@
-basepath:
-inputfile_path:
-outputfile_path:
+system_paths:
+    basepath: /home/acpaquette/Desktop/
+    inputfile_path: /home/acpaquette/autocnet/autocnet/examples/Apollo15/
+    outputfile_path: /home/acpaquette/autocnet/autocnet/examples/Apollo15/
 
-extract_features
-method:
-extractor_parameters:
-    nfeatures:
-    nOctaveLayers:
-    contrastThreshold:
-    edgeThreshold:
-    sigma:
+extract_features:
+    # method can be orb, sift, fast, and surf
+    method: sift
+    extractor_parameters:
+        # number of feature points to apply to an image
+        nfeatures: 2000
+        nOctaveLayers:
+        contrastThreshold:
+        edgeThreshold:
+        sigma:
 
-match_features
-k:
+match_features:
+    # k is the number of matchs to find per feature
+    k: 50
 
 ratio_checks:
-clean_keys:
-    -
-keyword_arguments:
-    -
+    clean_keys:
+        -
+    keyword_arguments:
+        -
 
-fundamental_matrics
-clean_keys:
-    -
-keyword_arguments:
-    -
+fundamental_matrics:
+    clean_keys:
+        -
+    keyword_arguments:
+        -
 
-subpixel_register
-clean_keys:
-    -
-template_size:
-threshold:
-search_size:
-max_x_shift:
-max_y_shift:
-tiled:
-keyword arguments:
-    -
+subpixel_register:
+    clean_keys:
+        -
+    # size of the template in pixels, must be odd
+    template_size:
+    # a range from (-1, 1), values less tahn or equal to this threshold are considered outliers
+    threshold:
+    search_size:
+    # maximum value a pixel can shift in the x direction without being considered an outlier
+    max_x_shift:
+    # maximum value a pixel can shift in the x direction without being considered an outlier
+    max_y_shift:
+    tiled: False
+    keyword arguments:
+        -
 
 suppress:
     clean_keys:
