@@ -67,8 +67,9 @@ def match_images(args, config_dict):
     to_isis(find_in_dict(config_dict, 'outputfile_path') + args.output_file + '.net', cnet,
             mode='wb',
             networkid=find_in_dict(config_dict, 'networkid'),
-            targetname=find_in_dict(config_dict, 'targetnamme'),
-            description=find_in_dict(config_dict, 'description'))
+            targetname=find_in_dict(config_dict, 'targetname'),
+            description=find_in_dict(config_dict, 'description'),
+            username=find_in_dict(config_dict, 'username'))
 
 if __name__ == '__main__':
     config = read_config('/home/acpaquette/autocnet/.image_match_config.yml')
