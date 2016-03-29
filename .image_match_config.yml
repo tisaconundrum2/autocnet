@@ -4,20 +4,15 @@ system_paths:
     outputfile_path: /home/acpaquette/autocnet/autocnet/examples/Apollo15/
 
 extract_features:
-    # method can be orb, sift, fast, and surf
     method: sift
     extractor_parameters:
-        # number of feature points to apply to an image
-        nfeatures: 2000
-        nOctaveLayers:
-        contrastThreshold:
-        edgeThreshold:
-        sigma:
+        nfeatures: 500
 
 match_features:
-    # k is the number of matchs to find per feature
     k: 50
 
+# Any clean keys being passed in requires a method to have been used on the candidate graph object
+# before the key can be passed in
 ratio_checks:
     clean_keys:
         -
@@ -26,31 +21,36 @@ ratio_checks:
 
 fundamental_matrics:
     clean_keys:
-        -
+        - ratio
+        - symmetry
     keyword_arguments:
         -
 
 subpixel_register:
     clean_keys:
-        -
-    # size of the template in pixels, must be odd
-    template_size:
-    # a range from (-1, 1), values less tahn or equal to this threshold are considered outliers
-    threshold:
-    search_size:
-    # maximum value a pixel can shift in the x direction without being considered an outlier
-    max_x_shift:
-    # maximum value a pixel can shift in the x direction without being considered an outlier
-    max_y_shift:
+        - ratio
+        - symmetry
+        - fundamental
+    template_size: 19
+    threshold: 0.8
+    search_size: 53
+    max_x_shift: 1.0
+    max_y_shift: 1.0
     tiled: False
-    keyword arguments:
+    keyword_arguments:
         -
 
 suppress:
     clean_keys:
-        -
-    keyword arguments:
-        -
-cnet conversion:
+        - fundamental
+    keyword_arguments:
+        k: 50
+
+cnet_conversion:
     clean_keys:
-        -
+        - subpixel
+to_isis:
+    networkid: None
+    targetname: moon
+    description: None
+    username: DEFAULTUSERNAME
