@@ -6,6 +6,7 @@ import pandas as pd
 DEFAULT_COMPRESSION = 'gzip'
 DEFAULT_COMPRESSION_VALUE = 8  # 0 - 9
 
+
 class HDFDataset(h5.File):
     """
     Read / Write an HDF5 dataset using h5py.  If HDF5 is compiled with
