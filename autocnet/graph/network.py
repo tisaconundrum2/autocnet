@@ -263,17 +263,16 @@ class CandidateGraph(nx.Graph):
             mode = 'a'
         else:
             mode = 'w'
+
         hdf = io_hdf.HDFDataset(out_path, mode=mode)
 
         # Cleaner way to do this?
         if nodes:
-            for i, n in self.nodes_iter(nodes, data=True):
+            for i, n in self.subgraph(nodes).nodes_iter(data=True):
                 n.save_features(hdf)
         else:
             for i, n in self.nodes_iter(data=True):
                 n.save_features(hdf)
-
-        hdf = None
 
     def load_features(self, in_path, nodes=[]):
         """
