@@ -1,17 +1,8 @@
-import os
-import sys
 import argparse
-
-sys.path.insert(0, os.path.abspath('../autocnet'))
 
 from autocnet.graph.network import CandidateGraph
 from autocnet.fileio.io_controlnetwork import to_isis, write_filelist
 from autocnet.fileio.io_yaml import read_yaml
-
-def read_config(yaml_file):
-    config_dict = read_yaml(yaml_file)
-
-    return config_dict
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -56,6 +47,6 @@ def match_images(args, config_dict):
     to_isis(config_dict['outputfile_path'] + args.output_file + '.net', cnet, mode='wb', targetname='Moon')
 
 if __name__ == '__main__':
-    config = read_config()
+    config = read_yaml()
     command_line_args = parse_arguments()
     match_images(command_line_args, config)
