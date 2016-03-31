@@ -1,8 +1,4 @@
-import os
-import sys
 import argparse
-
-sys.path.insert(0, os.path.abspath('../autocnet'))
 
 from autocnet.utils.utils import find_in_dict
 from autocnet.graph.network import CandidateGraph
