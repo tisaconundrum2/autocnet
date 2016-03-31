@@ -164,7 +164,7 @@ def make_homogeneous(points):
 def remove_field_name(a, name):
     """
     Given a numpy structured array, remove a column and return
-    a copy of the remaineder of the array
+    a copy of the remainder of the array
 
     Parameters
     ----------
