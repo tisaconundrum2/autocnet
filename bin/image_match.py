@@ -1,31 +1,25 @@
-import os
-import sys
 import argparse
 
-sys.path.insert(0, os.path.abspath('../autocnet'))
-
 from autocnet.graph.network import CandidateGraph
-from autocnet.fileio.io_controlnetwork import to_isis
-from autocnet.fileio.io_controlnetwork import write_filelist
+from autocnet.fileio.io_controlnetwork import to_isis, write_filelist
+from autocnet.fileio.io_yaml import read_yaml
 
-# parses command line arguments into a single args variable
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', action='store', dest='input_file', default='No_Input', help='Provide the name of the file list/adjacency list')
-    parser.add_argument('-o', action='store', dest='output_file', help='Provide the name of the output file')
-    parser.add_argument('-p', action='store', dest='basepath', help='Provide the path to the image files')
+    parser.add_argument('input_file', action='store', help='Provide the name of the file list/adjacency list')
+    parser.add_argument('output_file', action='store', help='Provide the name of the output file.')
     args = parser.parse_args()
-
     return args
 
-def match_images(args):
+def match_images(args, config_dict):
 
     # Matches the images in the input file using various candidate graph methods
     # produces two files usable in isis
     try:
-        cg = CandidateGraph.from_adjacency(args.input_file, basepath=args.basepath)
+        cg = CandidateGraph.from_adjacency(config_dict['inputfile_path'] +
+                                           args.input_file, basepath=config['basepath'])
     except:
-        cg = CandidateGraph.from_filelist(args.input_file)
+        cg = CandidateGraph.from_filelist(config_dict['inputfile_path'] + args.input_file)
 
     # Apply SIFT to extract features
     cg.extract_features(method='sift', extractor_parameters={'nfeatures': 1000})
@@ -47,10 +41,11 @@ def match_images(args):
     cnet = cg.to_cnet(clean_keys=['subpixel'], isis_serials=True)
 
     filelist = cg.to_filelist()
-    write_filelist(filelist, args.output_file + '.lis')
+    write_filelist(filelist, config_dict['outputfile_path'] + args.output_file + '.lis')
 
-    to_isis(args.output_file + '.net', cnet, mode='wb', targetname='Moon')
+    to_isis(config_dict['outputfile_path'] + args.output_file + '.net', cnet, mode='wb', targetname='Moon')
 
 if __name__ == '__main__':
+    config = read_yaml()
     command_line_args = parse_arguments()
-    match_images(command_line_args)
+    match_images(command_line_args, config)
