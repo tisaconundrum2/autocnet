@@ -9,7 +9,6 @@ def parse_arguments():
     parser.add_argument('input_file', action='store', help='Provide the name of the file list/adjacency list')
     parser.add_argument('output_file', action='store', help='Provide the name of the output file.')
     args = parser.parse_args()
-
     return args
 
 def match_images(args, config_dict):
