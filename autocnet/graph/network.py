@@ -274,6 +274,8 @@ class CandidateGraph(nx.Graph):
             for i, n in self.nodes_iter(data=True):
                 n.save_features(hdf)
 
+        hdf = None
+
     def load_features(self, in_path, nodes=[]):
         """
         Load features (keypoints and descriptors) for the
@@ -291,7 +293,7 @@ class CandidateGraph(nx.Graph):
         hdf = io_hdf.HDFDataset(in_path, 'r')
 
         if nodes:
-            for i, n in self.nodes_iter(nodes, data=True):
+            for i, n in self.subgraph(nodes).nodes_iter(data=True):
                 n.load_features(hdf)
         else:
             for i, n in self.nodes_iter(data=True):
