@@ -9,11 +9,6 @@ from autocnet.graph.network import CandidateGraph
 from autocnet.fileio.io_controlnetwork import to_isis, write_filelist
 from autocnet.fileio.io_yaml import read_yaml
 
-def read_config(yaml_file):
-    config_dict = read_yaml(yaml_file)
-
-    return config_dict
-
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('input_file', action='store', help='Provide the name of the file list/adjacency list')
@@ -72,6 +67,6 @@ def match_images(args, config_dict):
             username=find_in_dict(config_dict, 'username'))
 
 if __name__ == '__main__':
-    config = read_config('/home/acpaquette/autocnet/.image_match_config.yml')
+    config = read_yaml('/home/acpaquette/autocnet/.image_match_config.yml')
     command_line_args = parse_arguments()
     match_images(command_line_args, config)
