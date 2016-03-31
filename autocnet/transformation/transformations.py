@@ -188,6 +188,9 @@ class FundamentalMatrix(TransformationMatrix):
         all values greater than the selected bin.  Then compute a
         new fundamental matrix.
 
+        The matrix is "refined" based on the reprojection errors for
+        each point.
+
         Parameters
         ----------
 
