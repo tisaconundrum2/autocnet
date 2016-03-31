@@ -159,3 +159,28 @@ def make_homogeneous(points):
        n x m + 1 array of homogeneous points
     """
     return np.hstack((points, np.ones((points.shape[0], 1))))
+
+
+def remove_field_name(a, name):
+    """
+    Given a numpy structured array, remove a column and return
+    a copy of the remainder of the array
+
+    Parameters
+    ----------
+    a : ndarray
+        Numpy structured array
+
+    name : str
+           of the index (column) to be removed
+
+    Returns
+    -------
+    b : ndarray
+        Numpy structured array with the 'name' column removed
+    """
+    names = list(a.dtype.names)
+    if name in names:
+        names.remove(name)
+    b = a[names]
+    return b
