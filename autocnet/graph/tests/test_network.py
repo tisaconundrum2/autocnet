@@ -131,12 +131,11 @@ class TestGraphMasks(unittest.TestCase):
 
         cls.graph = network.CandidateGraph.from_adjacency(cls.test_dict)
         cls.graph.minimum_spanning_tree()
-        cls.mst_graph = cls.graph.copy()
+        removed_edges = cls.graph.graph_masks['mst'][cls.graph.graph_masks['mst'] == False].index
 
-        for s, d, edge in cls.graph.edges_iter(data=True):
-            if not cls.graph.graph_masks['mst'][(s, d)]:
-                cls.mst_graph.remove_edge(s, d)
+        cls.mst_graph = cls.graph.copy()
+        cls.mst_graph.remove_edges_from(removed_edges)
 
     def test_mst_output(self):
-        self.assertEqual(self.mst_graph.nodes(), self.graph.nodes())
+        self.assertEqual(sorted(self.mst_graph.nodes()), sorted(self.graph.nodes()))
         self.assertEqual(self.mst_graph.number_of_edges(), self.graph.number_of_edges()-5)
