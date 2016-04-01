@@ -1,3 +1,6 @@
+import sys
+import os
+
 import argparse
 
 from autocnet.utils.utils import find_in_dict
@@ -13,10 +16,10 @@ def parse_arguments():
     return args
 
 def match_images(args, config_dict):
-    # print(find_in_dict(config_dict, 'to_isis'))
     # Matches the images in the input file using various candidate graph methods
     # produces two files usable in isis
 
+    '''
     try:
         cg = CandidateGraph.from_adjacency(find_in_dict(config_dict, 'inputfile_path') +
                                            args.input_file, basepath=find_in_dict(config_dict, 'basepath'))
@@ -46,7 +49,7 @@ def match_images(args, config_dict):
                          tiled=find_in_dict(config_dict, 'tiled'))
 
     cg.suppress(clean_keys=find_in_dict(config_dict, 'suppress')['clean_keys'],
-                k=find_in_dict(config_dict, 'suppress')['keyword_arguments']['k'])
+                k=find_in_dict(config_dict, 'keyword_arguments')['k'])
 
     cnet = cg.to_cnet(clean_keys=find_in_dict(config_dict, 'cnet_conversion')['clean_keys'],
                       isis_serials=True)
@@ -61,8 +64,9 @@ def match_images(args, config_dict):
             targetname=find_in_dict(config_dict, 'targetname'),
             description=find_in_dict(config_dict, 'description'),
             username=find_in_dict(config_dict, 'username'))
-
+    '''
 if __name__ == '__main__':
     config = read_yaml()
-    command_line_args = parse_arguments()
-    match_images(command_line_args, config)
+    print(find_in_dict(config, 'fundamental_matrices'))
+    # command_line_args = parse_arguments()
+    # match_images(command_line_args, config)

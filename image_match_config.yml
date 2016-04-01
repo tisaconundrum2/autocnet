@@ -13,18 +13,24 @@ match_features:
 
 # Any clean keys being passed in requires a method to have been used on the candidate graph object
 # before the key can be passed in
+
 ratio_checks:
     clean_keys:
         -
-    keyword_arguments:
-        -
+    keyword_arguments
+    ratio: 0.8
+    mask_name: None
+    single: False
 
-fundamental_matrics:
+
+fundamental_matrices:
     clean_keys:
         - ratio
         - symmetry
-    keyword_arguments:
-        -
+    keyword_arguments
+    method:
+    reproj_threshold:
+    confidence:
 
 subpixel_register:
     clean_keys:
@@ -37,14 +43,17 @@ subpixel_register:
     max_x_shift: 1.0
     max_y_shift: 1.0
     tiled: False
-    keyword_arguments:
-        -
+    keyword_arguments
+    upsampling:
+    error_check: False
 
 suppress:
     clean_keys:
         - fundamental
-    keyword_arguments:
-        k: 50
+    keyword_arguments
+    min_radius: 2
+    k: 50
+    error_k: 0.1
 
 cnet_conversion:
     clean_keys:
