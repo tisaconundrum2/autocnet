@@ -42,3 +42,14 @@ class TestNode(unittest.TestCase):
     def test_isis_serial(self):
         serial = self.node.isis_serial
         self.assertEqual(None, serial)
+
+    def test_save_load(self):
+        image = self.node.get_array()
+        self.node.extract_features(image, method='sift', extractor_parameters={'nfeatures':10})
+        self.node.save_features('node_test.hdf')
+        kps = self.node.keypoints.copy()
+        descriptors = self.node.descriptors.copy()
+        self.node.load_features('node_test.hdf')
+        self.assertTrue((kps == self.node.keypoints).all().all())
+
+        os.remove('node_test.hdf')

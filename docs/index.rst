@@ -70,7 +70,7 @@ control networks.  AutoCNet is licensed in `the public domain`.
     <td><strong><small><a href="users/installation.html">Install</a></small></strong></td>
     <td><strong><small><a href="users/tutorials/index.html">Getting Started</a></small></strong></td>
     <td><strong><small><a href="library/index.html">Documentation</a></small></strong></td>
-    <td><strong><small><a href="http://github.com/pysal/pysal/issues?state=open">Report Bugs</a></small></strong></td>
+    <td><strong><small><a href="https://github.com/USGS-Astrogeology/autocnet/issues">Report Bugs</a></small></strong></td>
   </tr>
   </table>
 

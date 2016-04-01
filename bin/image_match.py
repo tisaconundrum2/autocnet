@@ -10,7 +10,6 @@ def parse_arguments():
     parser.add_argument('input_file', action='store', help='Provide the name of the file list/adjacency list')
     parser.add_argument('output_file', action='store', help='Provide the name of the output file.')
     args = parser.parse_args()
-
     return args
 
 def match_images(args, config_dict):
@@ -53,6 +52,7 @@ def match_images(args, config_dict):
                       isis_serials=True)
 
     filelist = cg.to_filelist()
+
     write_filelist(filelist, find_in_dict(config_dict, 'outputfile_path') + args.output_file + '.lis')
 
     to_isis(find_in_dict(config_dict, 'outputfile_path') + args.output_file + '.net', cnet,
@@ -63,6 +63,6 @@ def match_images(args, config_dict):
             username=find_in_dict(config_dict, 'username'))
 
 if __name__ == '__main__':
-    config = read_yaml('/home/acpaquette/autocnet/.image_match_config.yml')
+    config = read_yaml()
     command_line_args = parse_arguments()
     match_images(command_line_args, config)

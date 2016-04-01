@@ -2,12 +2,14 @@ from functools import singledispatch
 import itertools
 import os
 import dill as pickle
+import warnings
 
 import networkx as nx
 import numpy as np
 import pandas as pd
 
 from autocnet.fileio.io_gdal import GeoDataset
+from autocnet.fileio import io_hdf
 from autocnet.control.control import C
 from autocnet.fileio import io_json
 from autocnet.matcher.matcher import FlannMatcher
@@ -209,7 +211,65 @@ class CandidateGraph(nx.Graph):
         for i, node in self.nodes_iter(data=True):
             image = node.get_array()
             node.extract_features(image, method=method,
-                                extractor_parameters=extractor_parameters)
+                                  extractor_parameters=extractor_parameters)
+
+    def save_features(self, out_path, nodes=[]):
+        """
+
+        Save the features (keypoints and descriptors) for the
+        specified nodes.
+
+        Parameters
+        ----------
+        out_path : str
+                   Location of the output file.  If the file exists,
+                   features are appended.  Otherwise, the file is created.
+
+        nodes : list
+                of nodes to save features for.  If empty, save for all nodes
+        """
+
+        if os.path.exists(out_path):
+            mode = 'a'
+        else:
+            mode = 'w'
+
+        hdf = io_hdf.HDFDataset(out_path, mode=mode)
+
+        # Cleaner way to do this?
+        if nodes:
+            for i, n in self.subgraph(nodes).nodes_iter(data=True):
+                n.save_features(hdf)
+        else:
+            for i, n in self.nodes_iter(data=True):
+                n.save_features(hdf)
+
+        hdf = None
+
+    def load_features(self, in_path, nodes=[]):
+        """
+        Load features (keypoints and descriptors) for the
+        specified nodes.
+
+        Parameters
+        ----------
+        in_path : str
+                  Location of the input file.
+
+        nodes : list
+                of nodes to load features for.  If empty, load features
+                for all nodes
+        """
+        hdf = io_hdf.HDFDataset(in_path, 'r')
+
+        if nodes:
+            for i, n in self.subgraph(nodes).nodes_iter(data=True):
+                n.load_features(hdf)
+        else:
+            for i, n in self.nodes_iter(data=True):
+                n.load_features(hdf)
+
+        hdf = None
 
     def match_features(self, k=None):
         """

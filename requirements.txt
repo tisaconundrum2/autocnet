@@ -10,3 +10,4 @@ pandas
 scikit-image
 sqlalchemy
 dill
+h5py
