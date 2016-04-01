@@ -138,5 +138,5 @@ class TestGraphMasks(unittest.TestCase):
                 cls.mst_graph.remove_edge(s, d)
 
     def test_mst_output(self):
-        self.assertEqual(set(self.mst_graph.nodes()), set(self.graph.nodes()))
+        self.assertEqual(self.mst_graph.nodes(), self.graph.nodes())
         self.assertEqual(self.mst_graph.number_of_edges(), self.graph.number_of_edges()-5)
