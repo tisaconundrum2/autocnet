@@ -374,12 +374,15 @@ class CandidateGraph(nx.Graph):
         else:
             edges_to_iter = self.edges()
 
+        if not isinstance(func, str):
+            func = func.__name__
+
         for s, d in edges_to_iter:
             curr_edge = self.get_edge_data(s, d)
             try:
                 function = getattr(curr_edge, func)
             except:
-                raise AttributeError('The passed function is not an attribute of Edge')
+                raise AttributeError(func, ' is not an attribute of Edge')
             else:
                 function(*args, **kwargs)
 
