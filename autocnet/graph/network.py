@@ -47,7 +47,7 @@ class CandidateGraph(nx.Graph):
         self.node_counter = 0
         node_labels = {}
         self.node_name_map = {}
-        self.graph_masks = {}
+        self.graph_masks = pd.DataFrame()
 
         # the node_name is the relative path for the image
         for node_name, node in self.nodes_iter(data=True):
@@ -368,8 +368,11 @@ class CandidateGraph(nx.Graph):
                           of keys in graph_masks
         """
 
-        merged_graph_mask = self.graph_masks[graph_mask_keys].all(axis=1)
-        edges_to_iter = merged_graph_mask[merged_graph_mask].index
+        if graph_mask_keys:
+            merged_graph_mask = self.graph_masks[graph_mask_keys].all(axis=1)
+            edges_to_iter = merged_graph_mask[merged_graph_mask].index
+        else:
+            edges_to_iter = self.edges()
 
         for s, d in edges_to_iter:
             curr_edge = self.get_edge_data(s, d)
@@ -391,65 +394,11 @@ class CandidateGraph(nx.Graph):
            boolean mask for edges in the minimum spanning tree
         """
 
-        self.graph_masks = pd.DataFrame(False, index=self.edges(), columns=['mst'])
+        graph_mask = pd.Series(False, index=self.edges())
+        self.graph_masks['mst'] = graph_mask
+
         mst = nx.minimum_spanning_tree(self)
         self.graph_masks['mst'][mst.edges()] = True
-
-    def symmetry_checks(self):
-        """
-        Perform a symmetry check on all edges in the graph
-        """
-        for s, d, edge in self.edges_iter(data=True):
-            edge.symmetry_check()
-
-    def ratio_checks(self, clean_keys=[], **kwargs):
-        """
-        Perform a ratio check on all edges in the graph
-        """
-        for s, d, edge in self.edges_iter(data=True):
-            edge.ratio_check(clean_keys=clean_keys)
-
-    def compute_homographies(self, clean_keys=[], **kwargs):
-        """
-        Compute homographies for all edges using identical parameters
-
-        Parameters
-        ----------
-        clean_keys : list
-                     Of keys in the mask dict
-
-        """
-
-        for s, d, edge in self.edges_iter(data=True):
-            edge.compute_homography(clean_keys=clean_keys, **kwargs)
-
-    def compute_fundamental_matrices(self, clean_keys=[], **kwargs):
-        """
-        Compute fundamental matrices for all edges using identical parameters
-
-        Parameters
-        ----------
-        clean_keys : list
-                     Of keys in the mask dict
-
-        """
-
-        for s, d, edge in self.edges_iter(data=True):
-            edge.compute_fundamental_matrix(clean_keys=clean_keys, **kwargs)
-
-    def subpixel_register(self, clean_keys=[], threshold=0.8, upsampling=10,
-                                 template_size=9, search_size=27, tiled=False, **kwargs):
-         """
-         Compute subpixel offsets for all edges using identical parameters
-         """
-         for s, d, edge in self.edges_iter(data=True):
-             edge.subpixel_register(clean_keys=clean_keys, threshold=threshold,
-                                    upsampling=upsampling, template_size=template_size,
-                                    search_size=search_size, tiled=tiled, **kwargs)
-
-    def suppress(self, clean_keys=[], func=spf.correlation, **kwargs):
-        for s, d, e in self.edges_iter(data=True):
-            e.suppress(clean_keys=clean_keys, func=func, **kwargs)
 
     def to_filelist(self):
         """
@@ -503,7 +452,6 @@ class CandidateGraph(nx.Graph):
              : C
                the cleaned control network
             """
-
             mask = np.zeros(len(cnet), dtype=bool)
             counter = 0
             for i, group in cnet.groupby('pid'):
