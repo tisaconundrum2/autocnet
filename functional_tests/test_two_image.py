@@ -81,7 +81,6 @@ class TestTwoImageMatching(unittest.TestCase):
 
         # Step: Compute subpixel offsets for candidate points
         cg.apply_func_to_edges("subpixel_register", clean_keys=['ransac'])
-        # cg.subpixel_register(clean_keys=['ransac'])
 
         # Step: And create a C object
         cnet = cg.to_cnet(clean_keys=['symmetry', 'ratio', 'ransac', 'subpixel'])
