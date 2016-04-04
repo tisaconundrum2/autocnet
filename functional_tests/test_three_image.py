@@ -52,7 +52,8 @@ class TestThreeImageMatching(unittest.TestCase):
         for source, destination, edge in cg.edges_iter(data=True):
             edge.symmetry_check()
             edge.ratio_check(clean_keys=['symmetry'], ratio=0.99)
-        cg.compute_homographies(clean_keys=['symmetry', 'ratio'])
+
+        cg.apply_func_to_edges("compute_homography", clean_keys=['symmetry', 'ratio'])
 
         # Step: And create a C object
         cnet = cg.to_cnet(clean_keys=['symmetry', 'ratio', 'ransac'])
