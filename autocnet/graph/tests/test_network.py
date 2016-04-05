@@ -78,43 +78,17 @@ class TestCandidateGraph(unittest.TestCase):
 
         os.remove('test_save.cg')
 
+    def test_fromlist(self):
+        mock_list = ['AS15-M-0295_SML.png', 'AS15-M-0296_SML.png', 'AS15-M-0297_SML.png',
+                     'AS15-M-0298_SML.png', 'AS15-M-0299_SML.png', 'AS15-M-0300_SML.png']
+        n = network.CandidateGraph.from_filelist(mock_list, get_path('Apollo15'))
+        self.assertEqual(len(n.nodes()), 6)
+
+        n = network.CandidateGraph.from_filelist(get_path('adjacency.lis'), get_path('Apollo15'))
+        self.assertEqual(len(n.nodes()), 6)
+
     def tearDown(self):
         pass
-
-
-class TestFromList(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        filelist = [get_path('Mars_MGS_MOLA_ClrShade_MAP2_0.0N0.0_MERC.tif'),
-                    get_path('Lunar_LRO_LOLA_Shade_MAP2_90.0N20.0_LAMB.tif'),
-                    get_path('Mars_MGS_MOLA_ClrShade_MAP2_90.0N0.0_POLA.tif')]
-        cls.graph = network.CandidateGraph.from_filelist(filelist)
-
-    def test_graph_length(self):
-        self.assertEqual(self.graph.__len__(), 3)
-        self.assertEqual(self.graph.number_of_nodes(), 3)
-
-'''
-class TestFromListCubes(unittest.TestCase):
-    @classmethod
-
-    def setUpClass(cls):
-        filelist = [get_path('AS15-M-0297_sub4.cub'),
-                    get_path('AS15-M-0298_sub4.cub'),
-                    get_path('AS15-M-0299_sub4.cub')]
-        cls.graph = network.CandidateGraph.from_filelist(filelist)
-
-    def test_graph_length(self):
-        self.assertEqual(self.graph.number_of_nodes(), 3)
-        self.assertEqual(self.graph.number_of_edges(), 3)
-'''
-
-
-class TestEdge(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.graph = network.CandidateGraph.from_adjacency(get_path('adjacency.json'))
 
 
 class TestGraphMasks(unittest.TestCase):

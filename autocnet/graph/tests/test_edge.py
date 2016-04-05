@@ -43,6 +43,5 @@ class TestEdge(unittest.TestCase):
     def test_compute_fundamental_matrix(self):
         with self.assertRaises(AttributeError):
             self.edge.compute_fundamental_matrix()
-        self.assertTrue(False)
 
 

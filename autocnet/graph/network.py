@@ -89,7 +89,7 @@ class CandidateGraph(nx.Graph):
 
 
     @classmethod
-    def from_filelist(cls, filelist):
+    def from_filelist(cls, filelist, basepath=None):
         """
         Instantiate the class using a filelist as a python list.
         An adjacency structure is calculated using the lat/lon information in the
@@ -111,8 +111,10 @@ class CandidateGraph(nx.Graph):
                 filelist = map(str.rstrip, filelist)
 
         # TODO: Reject unsupported file formats + work with more file formats
-
-        datasets = [GeoDataset(f) for f in filelist]
+        if basepath:
+            datasets = [GeoDataset(os.path.join(basepath, f)) for f in filelist]
+        else:
+            datasets = [GeoDataset(f) for f in filelist]
 
         # This is brute force for now, could swap to an RTree at some point.
         adjacency_dict = {}
@@ -126,10 +128,12 @@ class CandidateGraph(nx.Graph):
             # Grab the footprints and test for intersection
             i_fp = i.footprint
             j_fp = j.footprint
-            if i_fp.Intersects(j_fp):
-                adjacency_dict[i.file_name].append(j.file_name)
-                adjacency_dict[j.file_name].append(i.file_name)
-
+            try:
+                if i_fp.Intersects(j_fp):
+                    adjacency_dict[i.file_name].append(j.file_name)
+                    adjacency_dict[j.file_name].append(i.file_name)
+            except: # no geospatial information embedded in the images
+                pass
         return cls(adjacency_dict)
 
 
