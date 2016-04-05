@@ -1,3 +1,3 @@
-basepath: /home/acpaquette/Desktop/
-inputfile_path: /home/acpaquette/autocnet/autocnet/examples/Apollo15/
-outputfile_path: /home/acpaquette/autocnet/autocnet/examples/Apollo15/
+basepath:
+inputfile_path:
+outputfile_path:

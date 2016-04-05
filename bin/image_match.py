@@ -25,7 +25,7 @@ def match_images(args, config_dict):
     cg.extract_features(method='sift', extractor_parameters={'nfeatures': 1000})
 
     # Match
-    cg.apply_func_to_edges('match_features')
+    cg.match_features()
 
     # Apply outlier detection
     cg.apply_func_to_edges('symmetry_check')
@@ -46,6 +46,6 @@ def match_images(args, config_dict):
     to_isis(config_dict['outputfile_path'] + args.output_file + '.net', cnet, mode='wb', targetname='Moon')
 
 if __name__ == '__main__':
-    config = read_yaml()
+    config = read_yaml('image_match_config.yml')
     command_line_args = parse_arguments()
     match_images(command_line_args, config)
