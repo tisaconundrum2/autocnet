@@ -17,8 +17,9 @@ match_features:
 ratio_checks:
     clean_keys:
         -
-    keyword_arguments
+
     ratio: 0.8
+    mask: None
     mask_name: None
     single: False
 
@@ -27,7 +28,7 @@ fundamental_matrices:
     clean_keys:
         - ratio
         - symmetry
-    keyword_arguments
+
     method:
     reproj_threshold:
     confidence:
@@ -43,14 +44,14 @@ subpixel_register:
     max_x_shift: 1.0
     max_y_shift: 1.0
     tiled: False
-    keyword_arguments
+
     upsampling:
     error_check: False
 
 suppress:
     clean_keys:
         - fundamental
-    keyword_arguments
+
     min_radius: 2
     k: 50
     error_k: 0.1

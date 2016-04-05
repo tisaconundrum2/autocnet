@@ -3,10 +3,14 @@ import os
 
 import argparse
 
+sys.path.insert(0, os.path.abspath('../autocnet'))
+
+
 from autocnet.utils.utils import find_in_dict
 from autocnet.graph.network import CandidateGraph
 from autocnet.fileio.io_controlnetwork import to_isis, write_filelist
 from autocnet.fileio.io_yaml import read_yaml
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -19,7 +23,6 @@ def match_images(args, config_dict):
     # Matches the images in the input file using various candidate graph methods
     # produces two files usable in isis
 
-    '''
     try:
         cg = CandidateGraph.from_adjacency(find_in_dict(config_dict, 'inputfile_path') +
                                            args.input_file, basepath=find_in_dict(config_dict, 'basepath'))
@@ -35,10 +38,14 @@ def match_images(args, config_dict):
 
     # Apply outlier detection
     cg.symmetry_checks()
-    cg.ratio_checks()
+    cg.ratio_checks(clean_keys=(find_in_dict(config_dict, 'ratio_checks')['clean_keys']),
+                    ratio=find_in_dict(config_dict, 'ratio'),
+                    mask=find_in_dict(config_dict, 'mask'),
+                    mask_name=find_in_dict(config_dict, 'mask_name'),
+                    single=find_in_dict(config_dict, 'single'))
 
     # Compute a homography and apply RANSAC
-    cg.compute_fundamental_matrices(clean_keys=find_in_dict(config_dict, 'fundamental_matrics')['clean_keys'])
+    cg.compute_fundamental_matrices(clean_keys=find_in_dict(config_dict, 'fundamental_matrices')['clean_keys'])
 
     cg.subpixel_register(clean_keys=find_in_dict(config_dict, 'subpixel_register')['clean_keys'],
                          template_size=find_in_dict(config_dict, 'template_size'),
@@ -49,7 +56,7 @@ def match_images(args, config_dict):
                          tiled=find_in_dict(config_dict, 'tiled'))
 
     cg.suppress(clean_keys=find_in_dict(config_dict, 'suppress')['clean_keys'],
-                k=find_in_dict(config_dict, 'keyword_arguments')['k'])
+                k=find_in_dict(config_dict, 'suppress')['k'])
 
     cnet = cg.to_cnet(clean_keys=find_in_dict(config_dict, 'cnet_conversion')['clean_keys'],
                       isis_serials=True)
@@ -64,9 +71,9 @@ def match_images(args, config_dict):
             targetname=find_in_dict(config_dict, 'targetname'),
             description=find_in_dict(config_dict, 'description'),
             username=find_in_dict(config_dict, 'username'))
-    '''
+
 if __name__ == '__main__':
-    config = read_yaml()
-    print(find_in_dict(config, 'fundamental_matrices'))
-    # command_line_args = parse_arguments()
-    # match_images(command_line_args, config)
+    config = read_yaml('image_match_config.yml')
+    single = find_in_dict(config, 'single')
+    command_line_args = parse_arguments()
+    match_images(command_line_args, config)
