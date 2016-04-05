@@ -482,8 +482,8 @@ class CandidateGraph(nx.Graph):
                 subpixel = True
                 point_type = 3
 
-            kp1 = self.node[source].keypoints
-            kp2 = self.node[destination].keypoints
+            kp1 = self.node[source].get_keypoints()
+            kp2 = self.node[destination].get_keypoints()
             pt_idx = 0
             values = []
             for i, (idx, row) in enumerate(matches.iterrows()):

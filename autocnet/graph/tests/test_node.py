@@ -30,7 +30,7 @@ class TestNode(unittest.TestCase):
     def test_extract_features(self):
         image = self.node.get_array()
         self.node.extract_features(image, extractor_parameters={'nfeatures':10})
-        self.assertEquals(len(self.node.keypoints), 10)
+        self.assertEquals(len(self.node.get_keypoints()), 10)
         self.assertEquals(len(self.node.descriptors), 10)
         self.assertIsInstance(self.node.descriptors[0], np.ndarray)
         self.assertEqual(10, self.node.nkeypoints)
@@ -47,9 +47,9 @@ class TestNode(unittest.TestCase):
         image = self.node.get_array()
         self.node.extract_features(image, method='sift', extractor_parameters={'nfeatures':10})
         self.node.save_features('node_test.hdf')
-        kps = self.node.keypoints.copy()
+        kps = self.node.get_keypoints().copy()
         descriptors = self.node.descriptors.copy()
         self.node.load_features('node_test.hdf')
-        self.assertTrue((kps == self.node.keypoints).all().all())
+        self.assertTrue((kps == self.node.get_keypoints()).all().all())
 
         os.remove('node_test.hdf')

@@ -119,6 +119,22 @@ class Node(dict, MutableMapping):
         array = self.handle.read_array(band=band)
         return bytescale(array)
 
+    def get_keypoints(self, index=None):
+        if hasattr(self, '_keypoints'):
+            try:
+                return self._keypoints.iloc[index]
+            except:
+                return self._keypoints
+        else:
+            return None
+
+    def get_keypoint_coordinates(self, index=None):
+        keypoints = self.get_keypoints(index=index)
+        try:
+            return keypoints[['x', 'y']]
+        except:
+            return None
+
     def extract_features(self, array, **kwargs):
         """
         Extract features for the node
@@ -141,9 +157,9 @@ class Node(dict, MutableMapping):
             else:
                 octave = (-128 | octave)
             keypoints[i] = kpt.pt[0], kpt.pt[1], kpt.response, kpt.size, kpt.angle, octave, layer  # y, x
-        self.keypoints = pd.DataFrame(keypoints, columns=['x', 'y', 'response', 'size',
+        self._keypoints = pd.DataFrame(keypoints, columns=['x', 'y', 'response', 'size',
                                                           'angle', 'octave', 'layer'])
-        self._nkeypoints = len(self.keypoints)
+        self._nkeypoints = len(self._keypoints)
         self.descriptors = descriptors.astype(np.float32)
 
     def load_features(self, in_path):
@@ -166,7 +182,7 @@ class Node(dict, MutableMapping):
         index = raw_kps['index']
         clean_kps = utils.remove_field_name(raw_kps, 'index')
         columns = clean_kps.dtype.names
-        self.keypoints = pd.DataFrame(data=clean_kps, columns=columns, index=index)
+        self._keypoints = pd.DataFrame(data=clean_kps, columns=columns, index=index)
 
         if isinstance(in_path, str):
             hdf = None
@@ -181,7 +197,8 @@ class Node(dict, MutableMapping):
         out_path : str or object
                    PATH to the hdf file or a HDFDataset object handle
         """
-        if not hasattr(self, 'keypoints'):
+
+        if not hasattr(self, '_keypoints'):
             warnings.warn('Node {} has not had features extracted.'.format(i))
             return
 
@@ -201,7 +218,7 @@ class Node(dict, MutableMapping):
                                compression=io_hdf.DEFAULT_COMPRESSION,
                                compression_opts=io_hdf.DEFAULT_COMPRESSION_VALUE)
             hdf.create_dataset('{}/keypoints'.format(self.image_name),
-                               data=hdf.df_to_sarray(self.keypoints.reset_index()),
+                               data=hdf.df_to_sarray(self._keypoints.reset_index()),
                                compression=io_hdf.DEFAULT_COMPRESSION,
                                compression_opts=io_hdf.DEFAULT_COMPRESSION_VALUE)
         except:
@@ -214,15 +231,15 @@ class Node(dict, MutableMapping):
             hdf = None
 
     def suppress(self, func=spf.response, **kwargs):
-        if not hasattr(self, 'keypoints'):
+        if not hasattr(self, '_keypoints'):
             raise AttributeError('No keypoints extracted for this node.')
 
         domain = self.handle.raster_size
-        self.keypoints['strength'] = self.keypoints.apply(func, axis=1)
+        self._keypoints['strength'] = self._keypoints.apply(func, axis=1)
 
         if not hasattr(self, 'suppression'):
             # Instantiate a suppression object and suppress keypoints
-            self.suppression = od.SpatialSuppression(self.keypoints, domain, **kwargs)
+            self.suppression = od.SpatialSuppression(self._keypoints, domain, **kwargs)
             self.suppression.suppress()
         else:
             # Update the suppression object attributes and process
@@ -243,14 +260,14 @@ class Node(dict, MutableMapping):
                 The ratio of convex hull area to total area.
         """
         ideal_area = self.handle.pixel_area
-        if not hasattr(self, 'keypoints'):
+        if not hasattr(self, '_keypoints'):
             raise AttributeError('Keypoints must be extracted already, they have not been.')
 
         if clean_keys:
             mask = np.prod([self._mask_arrays[i] for i in clean_keys], axis=0, dtype=np.bool)
-            keypoints = self.keypoints[mask]
+            keypoints = self._keypoints[mask]
 
-        keypoints = self.keypoints[['x', 'y']].values
+        keypoints = self._keypoints[['x', 'y']].values
 
         ratio = convex_hull_ratio(keypoints, ideal_area)
         return ratio
@@ -276,10 +293,10 @@ class Node(dict, MutableMapping):
         mask : series
                     A boolean series to inflate back to the full match set
         """
-        if not hasattr(self, 'keypoints'):
+        if not hasattr(self, '_keypoints'):
             raise AttributeError('Keypoints have not been extracted for this node.')
         panel = self.masks
         mask = panel[clean_keys].all(axis=1)
-        matches = self.keypoints[mask]
+        matches = self._keypoints[mask]
         return matches, mask
 
