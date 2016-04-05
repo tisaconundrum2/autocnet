@@ -1,7 +1,7 @@
 system_paths:
-    basepath: 
-    inputfile_path:
-    outputfile_path:
+    basepath: /home/acpaquette/Desktop/
+    inputfile_path: /home/acpaquette/autocnet/autocnet/examples/Apollo15/
+    outputfile_path: /home/acpaquette/autocnet/autocnet/examples/Apollo15/
 
 extract_features:
     method: sift
