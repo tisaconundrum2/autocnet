@@ -46,6 +46,6 @@ def match_images(args, config_dict):
     to_isis(config_dict['outputfile_path'] + args.output_file + '.net', cnet, mode='wb', targetname='Moon')
 
 if __name__ == '__main__':
-    config = read_yaml('image_match_config.yml')
+    config = read_yaml()
     command_line_args = parse_arguments()
     match_images(command_line_args, config)
