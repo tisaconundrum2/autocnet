@@ -403,62 +403,6 @@ class CandidateGraph(nx.Graph):
         mst = nx.minimum_spanning_tree(self)
         self.graph_masks['mst'][mst.edges()] = True
 
-    def symmetry_checks(self):
-        """
-        Perform a symmetry check on all edges in the graph
-        """
-        for s, d, edge in self.edges_iter(data=True):
-            edge.symmetry_check()
-
-    def ratio_checks(self, clean_keys=[], **kwargs):
-        """
-        Perform a ratio check on all edges in the graph
-        """
-        for s, d, edge in self.edges_iter(data=True):
-            edge.ratio_check(clean_keys=clean_keys, **kwargs)
-
-    def compute_homographies(self, clean_keys=[], **kwargs):
-        """
-        Compute homographies for all edges using identical parameters
-
-        Parameters
-        ----------
-        clean_keys : list
-                     Of keys in the mask dict
-
-        """
-
-        for s, d, edge in self.edges_iter(data=True):
-            edge.compute_homography(clean_keys=clean_keys, **kwargs)
-
-    def compute_fundamental_matrices(self, clean_keys=[], **kwargs):
-        """
-        Compute fundamental matrices for all edges using identical parameters
-
-        Parameters
-        ----------
-        clean_keys : list
-                     Of keys in the mask dict
-
-        """
-
-        for s, d, edge in self.edges_iter(data=True):
-            edge.compute_fundamental_matrix(clean_keys=clean_keys, **kwargs)
-
-    def subpixel_register(self, clean_keys=[], threshold=0.8, upsampling=10,
-                                 template_size=9, search_size=27, tiled=False, **kwargs):
-         """
-         Compute subpixel offsets for all edges using identical parameters
-         """
-         for s, d, edge in self.edges_iter(data=True):
-             edge.subpixel_register(clean_keys=clean_keys, threshold=threshold,
-                                    upsampling=upsampling, template_size=template_size,
-                                    search_size=search_size, tiled=tiled, **kwargs)
-
-    def suppress(self, clean_keys=[], func=spf.correlation, **kwargs):
-        for s, d, e in self.edges_iter(data=True):
-            e.suppress(clean_keys=clean_keys, func=func, **kwargs)
-
     def to_filelist(self):
         """
         Generate a file list for the entire graph.
