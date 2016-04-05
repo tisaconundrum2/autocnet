@@ -25,18 +25,18 @@ def match_images(args, config_dict):
     cg.extract_features(method='sift', extractor_parameters={'nfeatures': 1000})
 
     # Match
-    cg.match_features()
+    cg.apply_func_to_edges('match_features')
 
     # Apply outlier detection
-    cg.symmetry_checks()
-    cg.ratio_checks()
+    cg.apply_func_to_edges('symmetry_check')
+    cg.apply_func_to_edges('ratio_check')
 
     # Compute a homography and apply RANSAC
-    cg.compute_fundamental_matrices(clean_keys=['ratio', 'symmetry'])
+    cg.apply_func_to_edges('compute_fundamental_matrix', clean_keys=['ratio', 'symmetry'])
 
-    cg.subpixel_register(clean_keys=['fundamental', 'symmetry', 'ratio'], template_size=5, search_size=15)
+    cg.apply_func_to_edges('subpixel_register', clean_keys=['fundamental', 'symmetry', 'ratio'], template_size=5, search_size=15)
 
-    cg.suppress(clean_keys=['fundamental'], k=50)
+    cg.apply_func_to_edges('suppress', clean_keys=['fundamental'], k=50)
 
     cnet = cg.to_cnet(clean_keys=['subpixel'], isis_serials=True)
 
