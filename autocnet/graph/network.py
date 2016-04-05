@@ -47,7 +47,7 @@ class CandidateGraph(nx.Graph):
         self.node_counter = 0
         node_labels = {}
         self.node_name_map = {}
-        self.graph_masks = {}
+        self.graph_masks = pd.DataFrame()
 
         # the node_name is the relative path for the image
         for node_name, node in self.nodes_iter(data=True):
@@ -368,15 +368,21 @@ class CandidateGraph(nx.Graph):
                           of keys in graph_masks
         """
 
-        merged_graph_mask = self.graph_masks[graph_mask_keys].all(axis=1)
-        edges_to_iter = merged_graph_mask[merged_graph_mask].index
+        if graph_mask_keys:
+            merged_graph_mask = self.graph_masks[graph_mask_keys].all(axis=1)
+            edges_to_iter = merged_graph_mask[merged_graph_mask].index
+        else:
+            edges_to_iter = self.edges()
+
+        if not isinstance(func, str):
+            func = func.__name__
 
         for s, d in edges_to_iter:
             curr_edge = self.get_edge_data(s, d)
             try:
                 function = getattr(curr_edge, func)
             except:
-                raise AttributeError('The passed function is not an attribute of Edge')
+                raise AttributeError(func, ' is not an attribute of Edge')
             else:
                 function(*args, **kwargs)
 
@@ -391,7 +397,9 @@ class CandidateGraph(nx.Graph):
            boolean mask for edges in the minimum spanning tree
         """
 
-        self.graph_masks = pd.DataFrame(False, index=self.edges(), columns=['mst'])
+        graph_mask = pd.Series(False, index=self.edges())
+        self.graph_masks['mst'] = graph_mask
+
         mst = nx.minimum_spanning_tree(self)
         self.graph_masks['mst'][mst.edges()] = True
 
@@ -503,7 +511,6 @@ class CandidateGraph(nx.Graph):
              : C
                the cleaned control network
             """
-
             mask = np.zeros(len(cnet), dtype=bool)
             counter = 0
             for i, group in cnet.groupby('pid'):
