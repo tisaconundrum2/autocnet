@@ -1,7 +1,7 @@
 system_paths:
-    basepath: /home/acpaquette/Desktop/
-    inputfile_path: /home/acpaquette/autocnet/autocnet/examples/Apollo15/
-    outputfile_path: /home/acpaquette/autocnet/autocnet/examples/Apollo15/
+    basepath:
+    inputfile_path:
+    outputfile_path:
 
 extract_features:
     method: sift
@@ -16,10 +16,9 @@ match_features:
 
 ratio_checks:
     clean_keys:
-        -
 
+# Keyword arguments
     ratio: 0.8
-    mask: None
     mask_name: None
     single: False
 
@@ -29,9 +28,10 @@ fundamental_matrices:
         - ratio
         - symmetry
 
-    method:
-    reproj_threshold:
-    confidence:
+# Keyword arguments
+    method: ransac
+    reproj_threshold: 5.0
+    confidence: 0.99
 
 subpixel_register:
     clean_keys:
@@ -45,6 +45,7 @@ subpixel_register:
     max_y_shift: 1.0
     tiled: False
 
+# Keyword arguments
     upsampling:
     error_check: False
 
@@ -52,6 +53,7 @@ suppress:
     clean_keys:
         - fundamental
 
+# Keyword arguments
     min_radius: 2
     k: 50
     error_k: 0.1

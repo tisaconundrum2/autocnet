@@ -30,7 +30,7 @@ def match_images(args, config_dict):
         cg = CandidateGraph.from_filelist(find_in_dict(config_dict, 'inputfile_path') + args.input_file)
 
     # Apply SIFT to extract features
-    cg.extract_features(method=find_in_dict(config_dict, 'method'),
+    cg.extract_features(method=find_in_dict(config_dict, 'extract_features')['method'],
                         extractor_parameters=find_in_dict(config_dict, 'extractor_parameters'))
 
     # Match
@@ -40,12 +40,14 @@ def match_images(args, config_dict):
     cg.symmetry_checks()
     cg.ratio_checks(clean_keys=(find_in_dict(config_dict, 'ratio_checks')['clean_keys']),
                     ratio=find_in_dict(config_dict, 'ratio'),
-                    mask=find_in_dict(config_dict, 'mask'),
                     mask_name=find_in_dict(config_dict, 'mask_name'),
                     single=find_in_dict(config_dict, 'single'))
 
     # Compute a homography and apply RANSAC
-    cg.compute_fundamental_matrices(clean_keys=find_in_dict(config_dict, 'fundamental_matrices')['clean_keys'])
+    cg.compute_fundamental_matrices(clean_keys=find_in_dict(config_dict, 'fundamental_matrices')['clean_keys'],
+                                    method=find_in_dict(config_dict, 'fundamental_matrices')['method'],
+                                    reproj_threshold=find_in_dict(config_dict, 'reproj_threshold'),
+                                    confidence=find_in_dict(config_dict, 'confidence'))
 
     cg.subpixel_register(clean_keys=find_in_dict(config_dict, 'subpixel_register')['clean_keys'],
                          template_size=find_in_dict(config_dict, 'template_size'),
@@ -56,7 +58,9 @@ def match_images(args, config_dict):
                          tiled=find_in_dict(config_dict, 'tiled'))
 
     cg.suppress(clean_keys=find_in_dict(config_dict, 'suppress')['clean_keys'],
-                k=find_in_dict(config_dict, 'suppress')['k'])
+                k=find_in_dict(config_dict, 'suppress')['k'],
+                min_radius=find_in_dict(config_dict, 'min_radius'),
+                error_k=find_in_dict(config_dict, 'error_k'))
 
     cnet = cg.to_cnet(clean_keys=find_in_dict(config_dict, 'cnet_conversion')['clean_keys'],
                       isis_serials=True)
@@ -74,6 +78,5 @@ def match_images(args, config_dict):
 
 if __name__ == '__main__':
     config = read_yaml('image_match_config.yml')
-    single = find_in_dict(config, 'single')
     command_line_args = parse_arguments()
     match_images(command_line_args, config)
