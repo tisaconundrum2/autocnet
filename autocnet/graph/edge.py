@@ -121,6 +121,7 @@ class Edge(dict, MutableMapping):
         transformation_matrix, fundam_mask = od.compute_fundamental_matrix(s_keypoints,
                                                                            d_keypoints,
                                                                            **kwargs)
+
         try:
             fundam_mask = fundam_mask.ravel()
         except:
@@ -173,9 +174,8 @@ class Edge(dict, MutableMapping):
                                                                    d_keypoints.values,
                                                                    **kwargs)
 
-        ransac_mask = ransac_mask.ravel()
         # Convert the truncated RANSAC mask back into a full length mask
-        mask[mask] = ransac_mask
+        mask[mask] = ransac_mask.ravel()
         self.masks = ('ransac', mask)
         self.homography = Homography(transformation_matrix,
                                      s_keypoints[ransac_mask],
@@ -312,10 +312,7 @@ class Edge(dict, MutableMapping):
                     setattr(self.suppression, k, v)
             self.suppression.suppress()
 
-        if clean_keys:
-            mask[mask] = self.suppression.mask
-        else:
-            mask = self.suppression.mask
+        mask[mask] = self.suppression.mask
         self.masks = ('suppression', mask)
 
     def coverage_ratio(self, clean_keys=[]):
