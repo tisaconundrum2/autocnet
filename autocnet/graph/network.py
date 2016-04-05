@@ -407,7 +407,7 @@ class CandidateGraph(nx.Graph):
         Perform a ratio check on all edges in the graph
         """
         for s, d, edge in self.edges_iter(data=True):
-            edge.ratio_check(clean_keys=clean_keys)
+            edge.ratio_check(clean_keys=clean_keys, **kwargs)
 
     def compute_homographies(self, clean_keys=[], **kwargs):
         """
