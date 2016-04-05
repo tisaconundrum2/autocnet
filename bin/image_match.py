@@ -1,10 +1,4 @@
-import sys
-import os
-
 import argparse
-
-sys.path.insert(0, os.path.abspath('../autocnet'))
-
 
 from autocnet.utils.utils import find_in_dict
 from autocnet.graph.network import CandidateGraph
@@ -37,19 +31,19 @@ def match_images(args, config_dict):
     cg.match_features(k=find_in_dict(config_dict, 'match_features')['k'])
 
     # Apply outlier detection
-    cg.symmetry_checks()
-    cg.ratio_checks(clean_keys=(find_in_dict(config_dict, 'ratio_checks')['clean_keys']),
+    cg.apply_func_to_edges('symmetry_check')
+    cg.apply_func_to_edges('ratio_check', clean_keys=(find_in_dict(config_dict, 'ratio_checks')['clean_keys']),
                     ratio=find_in_dict(config_dict, 'ratio'),
                     mask_name=find_in_dict(config_dict, 'mask_name'),
                     single=find_in_dict(config_dict, 'single'))
 
     # Compute a homography and apply RANSAC
-    cg.compute_fundamental_matrices(clean_keys=find_in_dict(config_dict, 'fundamental_matrices')['clean_keys'],
+    cg.apply_func_to_edges('compute_fundamental_matrix', clean_keys=find_in_dict(config_dict, 'fundamental_matrices')['clean_keys'],
                                     method=find_in_dict(config_dict, 'fundamental_matrices')['method'],
                                     reproj_threshold=find_in_dict(config_dict, 'reproj_threshold'),
                                     confidence=find_in_dict(config_dict, 'confidence'))
 
-    cg.subpixel_register(clean_keys=find_in_dict(config_dict, 'subpixel_register')['clean_keys'],
+    cg.apply_func_to_edges('subpixel_register', clean_keys=find_in_dict(config_dict, 'subpixel_register')['clean_keys'],
                          template_size=find_in_dict(config_dict, 'template_size'),
                          threshold=find_in_dict(config_dict, 'threshold_size'),
                          search_size=find_in_dict(config_dict, 'search_size'),
@@ -57,7 +51,7 @@ def match_images(args, config_dict):
                          max_y_shift=find_in_dict(config_dict, 'max_y_shift'),
                          tiled=find_in_dict(config_dict, 'tiled'))
 
-    cg.suppress(clean_keys=find_in_dict(config_dict, 'suppress')['clean_keys'],
+    cg.apply_func_to_edges('suppress', clean_keys=find_in_dict(config_dict, 'suppress')['clean_keys'],
                 k=find_in_dict(config_dict, 'suppress')['k'],
                 min_radius=find_in_dict(config_dict, 'min_radius'),
                 error_k=find_in_dict(config_dict, 'error_k'))
