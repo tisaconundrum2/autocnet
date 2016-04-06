@@ -9,12 +9,12 @@ from .. import node
 
 class TestEdge(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(cls):
+    def setUp(self):
         source = Mock(node.Node)
         destination = Mock(node.Node)
-        cls.edge = edge.Edge(source=source, destination=destination)
+        self.edge = edge.Edge(source=source, destination=destination)
 
+        '''
         # Define a matches dataframe
         source_image = np.zeros(20)
         destination_image = np.ones(20)
@@ -27,9 +27,10 @@ class TestEdge(unittest.TestCase):
                              102.19099426,  237.63206482,  240.93359375,  277.74627686,
                              217.82791138,  224.22979736,  260.3939209,  287.91143799])
         data = np.stack((source_image, source_idx, destination_image, destination_idx, distance), axis=-1)
-        cls.edge.matches = pd.DataFrame(data, columns=['source_image', 'source_idx',
+        self.edge.matches = pd.DataFrame(data, columns=['source_image', 'source_idx',
                                                  'destination_image', 'destination_idx',
                                                  'distance'])
+        '''
 
     def test_properties(self):
         pass

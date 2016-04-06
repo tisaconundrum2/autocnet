@@ -109,6 +109,7 @@ class Edge(dict, MutableMapping):
             matches = self.matches
         else:
             raise AttributeError('Matches have not been computed for this edge')
+            return
 
         all_source_keypoints = self.source.get_keypoint_coordinates(matches['source_idx'])
         all_destin_keypoints = self.destination.get_keypoint_coordinates(matches['destination_idx'])
@@ -117,7 +118,6 @@ class Edge(dict, MutableMapping):
 
         s_keypoints = self.source.get_keypoint_coordinates(matches['source_idx'].values)
         d_keypoints = self.destination.get_keypoint_coordinates(matches['destination_idx'].values)
-
         transformation_matrix, fundam_mask = od.compute_fundamental_matrix(s_keypoints,
                                                                            d_keypoints,
                                                                            **kwargs)
