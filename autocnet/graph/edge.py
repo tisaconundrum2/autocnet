@@ -116,7 +116,7 @@ class Edge(dict, MutableMapping):
         matches, mask = self._clean(clean_keys)
 
         s_keypoints = self.source.get_keypoint_coordinates(matches['source_idx'].values)
-        d_keypoints = self.destination.get_keypoints_coordinates(matches['destination_idx'].values)
+        d_keypoints = self.destination.get_keypoint_coordinates(matches['destination_idx'].values)
 
         transformation_matrix, fundam_mask = od.compute_fundamental_matrix(s_keypoints,
                                                                            d_keypoints,
