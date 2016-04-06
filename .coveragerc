@@ -6,7 +6,7 @@ omit =
     autocnet/vis/graph_view.py
     autocnet/fileio/sqlalchemy_json/*
     autocnet/fileio/io_multibandimager.py
-    autocnet/fileio/io_io_moon_minerology_mapper.py
+    autocnet/fileio/io_moon_minerology_mapper.py
     autocnet/fileio/header_parser.py
     autocnet/fileio/io_ccs.py
     autocnet/fileio/io_jsc.py
