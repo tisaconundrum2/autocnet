@@ -79,11 +79,6 @@ class TestCandidateGraph(unittest.TestCase):
         os.remove('test_save.cg')
 
     def test_save_load_features(self):
-        for i in ['all_out.hdf', 'one_out.hdf']:
-            try:
-                os.remove(i)
-            except: pass
-
         graph = self.graph.copy()
         graph.extract_features(extractor_parameters={'nfeatures': 10})
         graph.save_features('all_out.hdf')
