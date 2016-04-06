@@ -54,9 +54,9 @@ class Node(dict, MutableMapping):
         Image PATH: {}
         Number Keypoints: {}
         Available Masks : {}
+        Type: {}
         """.format(None, self.image_name, self.image_path,
-                   self.nkeypoints, self.masks)
-
+                   self.nkeypoints, self.masks, self.__class__)
     @property
     def handle(self):
         if not getattr(self, '_handle', None):
@@ -77,8 +77,14 @@ class Node(dict, MutableMapping):
     @property
     def masks(self):
         mask_lookup = {'suppression': 'suppression'}
+
+        if not hasattr(self, '_keypoints'):
+            warnings.warn('Keypoints have note been extracted')
+            return
+
         if not hasattr(self, '_masks'):
-            self._masks = pd.DataFrame()
+            self._masks = pd.DataFrame(index=self._keypoints.index)
+
         # If the mask is coming form another object that tracks
         # state, dynamically draw the mask from the object.
         for c in self._masks.columns:

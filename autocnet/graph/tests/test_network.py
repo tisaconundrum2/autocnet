@@ -66,7 +66,7 @@ class TestCandidateGraph(unittest.TestCase):
         subgraph_list = self.graph.connected_subgraphs()
         self.assertEqual(len(subgraph_list), 1)
 
-    def test_save_load(self):
+    def test_save_load_graph(self):
         self.graph.save('test_save.cg')
         loaded = self.graph.from_graph('test_save.cg')
         self.assertEqual(self.graph.node[0].nkeypoints, loaded.node[0].nkeypoints)
@@ -78,6 +78,31 @@ class TestCandidateGraph(unittest.TestCase):
 
         os.remove('test_save.cg')
 
+    def test_save_load_features(self):
+        for i in ['all_out.hdf', 'one_out.hdf']:
+            try:
+                os.remove(i)
+            except: pass
+
+        graph = self.graph.copy()
+        graph.extract_features(extractor_parameters={'nfeatures': 10})
+        graph.save_features('all_out.hdf')
+        graph.save_features('one_out.hdf', nodes=[1])
+        graph_no_features = self.graph.copy()
+        graph_no_features.load_features('one_out.hdf', nodes=[1])
+        self.assertEqual(graph.node[1].get_keypoints().all().all(),
+                         graph_no_features.node[1].get_keypoints().all().all())
+
+        graph_no_features.load_features('all_out.hdf')
+        for n in graph.nodes():
+            self.assertEqual(graph.node[n].get_keypoints().all().all(),
+                             graph_no_features.node[n].get_keypoints().all().all())
+        for i in ['all_out.hdf', 'one_out.hdf']:
+            try:
+                os.remove(i)
+            except: pass
+
+
     def test_fromlist(self):
         mock_list = ['AS15-M-0295_SML.png', 'AS15-M-0296_SML.png', 'AS15-M-0297_SML.png',
                      'AS15-M-0298_SML.png', 'AS15-M-0299_SML.png', 'AS15-M-0300_SML.png']
@@ -86,6 +111,8 @@ class TestCandidateGraph(unittest.TestCase):
 
         n = network.CandidateGraph.from_filelist(get_path('adjacency.lis'), get_path('Apollo15'))
         self.assertEqual(len(n.nodes()), 6)
+
+
 
     def tearDown(self):
         pass

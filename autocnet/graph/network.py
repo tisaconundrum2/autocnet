@@ -48,7 +48,6 @@ class CandidateGraph(nx.Graph):
         node_labels = {}
         self.node_name_map = {}
         self.graph_masks = pd.DataFrame()
-
         # the node_name is the relative path for the image
         for node_name, node in self.nodes_iter(data=True):
             image_name = os.path.basename(node_name)
@@ -56,13 +55,11 @@ class CandidateGraph(nx.Graph):
 
             # Replace the default node dict with an object
             self.node[node_name] = Node(image_name, image_path)
-
             # fill the dictionary used for relabelling nodes with relative path keys
             node_labels[node_name] = self.node_counter
             # fill the dictionary used for mapping base name to node index
             self.node_name_map[self.node[node_name].image_name] = self.node_counter
             self.node_counter += 1
-
         nx.relabel_nodes(self, node_labels, copy=False)
 
         # Add the Edge class as a edge data structure
