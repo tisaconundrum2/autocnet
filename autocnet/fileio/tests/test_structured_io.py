@@ -14,7 +14,7 @@ from autocnet.examples import get_path
 
 class TestYAML(unittest.TestCase):
 
-    @unittest.skipif(missing == True)
+    @unittest.skipIf(missing == True, 'YAML library not installed')
     def test_read(self):
         d = io_yaml.read_yaml(get_path('logging.yaml'))
         self.assertIn('handlers', d.keys())
