@@ -42,9 +42,10 @@ class Node(dict, MutableMapping):
                   ISIS compatible serial number
     """
 
-    def __init__(self, image_name=None, image_path=None):
+    def __init__(self, image_name=None, image_path=None, node_id=None):
         self.image_name = image_name
         self.image_path = image_path
+        self.node_id = node_id
         self._mask_arrays = {}
 
     def __repr__(self):
@@ -55,7 +56,7 @@ class Node(dict, MutableMapping):
         Number Keypoints: {}
         Available Masks : {}
         Type: {}
-        """.format(None, self.image_name, self.image_path,
+        """.format(self.node_id, self.image_name, self.image_path,
                    self.nkeypoints, self.masks, self.__class__)
     @property
     def handle(self):
@@ -79,7 +80,7 @@ class Node(dict, MutableMapping):
         mask_lookup = {'suppression': 'suppression'}
 
         if not hasattr(self, '_keypoints'):
-            warnings.warn('Keypoints have note been extracted')
+            warnings.warn('Keypoints have not been extracted')
             return
 
         if not hasattr(self, '_masks'):
@@ -126,6 +127,21 @@ class Node(dict, MutableMapping):
         return bytescale(array)
 
     def get_keypoints(self, index=None):
+        """
+        Return the keypoints for the node.  If index is passed, return
+        the appropriate subset.
+
+        Parameters
+        ----------
+        index : iterable
+                indices for of the keypoints to return
+
+        Returns
+        -------
+         : dataframe
+           A pandas dataframe of keypoints
+
+        """
         if hasattr(self, '_keypoints'):
             try:
                 return self._keypoints.iloc[index]

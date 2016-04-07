@@ -39,8 +39,8 @@ class CandidateGraph(nx.Graph):
                list of node indices
     ----------
     """
-    edge_attr_dict_factory = Edge
-    node_dict_factory = Node
+
+
 
     def __init__(self, *args, basepath=None, **kwargs):
         super(CandidateGraph, self).__init__(*args, **kwargs)
@@ -54,7 +54,7 @@ class CandidateGraph(nx.Graph):
             image_path = node_name
 
             # Replace the default node dict with an object
-            self.node[node_name] = Node(image_name, image_path)
+            self.node[node_name] = Node(image_name, image_path, self.node_counter)
             # fill the dictionary used for relabelling nodes with relative path keys
             node_labels[node_name] = self.node_counter
             # fill the dictionary used for mapping base name to node index
@@ -65,6 +65,7 @@ class CandidateGraph(nx.Graph):
         # Add the Edge class as a edge data structure
         for s, d, edge in self.edges_iter(data=True):
             self.edge[s][d] = Edge(self.node[s], self.node[d])
+
 
     @classmethod
     def from_graph(cls, graph):
@@ -629,7 +630,8 @@ class CandidateGraph(nx.Graph):
         if not hasattr(self, 'clusters'):
             raise AttributeError('No clusters have been computed for this graph.')
         nodes_in_cluster = self.clusters[arg]
-        subgraph = self.subgraph(nodes_in_cluster)
+        edges_in_cluster = [(u,v) for u,v in self.edges() if u in nodes_in_cluster and v in nodes_in_cluster]
+        subgraph = self.subgraph(edges_in_cluster)
         return subgraph
 
     @create_subgraph.register(pd.DataFrame)
