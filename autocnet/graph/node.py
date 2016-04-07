@@ -151,6 +151,19 @@ class Node(dict, MutableMapping):
             return None
 
     def get_keypoint_coordinates(self, index=None):
+        """
+        Return the coordinates of the keypoints without any ancillary data
+
+        Parameters
+        ----------
+        index : iterable
+                indices for of the keypoints to return
+
+        Returns
+        -------
+         : dataframe
+           A pandas dataframe of keypoint coordinates
+        """
         keypoints = self.get_keypoints(index=index)
         try:
             return keypoints[['x', 'y']]
