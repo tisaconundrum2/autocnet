@@ -50,13 +50,7 @@ def match_images(args, config_dict):
                                     reproj_threshold=find_in_dict(config_dict, 'reproj_threshold'),
                                     confidence=find_in_dict(config_dict, 'confidence'))
 
-    cg.apply_func_to_edges('subpixel_register', clean_keys=find_in_dict(config_dict, 'subpixel_register')['clean_keys'],
-                         template_size=find_in_dict(config_dict, 'template_size'),
-                         threshold=find_in_dict(config_dict, 'threshold_size'),
-                         search_size=find_in_dict(config_dict, 'search_size'),
-                         max_x_shift=find_in_dict(config_dict, 'max_x_shift'),
-                         max_y_shift=find_in_dict(config_dict, 'max_y_shift'),
-                         tiled=find_in_dict(config_dict, 'tiled'))
+    cg.apply_func_to_edges('subpixel_register', clean_keys=['fundamental', 'symmetry', 'ratio'], template_size=5, search_size=15)
 
     cg.apply_func_to_edges('suppress', clean_keys=find_in_dict(config_dict, 'suppress')['clean_keys'],
                 k=find_in_dict(config_dict, 'suppress')['k'],

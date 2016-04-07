@@ -39,9 +39,9 @@ subpixel_register:
         - ratio
         - symmetry
         - fundamental
-    template_size: 19
+    template_size: 5
     threshold: 0.8
-    search_size: 53
+    search_size: 15
     max_x_shift: 1.0
     max_y_shift: 1.0
     tiled: False
