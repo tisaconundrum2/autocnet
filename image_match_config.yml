@@ -6,7 +6,7 @@ system_paths:
 extract_features:
     method: sift
     extractor_parameters:
-        nfeatures: 500
+        nfeatures: 1000
 
 match_features:
     k: 50
@@ -14,8 +14,9 @@ match_features:
 # Any clean keys being passed in requires a method to have been used on the candidate graph object
 # before the key can be passed in
 
-ratio_checks:
+ratio_check:
     clean_keys:
+        -
 
 # Keyword arguments
     ratio: 0.8
