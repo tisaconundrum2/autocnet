@@ -25,7 +25,7 @@ def read_json(inputfile):
         try:
             jdict = json.load(f)
             return jdict
-        except IOError:
+        except IOError: # pragma: no cover
             return
 
 def write_json(outdata, outputfile):
@@ -42,5 +42,5 @@ def write_json(outdata, outputfile):
     try:
         with open(outputfile, 'w') as f:
             f.write(json.dumps(outdata, outputfile))
-    except:
+    except: # pragma: no cover
         raise IOError('Unable to write data to {}'.format(outputfile))

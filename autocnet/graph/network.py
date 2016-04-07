@@ -39,8 +39,8 @@ class CandidateGraph(nx.Graph):
                list of node indices
     ----------
     """
-    edge_attr_dict_factory = Edge
-    node_dict_factory = Node
+
+
 
     def __init__(self, *args, basepath=None, **kwargs):
         super(CandidateGraph, self).__init__(*args, **kwargs)
@@ -48,26 +48,24 @@ class CandidateGraph(nx.Graph):
         node_labels = {}
         self.node_name_map = {}
         self.graph_masks = pd.DataFrame()
-
         # the node_name is the relative path for the image
         for node_name, node in self.nodes_iter(data=True):
             image_name = os.path.basename(node_name)
             image_path = node_name
 
             # Replace the default node dict with an object
-            self.node[node_name] = Node(image_name, image_path)
-
+            self.node[node_name] = Node(image_name, image_path, self.node_counter)
             # fill the dictionary used for relabelling nodes with relative path keys
             node_labels[node_name] = self.node_counter
             # fill the dictionary used for mapping base name to node index
             self.node_name_map[self.node[node_name].image_name] = self.node_counter
             self.node_counter += 1
-
         nx.relabel_nodes(self, node_labels, copy=False)
 
         # Add the Edge class as a edge data structure
         for s, d, edge in self.edges_iter(data=True):
             self.edge[s][d] = Edge(self.node[s], self.node[d])
+
 
     @classmethod
     def from_graph(cls, graph):
@@ -89,7 +87,7 @@ class CandidateGraph(nx.Graph):
 
 
     @classmethod
-    def from_filelist(cls, filelist):
+    def from_filelist(cls, filelist, basepath=None):
         """
         Instantiate the class using a filelist as a python list.
         An adjacency structure is calculated using the lat/lon information in the
@@ -111,8 +109,10 @@ class CandidateGraph(nx.Graph):
                 filelist = map(str.rstrip, filelist)
 
         # TODO: Reject unsupported file formats + work with more file formats
-
-        datasets = [GeoDataset(f) for f in filelist]
+        if basepath:
+            datasets = [GeoDataset(os.path.join(basepath, f)) for f in filelist]
+        else:
+            datasets = [GeoDataset(f) for f in filelist]
 
         # This is brute force for now, could swap to an RTree at some point.
         adjacency_dict = {}
@@ -126,10 +126,12 @@ class CandidateGraph(nx.Graph):
             # Grab the footprints and test for intersection
             i_fp = i.footprint
             j_fp = j.footprint
-            if i_fp.Intersects(j_fp):
-                adjacency_dict[i.file_name].append(j.file_name)
-                adjacency_dict[j.file_name].append(i.file_name)
-
+            try:
+                if i_fp.Intersects(j_fp):
+                    adjacency_dict[i.file_name].append(j.file_name)
+                    adjacency_dict[j.file_name].append(i.file_name)
+            except: # no geospatial information embedded in the images
+                pass
         return cls(adjacency_dict)
 
 
@@ -482,8 +484,8 @@ class CandidateGraph(nx.Graph):
                 subpixel = True
                 point_type = 3
 
-            kp1 = self.node[source].keypoints
-            kp2 = self.node[destination].keypoints
+            kp1 = self.node[source].get_keypoints()
+            kp2 = self.node[destination].get_keypoints()
             pt_idx = 0
             values = []
             for i, (idx, row) in enumerate(matches.iterrows()):
@@ -628,7 +630,8 @@ class CandidateGraph(nx.Graph):
         if not hasattr(self, 'clusters'):
             raise AttributeError('No clusters have been computed for this graph.')
         nodes_in_cluster = self.clusters[arg]
-        subgraph = self.subgraph(nodes_in_cluster)
+        edges_in_cluster = [(u,v) for u,v in self.edges() if u in nodes_in_cluster and v in nodes_in_cluster]
+        subgraph = self.subgraph(edges_in_cluster)
         return subgraph
 
     @create_subgraph.register(pd.DataFrame)

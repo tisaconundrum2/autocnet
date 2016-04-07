@@ -1,3 +1,4 @@
+import warnings
 
 
 class EdgeHealth(object):
@@ -26,4 +27,8 @@ class EdgeHealth(object):
         """
         Recompute the health of the edge.
         """
-        return self.FundamentalMatrix.error.mean()
+        try:
+            return self.FundamentalMatrix.error.mean()
+        except:
+            warnings.warn('Unable to compute new health, defaulting to 1.0')
+            return 1.0
