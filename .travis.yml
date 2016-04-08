@@ -27,7 +27,7 @@ install:
   - conda info -a
 
   # Create a virtual env and install dependencies
-  - conda create -y -q -n test-env python=$TRAVIS_PYTHON_VERSION nose numpy pillow scipy pandas networkx scikit-image sqlalchemy numexpr dill cython
+  - conda create -y -q -n test-env python=$TRAVIS_PYTHON_VERSION nose numpy pillow scipy pandas networkx scikit-image sqlalchemy numexpr dill cython pyyaml
   # Activate the env
   - source activate test-env
 
