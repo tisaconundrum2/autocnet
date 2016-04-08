@@ -97,7 +97,6 @@ class TestCandidateGraph(unittest.TestCase):
                 os.remove(i)
             except: pass
 
-
     def test_fromlist(self):
         mock_list = ['AS15-M-0295_SML.png', 'AS15-M-0296_SML.png', 'AS15-M-0297_SML.png',
                      'AS15-M-0298_SML.png', 'AS15-M-0299_SML.png', 'AS15-M-0300_SML.png']
@@ -107,7 +106,13 @@ class TestCandidateGraph(unittest.TestCase):
         n = network.CandidateGraph.from_filelist(get_path('adjacency.lis'), get_path('Apollo15'))
         self.assertEqual(len(n.nodes()), 6)
 
+    def test_subset_graph(self):
+        g = self.graph
+        edge_sub = g.create_edge_subgraph([(0,2)])
+        self.assertEqual(len(edge_sub.nodes()), 2)
 
+        node_sub = g.create_node_subgraph([0,1])
+        self.assertEqual(len(node_sub), 2)
 
     def tearDown(self):
         pass
