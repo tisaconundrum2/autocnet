@@ -2,8 +2,11 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
-import numpy as np
 import unittest
+import warnings
+
+import numpy as np
+import pandas as pd
 
 from autocnet.examples import get_path
 from autocnet.fileio.io_gdal import GeoDataset
@@ -30,10 +33,28 @@ class TestNode(unittest.TestCase):
     def test_extract_features(self):
         image = self.node.get_array()
         self.node.extract_features(image, extractor_parameters={'nfeatures':10})
-        self.assertEquals(len(self.node.keypoints), 10)
+        self.assertEquals(len(self.node.get_keypoints()), 10)
         self.assertEquals(len(self.node.descriptors), 10)
         self.assertIsInstance(self.node.descriptors[0], np.ndarray)
         self.assertEqual(10, self.node.nkeypoints)
+
+        # Test the setter
+        self.node.nkeypoints = 11
+        self.assertEqual(11, self.node.nkeypoints)
+
+    def test_masks(self):
+        # Assert a warning raise here
+        with warnings.catch_warnings(record=True) as w:
+            masks = self.node.masks
+            self.assertEqual(len(w), 1)
+            self.assertEqual(w[0].category, UserWarning)
+
+        image = self.node.get_array()
+        self.node.extract_features(image, extractor_parameters={'nfeatures':5})
+        self.assertIsInstance(self.node.masks, pd.DataFrame)
+        # Create an artificial mask
+        self.node.masks = ('foo', np.array([0,0,1,1,1], dtype=np.bool))
+        self.assertEqual(self.node.masks['foo'].sum(), 3)
 
     def test_convex_hull_ratio_fail(self):
         # Convex hull computation is checked lower in the hull computation
@@ -47,9 +68,9 @@ class TestNode(unittest.TestCase):
         image = self.node.get_array()
         self.node.extract_features(image, method='sift', extractor_parameters={'nfeatures':10})
         self.node.save_features('node_test.hdf')
-        kps = self.node.keypoints.copy()
+        kps = self.node.get_keypoints().copy()
         descriptors = self.node.descriptors.copy()
         self.node.load_features('node_test.hdf')
-        self.assertTrue((kps == self.node.keypoints).all().all())
+        self.assertTrue((kps == self.node.get_keypoints()).all().all())
 
         os.remove('node_test.hdf')

@@ -423,7 +423,6 @@ def compute_homography(kp1, kp2, method='ransac', **kwargs):
         method_ = 0  # Normal method
     else:
         raise ValueError("Unknown outlier detection method.  Choices are: 'ransac', 'lmeds', or 'normal'.")
-
     transformation_matrix, mask = cv2.findHomography(kp1,
                                                      kp2,
                                                      method_,
