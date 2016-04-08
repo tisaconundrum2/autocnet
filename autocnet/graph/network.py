@@ -698,3 +698,21 @@ class CandidateGraph(nx.Graph):
 
         H.graph = self.graph
         return H
+
+    def subgraph_from_matches(self):
+        """
+        Returns a sub-graph where all images have matches.
+        (i.e. images with no matches are removed)
+
+        Returns
+        -------
+        : Object
+          A networkX graph object
+        """
+
+        # get all edges that have matches
+        matches = [(u, v) for u, v, edge in self.edges_iter(data=True)
+                   if hasattr(edge, 'matches') and
+                   not edge.matches.empty]
+
+        return self.create_edge_subgraph(matches)
