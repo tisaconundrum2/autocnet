@@ -19,13 +19,12 @@ class TransformationMatrix(np.ndarray):
 
     @abc.abstractmethod
     def __new__(cls, inputarr, x1, x2, mask):
-        obj = np.asarray(inputarr).view(cls)
-
         if not isinstance(inputarr, np.ndarray):
             raise TypeError('The homography must be an ndarray')
         if not inputarr.shape[0] == 3 and not inputarr.shape[1] == 3:
             raise ValueError('The homography must be a 3x3 matrix.')
 
+        obj = np.asarray(inputarr).view(cls)
         obj.x1 = x1
         obj.x2 = x2
         obj.mask = mask
@@ -77,10 +76,6 @@ class TransformationMatrix(np.ndarray):
 
     @abc.abstractproperty
     def describe_error(self):
-        if not getattr(self, '_error', None):
-            self._error = self.compute_error(self.x1,
-                                             self.x2,
-                                             self.mask)
         return self.error.describe()
 
     @abc.abstractmethod
