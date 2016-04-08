@@ -40,8 +40,6 @@ class CandidateGraph(nx.Graph):
     ----------
     """
 
-
-
     def __init__(self, *args, basepath=None, **kwargs):
         super(CandidateGraph, self).__init__(*args, **kwargs)
         self.node_counter = 0
@@ -66,7 +64,6 @@ class CandidateGraph(nx.Graph):
         for s, d, edge in self.edges_iter(data=True):
             self.edge[s][d] = Edge(self.node[s], self.node[d])
 
-
     @classmethod
     def from_graph(cls, graph):
         """
@@ -84,7 +81,6 @@ class CandidateGraph(nx.Graph):
         with open(graph, 'rb') as f:
             graph = pickle.load(f)
         return graph
-
 
     @classmethod
     def from_filelist(cls, filelist, basepath=None):
@@ -609,7 +605,7 @@ class CandidateGraph(nx.Graph):
         with open(filename, 'wb') as f:
             pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-    def plot(self, ax=None, **kwargs):
+    def plot(self, ax=None, **kwargs): # pragma: no cover
         """
         Plot the graph object
 
@@ -625,20 +621,80 @@ class CandidateGraph(nx.Graph):
         """
         return plot_graph(self, ax=ax,  **kwargs)
 
-    @singledispatch
-    def create_subgraph(self, arg, key=None):
-        if not hasattr(self, 'clusters'):
-            raise AttributeError('No clusters have been computed for this graph.')
-        nodes_in_cluster = self.clusters[arg]
-        edges_in_cluster = [(u,v) for u,v in self.edges() if u in nodes_in_cluster and v in nodes_in_cluster]
-        subgraph = self.subgraph(edges_in_cluster)
-        return subgraph
+    def create_edge_subgraph(self, edges):
+        """
+        Create a subgraph using a list of edges.
+        This is pulled directly from the networkx dev branch.
 
-    @create_subgraph.register(pd.DataFrame)
-    def _(self, arg, g, key=None):
-        if key == None:
-            return
-        col = arg[key]
-        nodes = col[col == True].index
-        subgraph = g.subgraph(nodes)
-        return subgraph
+        Parameters
+        ----------
+        edges : list
+                A list of edges in the form [(a,b), (c,d)] to retain
+                in the subgraph
+
+        Returns
+        -------
+        H : object
+            A networkx subgraph object
+        """
+        H = self.__class__()
+        adj = self.adj
+        # Filter out edges that don't correspond to nodes in the graph.
+        edges = ((u, v) for u, v in edges if u in adj and v in adj[u])
+        for u, v in edges:
+            # Copy the node attributes if they haven't been copied
+            # already.
+            if u not in H.node:
+                H.node[u] = self.node[u]
+            if v not in H.node:
+                H.node[v] = self.node[v]
+            # Create an entry in the adjacency dictionary for the
+            # nodes u and v if they don't exist yet.
+            if u not in H.adj:
+                H.adj[u] = H.adjlist_dict_factory()
+            if v not in H.adj:
+                H.adj[v] = H.adjlist_dict_factory()
+            # Copy the edge attributes.
+            H.edge[u][v] = self.edge[u][v]
+            H.edge[v][u] = self.edge[v][u]
+        H.graph = self.graph
+        return H
+
+    def create_node_subgraph(self, nodes):
+        """
+        Given a list of nodes, create a sub-graph and
+        copy both the node and edge attributes to the subgraph.
+        Changes to node/edge attributes are propagated back to the
+        parent graph, while changes to the graph structure, i.e.,
+        the topology, are not.
+
+        Parameters
+        ----------
+        nodes : iterable
+                An iterable (list, set, ndarray) of nodes to subset
+                the graph
+
+        Returns
+        -------
+        H : object
+            A networkX graph object
+
+        """
+        bunch = set(self.nbunch_iter(nodes))
+        # create new graph and copy subgraph into it
+        H = self.__class__()
+        # copy node and attribute dictionaries
+        for n in bunch:
+            H.node[n] = self.node[n]
+        # namespace shortcuts for speed
+        H_adj = H.adj
+        self_adj = self.adj
+        for i in H.node:
+            adj_nodes = set(self.adj[i].keys()).intersection(bunch)
+            H.adj[i] = {}
+            for j, edge in self.adj[i].items():
+                if j in adj_nodes:
+                    H.adj[i][j] = edge
+
+        H.graph = self.graph
+        return H
