@@ -114,6 +114,15 @@ class TestCandidateGraph(unittest.TestCase):
         node_sub = g.create_node_subgraph([0,1])
         self.assertEqual(len(node_sub), 2)
 
+    def test_subgraph_from_matches(self):
+        test_sub_graph = self.graph.create_node_subgraph([0, 1])
+        test_sub_graph.extract_features(extractor_parameters={'nfeatures': 500})
+        test_sub_graph.match_features(k=2)
+
+        sub_graph_from_matches = self.graph.subgraph_from_matches()
+
+        self.assertEqual(test_sub_graph.edges(), sub_graph_from_matches.edges())
+
     def tearDown(self):
         pass
 
