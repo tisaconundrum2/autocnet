@@ -701,7 +701,7 @@ class CandidateGraph(nx.Graph):
 
     def subgraph_from_matches(self):
         """
-        Returns a sub-graph where all images have matches.
+        Returns a sub-graph where all edges have matches.
         (i.e. images with no matches are removed)
 
         Returns
