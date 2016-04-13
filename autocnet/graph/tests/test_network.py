@@ -114,6 +114,21 @@ class TestCandidateGraph(unittest.TestCase):
         node_sub = g.create_node_subgraph([0,1])
         self.assertEqual(len(node_sub), 2)
 
+    def test_filter(self):
+        def edge_func(edge):
+            return hasattr(edge, 'matches') and not edge.matches.empty
+
+        graph = self.graph.copy()
+        test_sub_graph = graph.create_node_subgraph([0, 1])
+        test_sub_graph.extract_features(extractor_parameters={'nfeatures': 500})
+        test_sub_graph.match_features(k=2)
+
+        filtered_nodes = graph.filter_nodes(lambda node: hasattr(node, 'descriptors'))
+        filtered_edges = graph.filter_edges(edge_func)
+
+        self.assertEqual(filtered_nodes.number_of_nodes(), test_sub_graph.number_of_nodes())
+        self.assertEqual(filtered_edges.number_of_edges(), test_sub_graph.number_of_edges())
+
     def test_subgraph_from_matches(self):
         test_sub_graph = self.graph.create_node_subgraph([0, 1])
         test_sub_graph.extract_features(extractor_parameters={'nfeatures': 500})
