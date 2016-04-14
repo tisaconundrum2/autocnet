@@ -719,7 +719,8 @@ class CandidateGraph(nx.Graph):
 
     def filter_nodes(self, func, *args, **kwargs):
         """
-        Filters graph with function and returns a sub-graph from matches
+        Filters graph and returns a sub-graph from matches. Mimics
+        python's filter() function
 
         Parameters
         ----------
@@ -736,7 +737,9 @@ class CandidateGraph(nx.Graph):
 
     def filter_edges(self, func, *args, **kwargs):
         """
-        Filters graph with function and returns a sub-graph from matches
+        Filters graph and returns a sub-graph from matches. Mimics
+        python's filter() function
+
         Parameters
         ----------
         func : function which returns bool used to filter out edges
