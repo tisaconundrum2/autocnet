@@ -49,7 +49,6 @@ subpixel_register:
 # Keyword arguments
     upsampling: 16
     error_check: False
-    subpixel_func: cv2.TM_CCOEFF_NORMED
 
 suppress:
     clean_keys:
