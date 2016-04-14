@@ -8,7 +8,7 @@ import numpy as np
 import numpy.testing
 import pandas as pd
 from autocnet.transformation import transformations
-
+from autocnet.fileio import utils
 
 class TestHomography(unittest.TestCase):
 
@@ -63,6 +63,16 @@ class TestFundamentalMatrix(unittest.TestCase):
         self.assertAlmostEqual(F.determinant, 0.624999, 5)
 
         self.assertIsInstance(F.error, pd.DataFrame)
+
+        # TODO: FIXME
+
+        df1 = pd.DataFrame(fp, columns=['x', 'y'])
+        df2 = pd.DataFrame(tp.T[:, :2], columns=['x', 'y'])
+        slopes = utils.calculate_slope(df1, df2)
+
+        F.refine(arr=slopes)
+
+        self.assertTrue(False)
 
         # This should raise an error.
         F.refine()

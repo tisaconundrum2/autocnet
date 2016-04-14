@@ -3,6 +3,7 @@ import tempfile
 import os
 import fnmatch
 import numpy as np
+import pandas as pd
 
 def create_dir(basedir=''):
     """
@@ -34,3 +35,35 @@ def file_search(searchdir,searchstring):
             filelist.append(os.path.join(root, filename))
     filelist=np.array(filelist)
     return filelist    
+
+# TODO: FIXME
+def calculate_slope(x1, x2, y1, y2):
+    """
+
+    Parameters
+    ----------
+    x1
+    x2
+    y1
+    y2
+
+    Returns
+    -------
+
+    """
+    return (x2-x1)/(y2-y1)
+
+def calculate_slope(x1, x2):
+    """
+
+    Parameters
+    ----------
+    x1
+    x2
+
+    Returns
+    -------
+
+    """
+    slopes = (x2.y.values - x1.y.values)/(x2.x.values-x1.x.values)
+    return pd.DataFrame(slopes, columns=['slope'])
