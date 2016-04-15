@@ -354,14 +354,14 @@ class CandidateGraph(nx.Graph):
         """
         _, self.clusters = func(self, *args, **kwargs)
 
-    def apply_func_to_edges(self, func, *args, graph_mask_keys=[], **kwargs):
+    def apply_func_to_edges(self, function, *args, graph_mask_keys=[], **kwargs):
         """
         Iterates over edges using an optional mask and and applies the given function.
         If func is not an attribute of Edge, raises AttributeError
         Parameters
         ----------
-        func : string
-               function to be called on every edge
+        function : obj
+                   function to be called on every edge
         graph_mask_keys : list
                           of keys in graph_masks
         """
@@ -372,17 +372,17 @@ class CandidateGraph(nx.Graph):
         else:
             edges_to_iter = self.edges()
 
-        if not isinstance(func, str):
-            func = func.__name__
+        if not isinstance(function, str):
+            function = function.__name__
 
         for s, d in edges_to_iter:
             curr_edge = self.get_edge_data(s, d)
             try:
-                function = getattr(curr_edge, func)
+                func = getattr(curr_edge, function)
             except:
-                raise AttributeError(func, ' is not an attribute of Edge')
+                raise AttributeError(function, ' is not an attribute of Edge')
             else:
-                function(*args, **kwargs)
+                func(*args, **kwargs)
 
     def minimum_spanning_tree(self):
         """
@@ -698,3 +698,56 @@ class CandidateGraph(nx.Graph):
 
         H.graph = self.graph
         return H
+
+    def subgraph_from_matches(self):
+        """
+        Returns a sub-graph where all edges have matches.
+        (i.e. images with no matches are removed)
+
+        Returns
+        -------
+        : Object
+          A networkX graph object
+        """
+
+        # get all edges that have matches
+        matches = [(u, v) for u, v, edge in self.edges_iter(data=True)
+                   if hasattr(edge, 'matches') and
+                   not edge.matches.empty]
+
+        return self.create_edge_subgraph(matches)
+
+    def filter_nodes(self, func, *args, **kwargs):
+        """
+        Filters graph and returns a sub-graph from matches. Mimics
+        python's filter() function
+
+        Parameters
+        ----------
+        func : function which returns bool used to filter out nodes
+
+        Returns
+        -------
+        : Object
+          A networkX graph object
+
+        """
+        nodes = [n for n, d in self.nodes_iter(data=True) if func(d, *args, **kwargs)]
+        return self.create_node_subgraph(nodes)
+
+    def filter_edges(self, func, *args, **kwargs):
+        """
+        Filters graph and returns a sub-graph from matches. Mimics
+        python's filter() function
+
+        Parameters
+        ----------
+        func : function which returns bool used to filter out edges
+
+        Returns
+        -------
+        : Object
+          A networkX graph object
+        """
+        edges = [(u, v) for u, v, edge in self.edges_iter(data=True) if func(edge, *args, **kwargs)]
+        return self.create_edge_subgraph(edges)

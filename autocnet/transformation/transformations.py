@@ -175,7 +175,7 @@ class FundamentalMatrix(TransformationMatrix):
             compute this homography
     """
 
-    def refine(self, method=ps.esda.mapclassify.Fisher_Jenks, bin_id=0, **kwargs):
+    def refine(self, method=ps.esda.mapclassify.Fisher_Jenks, df=None, bin_id=0, **kwargs):
         """
         Refine the fundamental matrix by accepting some data classification
         method that accepts an ndarray and returns an object with a bins
@@ -192,6 +192,10 @@ class FundamentalMatrix(TransformationMatrix):
         method : object
                  A function that accepts and ndarray and returns an object
                  with a bins attribute
+
+        df      : dataframe
+                Dataframe (from which a ndarray will be extracted) to pass to the method.
+
         bin_id : int
                  The index into the bins object.  Data classified > this
                  id is masked
@@ -209,10 +213,12 @@ class FundamentalMatrix(TransformationMatrix):
                data in the new fundamental matrix.
         """
         # Perform the data classification
-        fj = method(self.error.values.ravel(), **kwargs)
+        if df is None:
+            df = self.error
+        fj = method(df.values.ravel(), **kwargs)
         bins = fj.bins
         # Mask the data that falls outside the provided bins
-        mask = self.error['Reprojection Error'] <= bins[bin_id]
+        mask = df.iloc[:, 0] <= bins[bin_id]
         new_x1 = self.x1.iloc[mask[mask == True].index]
         new_x2 = self.x2.iloc[mask[mask == True].index]
         fmatrix, new_mask = compute_fundamental_matrix(new_x1.values, new_x2.values)
@@ -220,7 +226,7 @@ class FundamentalMatrix(TransformationMatrix):
 
         # Update the current state
         self[:] = fmatrix
-        self.mask[self.mask == True] = mask
+        self.mask = mask
 
         # Update the action stack
         try:
