@@ -80,31 +80,6 @@ class Edge(dict, MutableMapping):
     def health(self):
         return self._health.health
 
-    def keypoints(self, clean_keys=[]):
-        """
-        Return a view of the keypoints dataframe after having applied some
-        set of clean keys
-
-        Parameters
-        ----------
-        clean_keys
-
-        Returns
-        -------
-
-        """
-
-        matches = self.matches
-
-        # Build up a composite mask from all of the user specified masks
-        if clean_keys:
-            matches, _ = self._clean(clean_keys)
-
-        # Now that we know the matches, build a pair of dataframes that are the truncated keypoints
-        s_kps = self.source.keypoints.iloc[matches['source_idx']]
-        d_kps = self.destination.keypoints.iloc[matches['destination_idx']]
-        return s_kps, d_kps
-
     def symmetry_check(self):
         if hasattr(self, 'matches'):
             mask = od.mirroring_test(self.matches)
@@ -115,10 +90,8 @@ class Edge(dict, MutableMapping):
     def ratio_check(self, clean_keys=[], **kwargs):
         if hasattr(self, 'matches'):
 
-            if clean_keys:
-                _, mask = self._clean(clean_keys)
-            else:
-                mask = pd.Series(True, self.matches.index)
+            _, mask = self._clean(clean_keys)
+
 
             self.distance_ratio = od.DistanceRatio(self.matches)
             self.distance_ratio.compute(mask=mask, **kwargs)
@@ -136,31 +109,28 @@ class Edge(dict, MutableMapping):
             matches = self.matches
         else:
             raise AttributeError('Matches have not been computed for this edge')
+            return
 
-        all_source_keypoints = self.source.keypoints.iloc[matches['source_idx']]
-        all_destin_keypoints = self.destination.keypoints.iloc[matches['destination_idx']]
+        all_source_keypoints = self.source.get_keypoint_coordinates(matches['source_idx'])
+        all_destin_keypoints = self.destination.get_keypoint_coordinates(matches['destination_idx'])
 
-        if clean_keys:
-            matches, mask = self._clean(clean_keys)
+        matches, mask = self._clean(clean_keys)
 
-        s_keypoints = self.source.keypoints.iloc[matches['source_idx'].values]
-        d_keypoints = self.destination.keypoints.iloc[matches['destination_idx'].values]
-
-        transformation_matrix, fundam_mask = od.compute_fundamental_matrix(s_keypoints[['x', 'y']].values,
-                                                                           d_keypoints[['x', 'y']].values,
+        s_keypoints = self.source.get_keypoint_coordinates(matches['source_idx']).values
+        d_keypoints = self.destination.get_keypoint_coordinates(matches['destination_idx']).values
+        transformation_matrix, fundam_mask = od.compute_fundamental_matrix(s_keypoints,
+                                                                           d_keypoints,
                                                                            **kwargs)
+
         try:
             fundam_mask = fundam_mask.ravel()
         except:
             return
         # Convert the truncated RANSAC mask back into a full length mask
-        if clean_keys:
-            mask[mask == True] = fundam_mask
-        else:
-            mask = fundam_mask
+        mask[mask] = fundam_mask
         self.fundamental_matrix = FundamentalMatrix(transformation_matrix,
-                                                    all_source_keypoints[['x', 'y']],
-                                                    all_destin_keypoints[['x', 'y']],
+                                                    all_source_keypoints,
+                                                    all_destin_keypoints,
                                                     mask=mask)
 
         # Subscribe the health watcher to the fundamental matrix observable
@@ -195,27 +165,22 @@ class Edge(dict, MutableMapping):
         else:
             raise AttributeError('Matches have not been computed for this edge')
 
-        if clean_keys:
-            matches, mask = self._clean(clean_keys)
+        matches, mask = self._clean(clean_keys)
 
-        s_keypoints = self.source.keypoints.iloc[matches['source_idx'].values]
-        d_keypoints = self.destination.keypoints.iloc[matches['destination_idx'].values]
+        s_keypoints = self.source.get_keypoint_coordinates(matches['source_idx'])
+        d_keypoints = self.destination.get_keypoint_coordinates(matches['destination_idx'])
 
-        transformation_matrix, ransac_mask = od.compute_homography(s_keypoints[['x', 'y']].values,
-                                                                   d_keypoints[['x', 'y']].values,
+        transformation_matrix, ransac_mask = od.compute_homography(s_keypoints.values,
+                                                                   d_keypoints.values,
                                                                    **kwargs)
 
-        ransac_mask = ransac_mask.ravel()
         # Convert the truncated RANSAC mask back into a full length mask
-        if clean_keys:
-            mask[mask == True] = ransac_mask
-        else:
-            mask = ransac_mask
+        mask[mask] = ransac_mask.ravel()
         self.masks = ('ransac', mask)
         self.homography = Homography(transformation_matrix,
-                                     s_keypoints[ransac_mask][['x', 'y']],
-                                     d_keypoints[ransac_mask][['x', 'y']],
-                                     mask=mask[mask == True].index)
+                                     s_keypoints[ransac_mask],
+                                     d_keypoints[ransac_mask],
+                                     mask=mask[mask].index)
 
         # Finalize the array to get custom attrs to propagate
         self.homography.__array_finalize__(self.homography)
@@ -262,8 +227,7 @@ class Edge(dict, MutableMapping):
                 self.matches[column] = default
 
         # Build up a composite mask from all of the user specified masks
-        if clean_keys:
-            matches, mask = self._clean(clean_keys)
+        matches, mask = self._clean(clean_keys)
 
         # Grab the full images, or handles
         if tiled is True:
@@ -280,8 +244,8 @@ class Edge(dict, MutableMapping):
             s_idx = int(row['source_idx'])
             d_idx = int(row['destination_idx'])
 
-            s_keypoint = self.source.keypoints.iloc[s_idx][['x', 'y']].values
-            d_keypoint = self.destination.keypoints.iloc[d_idx][['x', 'y']].values
+            s_keypoint = self.source.get_keypoint_coordinates(s_idx)
+            d_keypoint = self.destination.get_keypoint_coordinates(d_idx)
 
             # Get the template and search window
             s_template = sp.clip_roi(s_img, s_keypoint, template_size)
@@ -330,15 +294,11 @@ class Edge(dict, MutableMapping):
         if not hasattr(self, 'matches'):
             raise AttributeError('This edge does not yet have any matches computed.')
 
-        # Build up a composite mask from all of the user specified masks
-        if clean_keys:
-            matches, mask = self._clean(clean_keys)
-        else:
-            matches = self.matches
+        matches, mask = self._clean(clean_keys)
         domain = self.source.handle.raster_size
 
         # Massage the dataframe into the correct structure
-        coords = self.source.keypoints[['x', 'y']]
+        coords = self.source.get_keypoint_coordinates()
         merged = matches.merge(coords, left_on=['source_idx'], right_index=True)
         merged['strength'] = merged.apply(func, axis=1)
 
@@ -352,10 +312,7 @@ class Edge(dict, MutableMapping):
                     setattr(self.suppression, k, v)
             self.suppression.suppress()
 
-        if clean_keys:
-            mask[mask == True] = self.suppression.mask
-        else:
-            mask = self.suppression.mask
+        mask[mask] = self.suppression.mask
         self.masks = ('suppression', mask)
 
     def coverage_ratio(self, clean_keys=[]):
@@ -372,11 +329,10 @@ class Edge(dict, MutableMapping):
 
         matches = self.matches
         # Build up a composite mask from all of the user specified masks
-        if clean_keys:
-            matches, _ = self._clean(clean_keys)
+        matches, _ = self._clean(clean_keys)
 
         d_idx = matches['destination_idx'].values
-        keypoints = self.destination.keypoints.iloc[d_idx][['x', 'y']].values
+        keypoints = self.destination.get_keypoint_coordinates(d_idx)
         if len(keypoints) < 3:
             raise ValueError('Convex hull computation requires at least 3 measures.')
 
@@ -440,9 +396,14 @@ class Edge(dict, MutableMapping):
                   A masked view of the matches dataframe
 
         mask : series
-                    A boolean series to inflate back to the full match set
+               A boolean series to inflate back to the full match set
         """
-        panel = self.masks
-        mask = panel[clean_keys].all(axis=1)
-        matches = self.matches[mask]
+        if clean_keys:
+            panel = self.masks
+            mask = panel[clean_keys].all(axis=1)
+            matches = self.matches[mask]
+        else:
+            matches = self.matches
+            mask = pd.Series(True, self.matches.index)
+
         return matches, mask

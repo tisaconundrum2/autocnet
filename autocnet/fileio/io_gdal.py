@@ -237,7 +237,7 @@ class GeoDataset(object):
                 num_polygon_bytes = find_in_dict(polygon_pvl, 'Bytes')
 
                 # I too dislike the additional open here.  Not sure a good option
-                with open(self.file_name, 'r+') as f:
+                with open(self.file_name, 'r') as f:
                     f.seek(start_polygon_byte - 1)
                     # Sloppy unicode to string because GDAL pukes on unicode
                     stream = str(f.read(num_polygon_bytes))

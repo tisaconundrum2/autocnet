@@ -36,9 +36,15 @@ class TestHomography(unittest.TestCase):
         self.assertAlmostEqual(error.x_rms, 0.0, 1)
         self.assertAlmostEqual(error.y_rms, 0.0, 1)
 
-    def test_Homography_fail(self):
-        self.assertRaises(TypeError, transformations.Homography, [1, 2, 3], 'a', 'b')
+        description = H.describe_error
+        self.assertIsInstance(description, pd.DataFrame)
 
+    def test_Homography_fail(self):
+        with self.assertRaises(TypeError):
+            h = transformations.Homography([1,2,3], np.arange(3), np.arange(3), None)
+        with self.assertRaises(ValueError):
+            h = transformations.Homography(np.arange(4).reshape(2,2),
+                                           np.arange(3), np.arange(3), None)
 
 class TestFundamentalMatrix(unittest.TestCase):
 
