@@ -8,7 +8,6 @@ import numpy as np
 import numpy.testing
 import pandas as pd
 from autocnet.transformation import transformations
-from autocnet.fileio import utils
 
 class TestHomography(unittest.TestCase):
 

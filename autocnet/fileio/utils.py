@@ -51,7 +51,7 @@ def calculate_slope(x1, x2):
     Returns
     -------
     : dataframe
-      A dataframe with the slope between x1 and x2 for each row.
+      A dataframe with the slope between the points in x1 and x2 for each row.
     """
     slopes = (x2.y.values - x1.y.values)/(x2.x.values-x1.x.values)
     return pd.DataFrame(slopes, columns=['slope'])
