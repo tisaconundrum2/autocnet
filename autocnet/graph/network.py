@@ -716,3 +716,38 @@ class CandidateGraph(nx.Graph):
                    not edge.matches.empty]
 
         return self.create_edge_subgraph(matches)
+
+    def filter_nodes(self, func, *args, **kwargs):
+        """
+        Filters graph and returns a sub-graph from matches. Mimics
+        python's filter() function
+
+        Parameters
+        ----------
+        func : function which returns bool used to filter out nodes
+
+        Returns
+        -------
+        : Object
+          A networkX graph object
+
+        """
+        nodes = [n for n, d in self.nodes_iter(data=True) if func(d, *args, **kwargs)]
+        return self.create_node_subgraph(nodes)
+
+    def filter_edges(self, func, *args, **kwargs):
+        """
+        Filters graph and returns a sub-graph from matches. Mimics
+        python's filter() function
+
+        Parameters
+        ----------
+        func : function which returns bool used to filter out edges
+
+        Returns
+        -------
+        : Object
+          A networkX graph object
+        """
+        edges = [(u, v) for u, v, edge in self.edges_iter(data=True) if func(edge, *args, **kwargs)]
+        return self.create_edge_subgraph(edges)
