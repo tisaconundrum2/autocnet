@@ -227,7 +227,6 @@ class FundamentalMatrix(TransformationMatrix):
 
         # Update the current state
         self[:] = fmatrix
-    #    self.mask[self.mask == True] = mask
         self.mask = mask
 
         # Update the action stack

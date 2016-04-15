@@ -36,34 +36,22 @@ def file_search(searchdir,searchstring):
     filelist=np.array(filelist)
     return filelist    
 
-# TODO: FIXME
-def calculate_slope(x1, x2, y1, y2):
-    """
-
-    Parameters
-    ----------
-    x1
-    x2
-    y1
-    y2
-
-    Returns
-    -------
-
-    """
-    return (x2-x1)/(y2-y1)
-
 def calculate_slope(x1, x2):
     """
+    Calculates the 2-dimensional slope between the points in two dataframes each containing two columns ['x', 'y']
+    The slope is calculated from x1 to x2.
 
     Parameters
     ----------
-    x1
-    x2
+    x1 : dataframe
+         Each row is a point with columns ['x', 'y']
+    x2 : dataframe
+        Each row is a point with columns ['x', 'y']
 
     Returns
     -------
-
+    : dataframe
+      A dataframe with the slope between x1 and x2 for each row.
     """
     slopes = (x2.y.values - x1.y.values)/(x2.x.values-x1.x.values)
     return pd.DataFrame(slopes, columns=['slope'])
