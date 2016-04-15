@@ -103,6 +103,7 @@ class CandidateGraph(nx.Graph):
             with open(filelist, 'r') as f:
                 filelist = f.readlines()
                 filelist = map(str.rstrip, filelist)
+                filelist = filter(None, filelist)
 
         # TODO: Reject unsupported file formats + work with more file formats
         if basepath:
@@ -126,8 +127,8 @@ class CandidateGraph(nx.Graph):
                 if i_fp.Intersects(j_fp):
                     adjacency_dict[i.file_name].append(j.file_name)
                     adjacency_dict[j.file_name].append(i.file_name)
-            except: # no geospatial information embedded in the images
-                pass
+            except:
+                warnings.warn('No or incorrect geospatial information for {} and/or {}'.format(i, j))
         return cls(adjacency_dict)
 
 
