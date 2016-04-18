@@ -23,7 +23,7 @@ class TestNode(unittest.TestCase):
                              image_path=img)
 
     def test_get_handle(self):
-        self.assertIsInstance(self.node.handle, GeoDataset)
+        self.assertIsInstance(self.node.geodata, GeoDataset)
 
     def test_get_array(self):
         image = self.node.get_array()

@@ -72,8 +72,8 @@ class TestCandidateGraph(unittest.TestCase):
         self.assertEqual(self.graph.node[0].nkeypoints, loaded.node[0].nkeypoints)
         self.assertEqual(self.graph.edge[0][1], loaded.edge[0][1])
 
-        a = self.graph.node[0].handle.read_array()
-        b = loaded.node[0].handle.read_array()
+        a = self.graph.node[0].geodata.read_array()
+        b = loaded.node[0].geodata.read_array()
         np.testing.assert_array_equal(a, b)
 
         os.remove('test_save.cg')

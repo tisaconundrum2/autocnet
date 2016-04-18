@@ -123,12 +123,14 @@ class CandidateGraph(nx.Graph):
             # Grab the footprints and test for intersection
             i_fp = i.footprint
             j_fp = j.footprint
+
             try:
-                if i_fp.Intersects(j_fp):
+                if j_fp and i_fp and i_fp.Intersects(j_fp):
                     adjacency_dict[i.file_name].append(j.file_name)
                     adjacency_dict[j.file_name].append(i.file_name)
             except:
                 warnings.warn('No or incorrect geospatial information for {} and/or {}'.format(i, j))
+
         return cls(adjacency_dict)
 
 
