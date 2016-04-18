@@ -113,15 +113,12 @@ class Edge(dict, MutableMapping):
 
         all_source_keypoints = self.source.get_keypoint_coordinates(matches['source_idx'])
         all_destin_keypoints = self.destination.get_keypoint_coordinates(matches['destination_idx'])
-        print(matches)
         matches, mask = self._clean(clean_keys)
-        print(matches, mask.sum())
         s_keypoints = self.source.get_keypoint_coordinates(matches['source_idx']).values
         d_keypoints = self.destination.get_keypoint_coordinates(matches['destination_idx']).values
         transformation_matrix, fundam_mask = od.compute_fundamental_matrix(s_keypoints,
                                                                            d_keypoints,
                                                                            **kwargs)
-        print(fundam_mask)
         try:
             fundam_mask = fundam_mask.ravel()
         except:
@@ -139,7 +136,6 @@ class Edge(dict, MutableMapping):
 
         # Set the initial state of the fundamental mask in the masks
         self.masks = ('fundamental', mask)
-        print(self.masks)
 
     def compute_homography(self, method='ransac', clean_keys=[], pid=None, **kwargs):
         """

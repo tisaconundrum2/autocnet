@@ -666,7 +666,6 @@ class CandidateGraph(nx.Graph):
             H.edge[u][v] = self.edge[u][v]
             #H.edge[v][u] = self.edge[v][u]
         H.graph = self.graph
-        print(sum(H.degree(weight=None).values()) / 2)
         return H
 
     def size(self, weight=None):
