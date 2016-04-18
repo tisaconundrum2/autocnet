@@ -1,9 +1,7 @@
-from functools import singledispatch
 import itertools
+import math
 import os
 import dill as pickle
-import warnings
-
 import networkx as nx
 import numpy as np
 import pandas as pd
@@ -39,6 +37,7 @@ class CandidateGraph(nx.Graph):
                list of node indices
     ----------
     """
+    edge_attr_dict_factory = Edge
 
     def __init__(self, *args, basepath=None, **kwargs):
         super(CandidateGraph, self).__init__(*args, **kwargs)
@@ -46,23 +45,32 @@ class CandidateGraph(nx.Graph):
         node_labels = {}
         self.node_name_map = {}
         self.graph_masks = pd.DataFrame()
-        # the node_name is the relative path for the image
-        for node_name, node in self.nodes_iter(data=True):
+
+        for node_name in self.nodes():
             image_name = os.path.basename(node_name)
             image_path = node_name
-
-            # Replace the default node dict with an object
+            # Replace the default attr dict with a Node object
             self.node[node_name] = Node(image_name, image_path, self.node_counter)
+
             # fill the dictionary used for relabelling nodes with relative path keys
             node_labels[node_name] = self.node_counter
             # fill the dictionary used for mapping base name to node index
             self.node_name_map[self.node[node_name].image_name] = self.node_counter
             self.node_counter += 1
+
         nx.relabel_nodes(self, node_labels, copy=False)
 
+        for s, d in self.edges():
+            if s > d:
+                s, d = d, s
+            e = self.edge[s][d]
+            e.source = self.node[s]
+            e.destination = self.node[d]
+            #del self.adj[d][s]
+
         # Add the Edge class as a edge data structure
-        for s, d, edge in self.edges_iter(data=True):
-            self.edge[s][d] = Edge(self.node[s], self.node[d])
+        #for s, d, edge in self.edges_iter(data=True):
+            #self.edge[s][d] = Edge(self.node[s], self.node[d])
 
     @classmethod
     def from_graph(cls, graph):
@@ -244,7 +252,7 @@ class CandidateGraph(nx.Graph):
 
         hdf = None
 
-    def load_features(self, in_path, nodes=[]):
+    def load_features(self, in_path, nodes=[], nfeatures=None):
         """
         Load features (keypoints and descriptors) for the
         specified nodes.
@@ -656,9 +664,33 @@ class CandidateGraph(nx.Graph):
                 H.adj[v] = H.adjlist_dict_factory()
             # Copy the edge attributes.
             H.edge[u][v] = self.edge[u][v]
-            H.edge[v][u] = self.edge[v][u]
+            #H.edge[v][u] = self.edge[v][u]
         H.graph = self.graph
+        print(sum(H.degree(weight=None).values()) / 2)
         return H
+
+    def size(self, weight=None):
+        """
+        This replaces the built-in size method to properly
+        support Python 3 rounding.
+
+        Parameters
+        ----------
+        weight : string or None, optional (default=None)
+           The edge attribute that holds the numerical value used
+           as a weight.  If None, then each edge has weight 1.
+
+        Returns
+        -------
+        nedges : int
+            The number of edges or sum of edge weights in the graph.
+
+        """
+        s = sum(self.degree(weight=weight).values()) / 2
+        if weight is None:
+            return math.ceil(s)
+        else:
+            return s
 
     def create_node_subgraph(self, nodes):
         """
