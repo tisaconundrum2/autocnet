@@ -355,14 +355,14 @@ class CandidateGraph(nx.Graph):
         """
         _, self.clusters = func(self, *args, **kwargs)
 
-    def apply_func_to_edges(self, func, *args, graph_mask_keys=[], **kwargs):
+    def apply_func_to_edges(self, function, *args, graph_mask_keys=[], **kwargs):
         """
         Iterates over edges using an optional mask and and applies the given function.
         If func is not an attribute of Edge, raises AttributeError
         Parameters
         ----------
-        func : string
-               function to be called on every edge
+        function : obj
+                   function to be called on every edge
         graph_mask_keys : list
                           of keys in graph_masks
         """
@@ -373,17 +373,17 @@ class CandidateGraph(nx.Graph):
         else:
             edges_to_iter = self.edges()
 
-        if not isinstance(func, str):
-            func = func.__name__
+        if not isinstance(function, str):
+            function = function.__name__
 
         for s, d in edges_to_iter:
             curr_edge = self.get_edge_data(s, d)
             try:
-                function = getattr(curr_edge, func)
+                func = getattr(curr_edge, function)
             except:
-                raise AttributeError(func, ' is not an attribute of Edge')
+                raise AttributeError(function, ' is not an attribute of Edge')
             else:
-                function(*args, **kwargs)
+                func(*args, **kwargs)
 
     def minimum_spanning_tree(self):
         """

@@ -9,7 +9,6 @@ import numpy.testing
 import pandas as pd
 from autocnet.transformation import transformations
 
-
 class TestHomography(unittest.TestCase):
 
     def test_Homography(self):
