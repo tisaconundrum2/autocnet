@@ -35,8 +35,6 @@ install:
   - conda install -c https://conda.anaconda.org/jlaura opencv3=3.0.0
   - conda config --add channels conda-forge
   - conda install -c https://conda.anaconda.org/conda-forge gdal h5py
-
-  - conda upgrade numpy
   - pip install -r requirements.txt
   - pip install coverage
   - pip install coveralls
