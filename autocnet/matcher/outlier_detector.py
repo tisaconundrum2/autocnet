@@ -316,7 +316,6 @@ def mirroring_test(matches):
                  otherwise, they will be false. Keypoints with only one match will be False. Removes
                  duplicate rows.
     """
-    import time
     duplicate_mask = matches.duplicated(subset=['source_idx', 'destination_idx', 'distance'])
     return duplicate_mask
 
