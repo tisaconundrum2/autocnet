@@ -403,31 +403,41 @@ class CandidateGraph(nx.Graph):
 
     def ratio_checks(self, *args, **kwargs):
         '''
-        Apply a symmetry check to all edges in the graph
+        Apply a ratio check to all edges in the graph
+        See Also
+        --------
+        matcher.outlier_detector.DistanceRatio.compute
+        outlier_detector.DistanceRatio.compute
+        DistanceRatio.compute
         '''
         self.apply_func_to_edges('ratio_check', *args, **kwargs)
 
     def compute_homographies(self, *args, **kwargs):
         '''
-        Apply a symmetry check to all edges in the graph
+        Compute homographies for all edges using identical parameters
+        Parameters: method = '', clean_keys = [], pid=None
         '''
         self.apply_func_to_edges('compute_homography', *args, **kwargs)
 
     def compute_fundamental_matrices(self, *args, **kwargs):
         '''
-        Apply a symmetry check to all edges in the graph
+        Compute fundmental matrices for all edges using identical parameters
+        Parameters: clean_keys=[], method = '', reproj_threshold=5.0, confidence=0.99
         '''
         self.apply_func_to_edges('compute_fundamental_matrix', *args, **kwargs)
 
     def subpixel_register(self, *args, **kwargs):
         '''
-        Apply a symmetry check to all edges in the graph
+        Compute subpixel offsets for all edges using identical parameters
+        Parameters: clean_keys=[], threshold=0.8, upsampling=10, template_size=9, search_size=27, tiled=False,
+        max_x_shift=1.0, max_y_shift=1.0
         '''
         self.apply_func_to_edges('subpixel_register', *args, **kwargs)
 
     def suppress(self, *args, **kwargs):
         '''
-        Apply a symmetry check to all edges in the graph
+        Apply a metric of point suppression to the graph
+        Parameters: clean_keys=[], min_radius=2, k=50, error_k=0.1
         '''
         self.apply_func_to_edges('suppress', *args, **kwargs)
 
