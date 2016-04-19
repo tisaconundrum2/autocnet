@@ -395,42 +395,6 @@ class CandidateGraph(nx.Graph):
             else:
                 func(*args, **kwargs)
 
-    def symmetry_checks(self):
-        '''
-        Apply a symmetry check to all edges in the graph
-        '''
-        self.apply_func_to_edges('symmetry_check')
-
-    def ratio_checks(self, *args, **kwargs):
-        '''
-        Apply a symmetry check to all edges in the graph
-        '''
-        self.apply_func_to_edges('ratio_check', *args, **kwargs)
-
-    def compute_homographies(self, *args, **kwargs):
-        '''
-        Apply a symmetry check to all edges in the graph
-        '''
-        self.apply_func_to_edges('compute_homography', *args, **kwargs)
-
-    def compute_fundamental_matrices(self, *args, **kwargs):
-        '''
-        Apply a symmetry check to all edges in the graph
-        '''
-        self.apply_func_to_edges('compute_fundamental_matrix', *args, **kwargs)
-
-    def subpixel_register(self, *args, **kwargs):
-        '''
-        Apply a symmetry check to all edges in the graph
-        '''
-        self.apply_func_to_edges('subpixel_register', *args, **kwargs)
-
-    def suppress(self, *args, **kwargs):
-        '''
-        Apply a symmetry check to all edges in the graph
-        '''
-        self.apply_func_to_edges('suppress', *args, **kwargs)
-
     def minimum_spanning_tree(self):
         """
         Calculates the minimum spanning tree of the graph
