@@ -448,7 +448,7 @@ class CandidateGraph(nx.Graph):
 
         See Also
         --------
-        class autocnet.matcher.outlier_detector.SpatialSuppression
+        autocnet.matcher.outlier_detector.SpatialSuppression
         '''
         self.apply_func_to_edges('suppress', *args, **kwargs)
 
