@@ -113,15 +113,12 @@ class Edge(dict, MutableMapping):
 
         all_source_keypoints = self.source.get_keypoint_coordinates(matches['source_idx'])
         all_destin_keypoints = self.destination.get_keypoint_coordinates(matches['destination_idx'])
-
         matches, mask = self._clean(clean_keys)
-
         s_keypoints = self.source.get_keypoint_coordinates(matches['source_idx']).values
         d_keypoints = self.destination.get_keypoint_coordinates(matches['destination_idx']).values
         transformation_matrix, fundam_mask = od.compute_fundamental_matrix(s_keypoints,
                                                                            d_keypoints,
                                                                            **kwargs)
-
         try:
             fundam_mask = fundam_mask.ravel()
         except:
@@ -274,7 +271,7 @@ class Edge(dict, MutableMapping):
         self.masks = ('threshold', threshold_mask)
         self.masks = ('subpixel', mask)
 
-    def suppress(self, func=spf.correlation, clean_keys=[], **kwargs):
+    def suppress(self, suppression_func=spf.correlation, clean_keys=[], **kwargs):
         """
         Apply a disc based suppression algorithm to get a good spatial
         distribution of high quality points, where the user defines some
@@ -282,10 +279,10 @@ class Edge(dict, MutableMapping):
 
         Parameters
         ----------
-        func : object
-               A function that returns a scalar value to be used
-               as the strength of a given row in the matches data
-               frame.
+        suppression_func : object
+                           A function that returns a scalar value to be used
+                           as the strength of a given row in the matches data
+                           frame.
 
         clean_keys : list
                      of mask keys to be used to reduce the total size
@@ -300,7 +297,7 @@ class Edge(dict, MutableMapping):
         # Massage the dataframe into the correct structure
         coords = self.source.get_keypoint_coordinates()
         merged = matches.merge(coords, left_on=['source_idx'], right_index=True)
-        merged['strength'] = merged.apply(func, axis=1)
+        merged['strength'] = merged.apply(suppression_func, axis=1)
 
         if not hasattr(self, 'suppression'):
             # Instantiate the suppression object and suppress matches

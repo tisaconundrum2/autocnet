@@ -217,7 +217,10 @@ class Node(dict, MutableMapping):
         index = raw_kps['index']
         clean_kps = utils.remove_field_name(raw_kps, 'index')
         columns = clean_kps.dtype.names
-        self._keypoints = pd.DataFrame(data=clean_kps, columns=columns, index=index)
+
+        allkps = pd.DataFrame(data=clean_kps, columns=columns, index=index)
+
+        self._keypoints = allkps.sort_values(by='response', ascending=False).head(250)
 
         if isinstance(in_path, str):
             hdf = None

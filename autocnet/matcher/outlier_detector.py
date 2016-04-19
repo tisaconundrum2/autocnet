@@ -53,7 +53,7 @@ class DistanceRatio(Observable):
     def nvalid(self):
         return self.mask.sum()
 
-    def compute(self, ratio=0.8, mask=None, mask_name=None, single=False):
+    def compute(self, ratio=0.9, mask=None, mask_name=None, single=False):
         """
         Compute and return a mask for a matches dataframe
         using Lowe's ratio test.  If keypoints have a single
@@ -316,9 +316,7 @@ def mirroring_test(matches):
                  otherwise, they will be false. Keypoints with only one match will be False. Removes
                  duplicate rows.
     """
-    duplicate_mask = matches.duplicated(subset=['source_idx', 'destination_idx', 'distance'],
-                                    keep='last')
-
+    duplicate_mask = matches.duplicated(subset=['source_idx', 'destination_idx', 'distance'])
     return duplicate_mask
 
 
@@ -358,7 +356,6 @@ def compute_fundamental_matrix(kp1, kp2, method='ransac', reproj_threshold=5.0, 
     is < 7, normal outlier detection is automatically used, if 7 > n > 15,
     least medians is used, and if 7 > 15, ransac can be used.
     """
-
     if method == 'ransac':
         method_ = cv2.FM_RANSAC
     elif method == 'lmeds':
