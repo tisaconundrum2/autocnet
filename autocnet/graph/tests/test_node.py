@@ -71,6 +71,7 @@ class TestNode(unittest.TestCase):
         kps = self.node.get_keypoints().copy()
         descriptors = self.node.descriptors.copy()
         self.node.load_features('node_test.hdf')
-        self.assertTrue((kps == self.node.get_keypoints()).all().all())
+
+        self.assertTrue((kps.sort(axis=0) == self.node.get_keypoints().sort(axis=0)).all().all())
 
         os.remove('node_test.hdf')
