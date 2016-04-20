@@ -5,6 +5,7 @@ import dill as pickle
 import networkx as nx
 import numpy as np
 import pandas as pd
+import warnings
 
 from autocnet.fileio.io_gdal import GeoDataset
 from autocnet.fileio import io_hdf
@@ -121,23 +122,29 @@ class CandidateGraph(nx.Graph):
 
         # This is brute force for now, could swap to an RTree at some point.
         adjacency_dict = {}
+        valid_datasets = []
 
-        for i, j in itertools.permutations(datasets,2):
-            if not i.file_name in adjacency_dict.keys():
-                adjacency_dict[i.file_name] = []
-            if not j.file_name in adjacency_dict.keys():
-                adjacency_dict[j.file_name] = []
+        # filter bad/malformed footprints
+        for i in datasets:
+            adjacency_dict[i.file_name] = []
 
-            # Grab the footprints and test for intersection
+            fp = i.footprint
+            if fp and fp.IsValid():
+                valid_datasets.append(i)
+            else:
+                warnings.warn('Missing or invalid geospatial data for {}'.format(i.base_name))
+
+        # Grab the footprints and test for intersection
+        for i, j in itertools.permutations(valid_datasets, 2):
             i_fp = i.footprint
             j_fp = j.footprint
 
             try:
-                if j_fp and i_fp and i_fp.Intersects(j_fp):
+                if i_fp.Intersects(j_fp):
                     adjacency_dict[i.file_name].append(j.file_name)
                     adjacency_dict[j.file_name].append(i.file_name)
             except:
-                warnings.warn('No or incorrect geospatial information for {} and/or {}'.format(i, j))
+                warnings.warn('Failed to calculated intersection between {} and {}'.format(i,j))
 
         return cls(adjacency_dict)
 
@@ -300,6 +307,11 @@ class CandidateGraph(nx.Graph):
             descriptors = node.descriptors
             # Load the neighbors of the current node into the FLANN matcher
             neighbors = self.neighbors(i)
+
+            # if node has no neighbors, skip
+            if not neighbors:
+                continue
+
             for n in neighbors:
                 neighbor_descriptors = self.node[n].descriptors
                 self._fl.add(neighbor_descriptors, n)
