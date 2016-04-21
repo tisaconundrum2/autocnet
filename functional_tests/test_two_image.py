@@ -73,14 +73,14 @@ class TestTwoImageMatching(unittest.TestCase):
             self.assertIn(edge.masks['ratio'].sum(), range(40, 100))
 
         # Step: Compute the homographies and apply RANSAC
-        cg.compute_homographies(clean_keys=['symmetry', 'ratio'])
+        cg.apply_func_to_edges("compute_homography", clean_keys=['symmetry', 'ratio'])
 
         # Step: Compute the overlap ratio and coverage ratio
         for s, d, edge in cg.edges_iter(data=True):
             edge.coverage_ratio(clean_keys=['symmetry', 'ratio'])
 
         # Step: Compute subpixel offsets for candidate points
-        cg.subpixel_register(clean_keys=['ransac'])
+        cg.apply_func_to_edges("subpixel_register", clean_keys=['ransac'])
 
         # Step: And create a C object
         cnet = cg.to_cnet(clean_keys=['symmetry', 'ratio', 'ransac', 'subpixel'])
@@ -101,6 +101,6 @@ class TestTwoImageMatching(unittest.TestCase):
 
     def tearDown(self):
         try:
-            os.path.remove('TestTwoImageMatching.net')
-            os.path.remove('fromlist.lis')
+            os.remove('TestTwoImageMatching.net')
+            os.remove('fromlist.lis')
         except: pass

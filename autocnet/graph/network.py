@@ -2,12 +2,14 @@ from functools import singledispatch
 import itertools
 import os
 import dill as pickle
+import warnings
 
 import networkx as nx
 import numpy as np
 import pandas as pd
 
 from autocnet.fileio.io_gdal import GeoDataset
+from autocnet.fileio import io_hdf
 from autocnet.control.control import C
 from autocnet.fileio import io_json
 from autocnet.matcher.matcher import FlannMatcher
@@ -37,29 +39,25 @@ class CandidateGraph(nx.Graph):
                list of node indices
     ----------
     """
-    edge_attr_dict_factory = Edge
-    node_dict_factory = Node
 
     def __init__(self, *args, basepath=None, **kwargs):
         super(CandidateGraph, self).__init__(*args, **kwargs)
         self.node_counter = 0
         node_labels = {}
         self.node_name_map = {}
-
+        self.graph_masks = pd.DataFrame()
         # the node_name is the relative path for the image
         for node_name, node in self.nodes_iter(data=True):
             image_name = os.path.basename(node_name)
             image_path = node_name
 
             # Replace the default node dict with an object
-            self.node[node_name] = Node(image_name, image_path)
-
+            self.node[node_name] = Node(image_name, image_path, self.node_counter)
             # fill the dictionary used for relabelling nodes with relative path keys
             node_labels[node_name] = self.node_counter
             # fill the dictionary used for mapping base name to node index
             self.node_name_map[self.node[node_name].image_name] = self.node_counter
             self.node_counter += 1
-
         nx.relabel_nodes(self, node_labels, copy=False)
 
         # Add the Edge class as a edge data structure
@@ -84,9 +82,8 @@ class CandidateGraph(nx.Graph):
             graph = pickle.load(f)
         return graph
 
-
     @classmethod
-    def from_filelist(cls, filelist):
+    def from_filelist(cls, filelist, basepath=None):
         """
         Instantiate the class using a filelist as a python list.
         An adjacency structure is calculated using the lat/lon information in the
@@ -108,8 +105,10 @@ class CandidateGraph(nx.Graph):
                 filelist = map(str.rstrip, filelist)
 
         # TODO: Reject unsupported file formats + work with more file formats
-
-        datasets = [GeoDataset(f) for f in filelist]
+        if basepath:
+            datasets = [GeoDataset(os.path.join(basepath, f)) for f in filelist]
+        else:
+            datasets = [GeoDataset(f) for f in filelist]
 
         # This is brute force for now, could swap to an RTree at some point.
         adjacency_dict = {}
@@ -123,10 +122,12 @@ class CandidateGraph(nx.Graph):
             # Grab the footprints and test for intersection
             i_fp = i.footprint
             j_fp = j.footprint
-            if i_fp.Intersects(j_fp):
-                adjacency_dict[i.file_name].append(j.file_name)
-                adjacency_dict[j.file_name].append(i.file_name)
-
+            try:
+                if i_fp.Intersects(j_fp):
+                    adjacency_dict[i.file_name].append(j.file_name)
+                    adjacency_dict[j.file_name].append(i.file_name)
+            except: # no geospatial information embedded in the images
+                pass
         return cls(adjacency_dict)
 
 
@@ -208,7 +209,65 @@ class CandidateGraph(nx.Graph):
         for i, node in self.nodes_iter(data=True):
             image = node.get_array()
             node.extract_features(image, method=method,
-                                extractor_parameters=extractor_parameters)
+                                  extractor_parameters=extractor_parameters)
+
+    def save_features(self, out_path, nodes=[]):
+        """
+
+        Save the features (keypoints and descriptors) for the
+        specified nodes.
+
+        Parameters
+        ----------
+        out_path : str
+                   Location of the output file.  If the file exists,
+                   features are appended.  Otherwise, the file is created.
+
+        nodes : list
+                of nodes to save features for.  If empty, save for all nodes
+        """
+
+        if os.path.exists(out_path):
+            mode = 'a'
+        else:
+            mode = 'w'
+
+        hdf = io_hdf.HDFDataset(out_path, mode=mode)
+
+        # Cleaner way to do this?
+        if nodes:
+            for i, n in self.subgraph(nodes).nodes_iter(data=True):
+                n.save_features(hdf)
+        else:
+            for i, n in self.nodes_iter(data=True):
+                n.save_features(hdf)
+
+        hdf = None
+
+    def load_features(self, in_path, nodes=[]):
+        """
+        Load features (keypoints and descriptors) for the
+        specified nodes.
+
+        Parameters
+        ----------
+        in_path : str
+                  Location of the input file.
+
+        nodes : list
+                of nodes to load features for.  If empty, load features
+                for all nodes
+        """
+        hdf = io_hdf.HDFDataset(in_path, 'r')
+
+        if nodes:
+            for i, n in self.subgraph(nodes).nodes_iter(data=True):
+                n.load_features(hdf)
+        else:
+            for i, n in self.nodes_iter(data=True):
+                n.load_features(hdf)
+
+        hdf = None
 
     def match_features(self, k=None):
         """
@@ -295,61 +354,52 @@ class CandidateGraph(nx.Graph):
         """
         _, self.clusters = func(self, *args, **kwargs)
 
-    def symmetry_checks(self):
+    def apply_func_to_edges(self, func, *args, graph_mask_keys=[], **kwargs):
         """
-        Perform a symmetry check on all edges in the graph
-        """
-        for s, d, edge in self.edges_iter(data=True):
-            edge.symmetry_check()
-
-    def ratio_checks(self, clean_keys=[], **kwargs):
-        """
-        Perform a ratio check on all edges in the graph
-        """
-        for s, d, edge in self.edges_iter(data=True):
-            edge.ratio_check(clean_keys=clean_keys)
-
-    def compute_homographies(self, clean_keys=[], **kwargs):
-        """
-        Compute homographies for all edges using identical parameters
-
+        Iterates over edges using an optional mask and and applies the given function.
+        If func is not an attribute of Edge, raises AttributeError
         Parameters
         ----------
-        clean_keys : list
-                     Of keys in the mask dict
-
+        func : string
+               function to be called on every edge
+        graph_mask_keys : list
+                          of keys in graph_masks
         """
 
-        for s, d, edge in self.edges_iter(data=True):
-            edge.compute_homography(clean_keys=clean_keys, **kwargs)
+        if graph_mask_keys:
+            merged_graph_mask = self.graph_masks[graph_mask_keys].all(axis=1)
+            edges_to_iter = merged_graph_mask[merged_graph_mask].index
+        else:
+            edges_to_iter = self.edges()
 
-    def compute_fundamental_matrices(self, clean_keys=[], **kwargs):
+        if not isinstance(func, str):
+            func = func.__name__
+
+        for s, d in edges_to_iter:
+            curr_edge = self.get_edge_data(s, d)
+            try:
+                function = getattr(curr_edge, func)
+            except:
+                raise AttributeError(func, ' is not an attribute of Edge')
+            else:
+                function(*args, **kwargs)
+
+    def minimum_spanning_tree(self):
         """
-        Compute fundamental matrices for all edges using identical parameters
+        Calculates the minimum spanning tree of the graph
 
-        Parameters
-        ----------
-        clean_keys : list
-                     Of keys in the mask dict
+        Returns
+        -------
 
+         : DataFrame
+           boolean mask for edges in the minimum spanning tree
         """
 
-        for s, d, edge in self.edges_iter(data=True):
-            edge.compute_fundamental_matrix(clean_keys=clean_keys, **kwargs)
+        graph_mask = pd.Series(False, index=self.edges())
+        self.graph_masks['mst'] = graph_mask
 
-    def subpixel_register(self, clean_keys=[], threshold=0.8, upsampling=10,
-                                 template_size=9, search_size=27, tiled=False, **kwargs):
-         """
-         Compute subpixel offsets for all edges using identical parameters
-         """
-         for s, d, edge in self.edges_iter(data=True):
-             edge.subpixel_register(clean_keys=clean_keys, threshold=threshold,
-                                    upsampling=upsampling, template_size=template_size,
-                                    search_size=search_size, tiled=tiled, **kwargs)
-
-    def suppress(self, clean_keys=[], func=spf.correlation, **kwargs):
-        for s, d, e in self.edges_iter(data=True):
-            e.suppress(clean_keys=clean_keys, func=func, **kwargs)
+        mst = nx.minimum_spanning_tree(self)
+        self.graph_masks['mst'][mst.edges()] = True
 
     def to_filelist(self):
         """
@@ -403,7 +453,6 @@ class CandidateGraph(nx.Graph):
              : C
                the cleaned control network
             """
-
             mask = np.zeros(len(cnet), dtype=bool)
             counter = 0
             for i, group in cnet.groupby('pid'):
@@ -431,8 +480,8 @@ class CandidateGraph(nx.Graph):
                 subpixel = True
                 point_type = 3
 
-            kp1 = self.node[source].keypoints
-            kp2 = self.node[destination].keypoints
+            kp1 = self.node[source].get_keypoints()
+            kp2 = self.node[destination].get_keypoints()
             pt_idx = 0
             values = []
             for i, (idx, row) in enumerate(matches.iterrows()):
@@ -556,7 +605,7 @@ class CandidateGraph(nx.Graph):
         with open(filename, 'wb') as f:
             pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-    def plot(self, ax=None, **kwargs):
+    def plot(self, ax=None, **kwargs): # pragma: no cover
         """
         Plot the graph object
 
@@ -572,19 +621,98 @@ class CandidateGraph(nx.Graph):
         """
         return plot_graph(self, ax=ax,  **kwargs)
 
-    @singledispatch
-    def create_subgraph(self, arg, key=None):
-        if not hasattr(self, 'clusters'):
-            raise AttributeError('No clusters have been computed for this graph.')
-        nodes_in_cluster = self.clusters[arg]
-        subgraph = self.subgraph(nodes_in_cluster)
-        return subgraph
+    def create_edge_subgraph(self, edges):
+        """
+        Create a subgraph using a list of edges.
+        This is pulled directly from the networkx dev branch.
 
-    @create_subgraph.register(pd.DataFrame)
-    def _(self, arg, g, key=None):
-        if key == None:
-            return
-        col = arg[key]
-        nodes = col[col == True].index
-        subgraph = g.subgraph(nodes)
-        return subgraph
+        Parameters
+        ----------
+        edges : list
+                A list of edges in the form [(a,b), (c,d)] to retain
+                in the subgraph
+
+        Returns
+        -------
+        H : object
+            A networkx subgraph object
+        """
+        H = self.__class__()
+        adj = self.adj
+        # Filter out edges that don't correspond to nodes in the graph.
+        edges = ((u, v) for u, v in edges if u in adj and v in adj[u])
+        for u, v in edges:
+            # Copy the node attributes if they haven't been copied
+            # already.
+            if u not in H.node:
+                H.node[u] = self.node[u]
+            if v not in H.node:
+                H.node[v] = self.node[v]
+            # Create an entry in the adjacency dictionary for the
+            # nodes u and v if they don't exist yet.
+            if u not in H.adj:
+                H.adj[u] = H.adjlist_dict_factory()
+            if v not in H.adj:
+                H.adj[v] = H.adjlist_dict_factory()
+            # Copy the edge attributes.
+            H.edge[u][v] = self.edge[u][v]
+            H.edge[v][u] = self.edge[v][u]
+        H.graph = self.graph
+        return H
+
+    def create_node_subgraph(self, nodes):
+        """
+        Given a list of nodes, create a sub-graph and
+        copy both the node and edge attributes to the subgraph.
+        Changes to node/edge attributes are propagated back to the
+        parent graph, while changes to the graph structure, i.e.,
+        the topology, are not.
+
+        Parameters
+        ----------
+        nodes : iterable
+                An iterable (list, set, ndarray) of nodes to subset
+                the graph
+
+        Returns
+        -------
+        H : object
+            A networkX graph object
+
+        """
+        bunch = set(self.nbunch_iter(nodes))
+        # create new graph and copy subgraph into it
+        H = self.__class__()
+        # copy node and attribute dictionaries
+        for n in bunch:
+            H.node[n] = self.node[n]
+        # namespace shortcuts for speed
+        H_adj = H.adj
+        self_adj = self.adj
+        for i in H.node:
+            adj_nodes = set(self.adj[i].keys()).intersection(bunch)
+            H.adj[i] = {}
+            for j, edge in self.adj[i].items():
+                if j in adj_nodes:
+                    H.adj[i][j] = edge
+
+        H.graph = self.graph
+        return H
+
+    def subgraph_from_matches(self):
+        """
+        Returns a sub-graph where all edges have matches.
+        (i.e. images with no matches are removed)
+
+        Returns
+        -------
+        : Object
+          A networkX graph object
+        """
+
+        # get all edges that have matches
+        matches = [(u, v) for u, v, edge in self.edges_iter(data=True)
+                   if hasattr(edge, 'matches') and
+                   not edge.matches.empty]
+
+        return self.create_edge_subgraph(matches)
