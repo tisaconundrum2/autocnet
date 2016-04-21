@@ -94,7 +94,7 @@ def plot_node(node, ax=None, clean_keys=[], **kwargs):
     keypoints = node.get_keypoints()
     if clean_keys:
         matches, mask = node._clean(clean_keys)
-        keypoints = node.get_keypoints[mask]
+        keypoints = node.get_keypoints()[mask]
 
     marker = '.'
     if 'marker' in kwargs.keys():
