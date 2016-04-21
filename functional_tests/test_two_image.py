@@ -68,14 +68,14 @@ class TestTwoImageMatching(unittest.TestCase):
             self.assertIn(edge.masks['ratio'].sum(), range(30, 100))
 
         # Step: Compute the homographies and apply RANSAC
-        cg.apply_func_to_edges("compute_homography", clean_keys=['symmetry', 'ratio'])
+        cg.compute_homographies(clean_keys=['symmetry', 'ratio'])
 
         # Step: Compute the overlap ratio and coverage ratio
         for s, d, edge in cg.edges_iter(data=True):
             edge.coverage_ratio(clean_keys=['symmetry', 'ratio'])
 
         # Step: Compute subpixel offsets for candidate points
-        cg.apply_func_to_edges("subpixel_register", clean_keys=['ransac'])
+        cg.subpixel_register(clean_keys=['ransac'])
 
         # Step: And create a C object
         cnet = cg.to_cnet(clean_keys=['symmetry', 'ratio', 'ransac', 'subpixel'])
