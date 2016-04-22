@@ -67,12 +67,7 @@ class TestTwoImageMatching(unittest.TestCase):
         # Perform the ratio check
         cg.ratio_checks(clean_keys = ['symmetry'])
         # Create fundamental matrix
-
         cg.compute_fundamental_matrices(clean_keys = ['symmetry', 'ratio'])
-        # print(edge.masks['fundamental'].sum())
-
-        cg.suppress(clean_keys = ['fundamental'])
-        # print(edge.masks['suppress'].sum())
 
 
         for source, destination, edge in cg.edges_iter(data=True):
@@ -83,10 +78,8 @@ class TestTwoImageMatching(unittest.TestCase):
             self.assertIn(edge.masks['ratio'].sum(), range(30, 100))
 
             # Range needs to be set
-            self.assertIn(edge.masks['fundamental'].sum(), range(10, 1000))
+            self.assertIn(edge.masks['fundamental'].sum(), range(30, 50))
 
-            # Range needs to be set
-            self.assertIn(edge.masks['suppress'].sum(), range(10, 1000))
 
         # Step: Compute the homographies and apply RANSAC
         cg.compute_homographies(clean_keys=['symmetry', 'ratio'])
@@ -97,6 +90,9 @@ class TestTwoImageMatching(unittest.TestCase):
 
         # Step: Compute subpixel offsets for candidate points
         cg.subpixel_register(clean_keys=['ransac'])
+
+        # Step:
+        cg.suppress(clean_keys = 'ratio')
 
         # Step: And create a C object
         cnet = cg.to_cnet(clean_keys=['symmetry', 'ratio', 'ransac', 'subpixel'])
