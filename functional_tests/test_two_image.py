@@ -62,14 +62,18 @@ class TestTwoImageMatching(unittest.TestCase):
 
         cg.match_features(k=2)
 
+        # Perform the symmetry check
+        cg.symmetry_checks()
+        # Perform the ratio check
+        cg.ratio_checks(clean_keys = ['symmetry'])
+        # Create fundamental matrix
+        cg.compute_fundamental_matrices(clean_keys= ['symmetry', 'ratio'])
+
         for source, destination, edge in cg.edges_iter(data=True):
 
             # Perform the symmetry check
-            edge.symmetry_check()
             self.assertIn(edge.masks['symmetry'].sum(), range(400, 600))
-
             # Perform the ratio test
-            edge.ratio_check(clean_keys=['symmetry'])
             self.assertIn(edge.masks['ratio'].sum(), range(30, 100))
 
         # Step: Compute the homographies and apply RANSAC
