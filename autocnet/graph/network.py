@@ -5,8 +5,10 @@ import dill as pickle
 import networkx as nx
 import numpy as np
 import pandas as pd
+import warnings
 
 from autocnet.fileio.io_gdal import GeoDataset
+from autocnet.fileio import io_utils
 from autocnet.fileio import io_hdf
 from autocnet.control.control import C
 from autocnet.fileio import io_json
@@ -107,11 +109,8 @@ class CandidateGraph(nx.Graph):
         : object
           A Network graph object
         """
-        if not isinstance(filelist, list):
-            with open(filelist, 'r') as f:
-                filelist = f.readlines()
-                filelist = map(str.rstrip, filelist)
-                filelist = filter(None, filelist)
+        if isinstance(filelist, str):
+            filelist = io_utils.file_to_list(filelist)
 
         # TODO: Reject unsupported file formats + work with more file formats
         if basepath:
@@ -121,23 +120,28 @@ class CandidateGraph(nx.Graph):
 
         # This is brute force for now, could swap to an RTree at some point.
         adjacency_dict = {}
+        valid_datasets = []
 
-        for i, j in itertools.permutations(datasets,2):
-            if not i.file_name in adjacency_dict.keys():
-                adjacency_dict[i.file_name] = []
-            if not j.file_name in adjacency_dict.keys():
-                adjacency_dict[j.file_name] = []
+        for i in datasets:
+            adjacency_dict[i.file_name] = []
 
-            # Grab the footprints and test for intersection
+            fp = i.footprint
+            if fp and fp.IsValid():
+                valid_datasets.append(i)
+            else:
+                warnings.warn('Missing or invalid geospatial data for {}'.format(i.base_name))
+
+        # Grab the footprints and test for intersection
+        for i, j in itertools.permutations(valid_datasets, 2):
             i_fp = i.footprint
             j_fp = j.footprint
 
             try:
-                if j_fp and i_fp and i_fp.Intersects(j_fp):
+                if i_fp.Intersects(j_fp):
                     adjacency_dict[i.file_name].append(j.file_name)
                     adjacency_dict[j.file_name].append(i.file_name)
             except:
-                warnings.warn('No or incorrect geospatial information for {} and/or {}'.format(i, j))
+                warnings.warn('Failed to calculated intersection between {} and {}'.format(i, j))
 
         return cls(adjacency_dict)
 
@@ -300,6 +304,11 @@ class CandidateGraph(nx.Graph):
             descriptors = node.descriptors
             # Load the neighbors of the current node into the FLANN matcher
             neighbors = self.neighbors(i)
+
+            # if node has no neighbors, skip
+            if not neighbors:
+                continue
+
             for n in neighbors:
                 neighbor_descriptors = self.node[n].descriptors
                 self._fl.add(neighbor_descriptors, n)
@@ -394,42 +403,6 @@ class CandidateGraph(nx.Graph):
                 raise AttributeError(function, ' is not an attribute of Edge')
             else:
                 func(*args, **kwargs)
-
-    def symmetry_checks(self):
-        '''
-        Apply a symmetry check to all edges in the graph
-        '''
-        self.apply_func_to_edges('symmetry_check')
-
-    def ratio_checks(self, *args, **kwargs):
-        '''
-        Apply a symmetry check to all edges in the graph
-        '''
-        self.apply_func_to_edges('ratio_check', *args, **kwargs)
-
-    def compute_homographies(self, *args, **kwargs):
-        '''
-        Apply a symmetry check to all edges in the graph
-        '''
-        self.apply_func_to_edges('compute_homography', *args, **kwargs)
-
-    def compute_fundamental_matrices(self, *args, **kwargs):
-        '''
-        Apply a symmetry check to all edges in the graph
-        '''
-        self.apply_func_to_edges('compute_fundamental_matrix', *args, **kwargs)
-
-    def subpixel_register(self, *args, **kwargs):
-        '''
-        Apply a symmetry check to all edges in the graph
-        '''
-        self.apply_func_to_edges('subpixel_register', *args, **kwargs)
-
-    def suppress(self, *args, **kwargs):
-        '''
-        Apply a symmetry check to all edges in the graph
-        '''
-        self.apply_func_to_edges('suppress', *args, **kwargs)
 
     def minimum_spanning_tree(self):
         """
