@@ -4,9 +4,16 @@ sys.path.insert(0, os.path.abspath('..'))
 
 import unittest
 
+from unittest.mock import patch
+from unittest.mock import PropertyMock
+from unittest.mock import MagicMock
+from osgeo import ogr
+import gdal
+
 import numpy as np
 
 from autocnet.examples import get_path
+from autocnet.fileio import io_gdal
 
 from .. import network
 
@@ -100,6 +107,21 @@ class TestCandidateGraph(unittest.TestCase):
     def test_fromlist(self):
         mock_list = ['AS15-M-0295_SML.png', 'AS15-M-0296_SML.png', 'AS15-M-0297_SML.png',
                      'AS15-M-0298_SML.png', 'AS15-M-0299_SML.png', 'AS15-M-0300_SML.png']
+
+        good_poly = ogr.CreateGeometryFromWkt('POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))')
+        bad_poly = ogr.CreateGeometryFromWkt('POLYGON ((9999 10, 40 40, 20 40, 10 20, 30 10))')
+
+        with patch('autocnet.fileio.io_gdal.GeoDataset.footprint', new_callable=PropertyMock) as patch_fp:
+            patch_fp.return_value = good_poly
+            n = network.CandidateGraph.from_filelist(mock_list, get_path('Apollo15'))
+            self.assertEqual(n.number_of_nodes(), 6)
+            self.assertEqual(n.number_of_edges(), 15)
+
+            patch_fp.return_value = bad_poly
+            n = network.CandidateGraph.from_filelist(mock_list, get_path('Apollo15'))
+            self.assertEqual(n.number_of_nodes(), 6)
+            self.assertEqual(n.number_of_edges(), 0)
+
         n = network.CandidateGraph.from_filelist(mock_list, get_path('Apollo15'))
         self.assertEqual(len(n.nodes()), 6)
 

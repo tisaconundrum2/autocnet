@@ -8,6 +8,7 @@ import pandas as pd
 import warnings
 
 from autocnet.fileio.io_gdal import GeoDataset
+from autocnet.fileio import io_utils
 from autocnet.fileio import io_hdf
 from autocnet.control.control import C
 from autocnet.fileio import io_json
@@ -108,11 +109,8 @@ class CandidateGraph(nx.Graph):
         : object
           A Network graph object
         """
-        if not isinstance(filelist, list):
-            with open(filelist, 'r') as f:
-                filelist = f.readlines()
-                filelist = map(str.rstrip, filelist)
-                filelist = filter(None, filelist)
+        if isinstance(filelist, str):
+            filelist = io_utils.file_to_list(filelist)
 
         # TODO: Reject unsupported file formats + work with more file formats
         if basepath:
@@ -124,7 +122,6 @@ class CandidateGraph(nx.Graph):
         adjacency_dict = {}
         valid_datasets = []
 
-        # filter bad/malformed footprints
         for i in datasets:
             adjacency_dict[i.file_name] = []
 
@@ -144,7 +141,7 @@ class CandidateGraph(nx.Graph):
                     adjacency_dict[i.file_name].append(j.file_name)
                     adjacency_dict[j.file_name].append(i.file_name)
             except:
-                warnings.warn('Failed to calculated intersection between {} and {}'.format(i,j))
+                warnings.warn('Failed to calculated intersection between {} and {}'.format(i, j))
 
         return cls(adjacency_dict)
 

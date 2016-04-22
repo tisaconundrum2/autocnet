@@ -22,3 +22,12 @@ def delete_dir(dir):
           Remove a directory
     """
     shutil.rmtree(dir)
+
+
+def file_to_list(file):
+    with open(file, 'r') as f:
+        file_list = f.readlines()
+        file_list = map(str.rstrip, file_list)
+        file_list = filter(None, file_list)
+
+    return file_list
