@@ -272,7 +272,7 @@ class Node(dict, MutableMapping):
         if not hasattr(self, '_keypoints'):
             raise AttributeError('No keypoints extracted for this node.')
 
-        domain = self.handle.raster_size
+        domain = self.geodata.raster_size
         self._keypoints['strength'] = self._keypoints.apply(func, axis=1)
 
         if not hasattr(self, 'suppression'):
