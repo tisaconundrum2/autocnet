@@ -48,7 +48,7 @@ script:
 
 after_success:
   - coveralls
-  - python ../ci_support/upload_or_check_non_existence.py . jlaura --channel=main
+  - python ci_support/upload_or_check_non_existence.py . jlaura --channel=main
 
 notifications:
   webhooks:
