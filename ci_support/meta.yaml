@@ -6,10 +6,10 @@ source:
   git_rev: v0.1.0
   git_url: https://github.com/USGS-Astrogeology/autocnet.git
 
- build:
+build:
   number: 0
 
- requirements:
+requirements:
   build:
     - python
     - opencv3=3.0.0
@@ -41,7 +41,9 @@ source:
     - gdal
     - h5py
 
- about:
+test:
+
+about:
   home: http://autocnet.readthedocs.org
   license: Public Domain
   summary: Autocnet is a library top
