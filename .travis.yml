@@ -4,6 +4,7 @@ sudo: false
 branches:
 only:
   - master
+  - dev
 
 python:
   - "3.5"
@@ -39,11 +40,15 @@ install:
   - pip install coverage
   - pip install coveralls
 
+  # Install libs to support upload to binstar
+  - conda install anaconda-client binstar
+
 script:
   - nosetests --with-coverage --cover-package=autocnet
 
 after_success:
   - coveralls
+  - ./ci_support/upload_or_check_non_existence.py . jlaura --channel=main
 
 notifications:
   webhooks:
