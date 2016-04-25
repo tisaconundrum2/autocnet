@@ -67,11 +67,6 @@ class CandidateGraph(nx.Graph):
             e = self.edge[s][d]
             e.source = self.node[s]
             e.destination = self.node[d]
-            #del self.adj[d][s]
-
-        # Add the Edge class as a edge data structure
-        #for s, d, edge in self.edges_iter(data=True):
-            #self.edge[s][d] = Edge(self.node[s], self.node[d])
 
     @classmethod
     def from_graph(cls, graph):
@@ -372,6 +367,32 @@ class CandidateGraph(nx.Graph):
                  of keyword arguments to be passed through to the func
         """
         _, self.clusters = func(self, *args, **kwargs)
+
+    def compute_triangular_cycles(self):
+        """
+        Find all cycles of length 3.  This is similar
+         to cycle_basis (networkX), but returns all cycles.
+         As opposed to all basis cycles.
+
+        Returns
+        -------
+        cycles : list
+                 A list of cycles in the form [(a,b,c), (c,d,e)],
+                 where letrers indicate node identifiers
+
+        Examples
+        --------
+        >>> g = CandidateGraph()
+        >>> g.add_edges_from([(0,1), (0,2), (1,2), (0,3), (1,3), (2,3)])
+        >>> g.compute_triangular_cycles()
+        [(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)]
+        """
+        cycles = []
+        for s, d in self.edges_iter():
+            for n in self.nodes():
+                if(s,n) in self.edges() and (d,n) in self.edges():
+                    cycles.append((s,d,n))
+        return cycles
 
     def apply_func_to_edges(self, function, *args, **kwargs):
         """

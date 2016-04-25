@@ -1,5 +1,39 @@
 from functools import reduce
 import numpy as np
+import pandas as pd
+
+
+def normalize_vector(line):
+    """
+    Normalize a standard form line
+
+    Parameters
+    ----------
+    line : ndarray
+           Standard line form coefficients
+
+    Returns
+    -------
+    line : ndarray
+           The normalized line
+
+    Examples
+    --------
+    >>> x = np.random.random((3,3))
+    >>> normalize_vector(x)
+    array([[ 0.88280225,  0.4697448 ,  0.11460811],
+       [ 0.26090555,  0.96536433,  0.91648305],
+       [ 0.58271501,  0.81267657,  0.30796395]])
+    """
+    if isinstance(line, pd.DataFrame):
+        line = line.values
+    try:
+        n = np.sqrt(line[:, 0]**2 + line[:, 1]**2).reshape(-1, 1)
+    except:
+        n = np.sqrt(line[0]**2 + line[1]**2)
+    line /= n
+    return line
+
 
 def getnearest(iterable, value):
     """
