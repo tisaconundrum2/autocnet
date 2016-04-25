@@ -28,7 +28,8 @@ install:
   - conda info -a
 
   # Create a virtual env and install dependencies
-  - conda create -y -q -n test-env python=$TRAVIS_PYTHON_VERSION nose numpy pillow scipy pandas networkx scikit-image sqlalchemy numexpr dill cython pyyaml
+  # conda is explicitly included here to try to get it into a non-root env.  It is NOT needed outside of CI testing and binstar upload.
+  - conda create -y -q -n test-env python=$TRAVIS_PYTHON_VERSION nose numpy pillow scipy pandas networkx scikit-image sqlalchemy numexpr dill cython pyyaml conda
   # Activate the env
   - source activate test-env
 
