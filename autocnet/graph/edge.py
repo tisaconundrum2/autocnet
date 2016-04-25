@@ -228,11 +228,11 @@ class Edge(dict, MutableMapping):
 
         # Grab the full images, or handles
         if tiled is True:
-            s_img = self.source.handle
-            d_img = self.destination.handle
+            s_img = self.source.geodata
+            d_img = self.destination.geodata
         else:
-            s_img = self.source.handle.read_array()
-            d_img = self.destination.handle.read_array()
+            s_img = self.source.geodata.read_array()
+            d_img = self.destination.geodata.read_array()
 
         source_image = (matches.iloc[0]['source_image'])
 
@@ -292,7 +292,7 @@ class Edge(dict, MutableMapping):
             raise AttributeError('This edge does not yet have any matches computed.')
 
         matches, mask = self._clean(clean_keys)
-        domain = self.source.handle.raster_size
+        domain = self.source.geodata.raster_size
 
         # Massage the dataframe into the correct structure
         coords = self.source.get_keypoint_coordinates()
@@ -357,8 +357,8 @@ class Edge(dict, MutableMapping):
                The estimated area
         """
 
-        source_geom = self.source.handle.pixel_polygon
-        destination_geom = self.destination.handle.pixel_polygon
+        source_geom = self.source.geodata.pixel_polygon
+        destination_geom = self.destination.geodata.pixel_polygon
 
         # Project using the homography
         vertices_to_project = destination_geom.vertices

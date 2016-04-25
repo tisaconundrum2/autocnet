@@ -392,7 +392,8 @@ class GeoDataset(object):
             lon, lat, _ = self.coordinate_transformation.TransformPoint(x, y)
         except:
             lat = lon = None
-            warnings.warn('Unable to compute pixel to geographic conversion without projection information.')
+            warnings.warn('Unable to compute pixel to geographic conversion without '
+                          'projection information for {}'.format(self.base_name))
 
         return lat, lon
 

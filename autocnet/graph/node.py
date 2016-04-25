@@ -26,7 +26,7 @@ class Node(dict, MutableMapping):
                  Name of the image, with extension
     image_path : str
                  Relative or absolute PATH to the image
-    handle : object
+    geodata : object
              File handle to the object
     keypoints : dataframe
                 With columns, x, y, and response
@@ -59,10 +59,10 @@ class Node(dict, MutableMapping):
         """.format(self.node_id, self.image_name, self.image_path,
                    self.nkeypoints, self.masks, self.__class__)
     @property
-    def handle(self):
-        if not getattr(self, '_handle', None):
-            self._handle = GeoDataset(self.image_path)
-        return self._handle
+    def geodata(self):
+        if not getattr(self, '_geodata', None):
+            self._geodata = GeoDataset(self.image_path)
+        return self._geodata
 
     @property
     def nkeypoints(self):
@@ -123,7 +123,7 @@ class Node(dict, MutableMapping):
                The band to read, default 1
         """
 
-        array = self.handle.read_array(band=band)
+        array = self.geodata.read_array(band=band)
         return bytescale(array)
 
     def get_keypoints(self, index=None):
@@ -272,7 +272,7 @@ class Node(dict, MutableMapping):
         if not hasattr(self, '_keypoints'):
             raise AttributeError('No keypoints extracted for this node.')
 
-        domain = self.handle.raster_size
+        domain = self.geodata.raster_size
         self._keypoints['strength'] = self._keypoints.apply(func, axis=1)
 
         if not hasattr(self, 'suppression'):
@@ -297,7 +297,7 @@ class Node(dict, MutableMapping):
         ratio : float
                 The ratio of convex hull area to total area.
         """
-        ideal_area = self.handle.pixel_area
+        ideal_area = self.geodata.pixel_area
         if not hasattr(self, '_keypoints'):
             raise AttributeError('Keypoints must be extracted already, they have not been.')
 
