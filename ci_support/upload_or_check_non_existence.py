@@ -76,11 +76,11 @@ def add_distribution_to_channel(binstar_cli, meta, owner, channel='main'):
 
 
 def main():
-    token = os.environ.get('BINSTAR_TOKEN')
+    token = os.environ.get('BINSTAR_KEY')
 
     description = ('Upload or check consistency of a built version of a '
                    'conda recipe with binstar. Note: The existence of the '
-                   'BINSTAR_TOKEN environment variable determines '
+                   'BINSTAR_KEY environment variable determines '
                    'whether the upload should actually take place.')
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('recipe_dir', help='the conda recipe directory')
@@ -108,7 +108,7 @@ def main():
             print('Distribution {} already \nexists on {}\'s {} channel.'
                   ''.format(bldpkg_path(meta), owner, channel))
     else:
-        print("No BINSTAR_TOKEN present, so no upload is taking place. "
+        print("No BINSTAR_KEY present, so no upload is taking place. "
               "The distribution just built {} already available on {}'s "
               "{} channel.".format('is' if exists else 'is not',
                                    owner, channel))
