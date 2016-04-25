@@ -1,0 +1,28 @@
+package:
+  name: autocnet
+  version: 0.1.0
+
+ build:
+  number: 0
+
+ requirements:
+  run:
+    - python
+    - opencv3=3.0.0
+    - numpy
+    - scipy
+    - pillow
+    - pandas
+    - networkx
+    - sqlalchemy
+    - numexpr
+    - cython
+    - dill
+    - pyyaml
+    - gdal
+    - h5py
+
+ about:
+  home: http://autocnet.readthedocs.org
+  license: Public Domain
+  summary: Autocnet is a library top
