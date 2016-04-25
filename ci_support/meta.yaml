@@ -41,8 +41,6 @@ requirements:
     - gdal
     - h5py
 
-test:
-
 about:
   home: http://autocnet.readthedocs.org
   license: Public Domain
