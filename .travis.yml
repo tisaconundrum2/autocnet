@@ -41,7 +41,7 @@ install:
   - pip install coveralls
 
   # Install libs to support upload to binstar
-  - conda install anaconda-client binstar
+  - conda install anaconda-client binstar conda-build
 
 script:
   - nosetests --with-coverage --cover-package=autocnet
