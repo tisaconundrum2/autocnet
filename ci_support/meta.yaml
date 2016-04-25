@@ -12,7 +12,7 @@ build:
 requirements:
   build:
     - python
-    - opencv3=3.0.0
+    - opencv3 3.0.0
     - numpy
     - scipy
     - pillow
@@ -27,7 +27,7 @@ requirements:
     - h5py
   run:
     - python
-    - opencv3=3.0.0
+    - opencv3 3.0.0
     - numpy
     - scipy
     - pillow
