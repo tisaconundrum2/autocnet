@@ -106,7 +106,7 @@ class TestUtils(unittest.TestCase):
         y = utils.normalize_vector(x)
         np.testing.assert_array_almost_equal(np.array([ 0.70710678,  0.70710678,  0.70710678]), y)
 
-        x = np.repeat(np.arange(4), 3).reshape(-1, 3)
+        x = np.repeat(np.arange(1,5), 3).reshape(-1, 3)
         y = utils.normalize_vector(x)
-        truth = np.tile(np.array([ 0.70710678,  0.70710678,  0.70710678]), 4)
+        truth = np.tile(np.array([ 0.70710678,  0.70710678,  0.70710678]), 4).reshape(4,3)
         np.testing.assert_array_almost_equal(truth, y)

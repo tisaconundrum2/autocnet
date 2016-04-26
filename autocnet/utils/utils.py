@@ -31,7 +31,8 @@ def normalize_vector(line):
         n = np.sqrt(line[:, 0]**2 + line[:, 1]**2).reshape(-1, 1)
     except:
         n = np.sqrt(line[0]**2 + line[1]**2)
-    line /= n
+    print(line, n)
+    line = line / n
     return line
 
 

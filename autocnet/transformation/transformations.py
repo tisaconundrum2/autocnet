@@ -175,71 +175,8 @@ class FundamentalMatrix(TransformationMatrix):
             compute this homography
     """
 
-    def refine(self, method=ps.esda.mapclassify.Fisher_Jenks, df=None, bin_id=0, **kwargs):
-        """
-        Refine the fundamental matrix by accepting some data classification
-        method that accepts an ndarray and returns an object with a bins
-        attribute, where bins are data breaks.  Using the bin_id, mask
-        all values greater than the selected bin.  Then compute a
-        new fundamental matrix.
-
-        The matrix is "refined" based on the reprojection errors for
-        each point.
-
-        Parameters
-        ----------
-
-        method : object
-                 A function that accepts and ndarray and returns an object
-                 with a bins attribute
-
-        df      : dataframe
-                Dataframe (from which a ndarray will be extracted) to pass to the method.
-
-        bin_id : int
-                 The index into the bins object.  Data classified > this
-                 id is masked
-
-        kwargs : dict
-                 Keyword args supported by the data classifier
-
-        Returns
-        -------
-        FundamentalMatrix : object
-                            A fundamental matrix class object
-
-        mask : series
-               A bool mask with index attribute identifying the valid
-               data in the new fundamental matrix.
-        """
-        # Perform the data classification
-        if df is None:
-            df = self.error
-        fj = method(df.values.ravel(), **kwargs)
-        bins = fj.bins
-        # Mask the data that falls outside the provided bins
-        mask = df.iloc[:, 0] <= bins[bin_id]
-        new_x1 = self.x1.iloc[mask[mask == True].index]
-        new_x2 = self.x2.iloc[mask[mask == True].index]
-        fmatrix, new_mask = compute_fundamental_matrix(new_x1.values, new_x2.values)
-        mask[mask == True] = new_mask
-
-        # Update the current state
-        self[:] = fmatrix
-        self.mask = mask
-
-        # Update the action stack
-        try:
-            state_package = {'arr': fmatrix.copy(),
-                             'mask': self.mask.copy()}
-
-            self._action_stack.append(state_package)
-            self._current_action_stack = len(self._action_stack) - 1  # 0 based vs. 1 based
-            self._clean_attrs()
-            self._notify_subscribers(self)
-        except:
-            warnings.warn('Refinement outlier detection removed all observations.',
-                          UserWarning)
+    def refine(self):
+        pass
 
     def _clean_attrs(self):
         for a in ['_error', '_determinant', '_condition']:
@@ -289,24 +226,16 @@ class FundamentalMatrix(TransformationMatrix):
 
         x1 : dataframe
             n,3 dataframe of homogeneous coordinates with the same
-            length as argument a
-
-        mask : Series
-               Index to be used in the returned dataframe
+            length as argument x
 
         Returns
         -------
-
-        df : dataframe
-             With columns for x_residual, y_residual, rmse, and
-             error contribution.  The dataframe also has cumulative
-             x, t, and total RMS statistics accessible via
-             df.x_rms, df.y_rms, and df.total_rms, respectively.
+        F_error : ndarray
+                  n,1 vector of reprojection errors
         """
 
-        #Normalize the vector
+        # Normalize the vector
         l_norms = normalize_vector(x.dot(self.T))
-
         F_error = np.abs(np.sum(l_norms * x1, axis=1))
 
         return F_error

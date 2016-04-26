@@ -78,7 +78,7 @@ class TestSpatialSuppression(unittest.TestCase):
         self.suppression_obj.error_k = 0.05
         self.assertEqual(self.suppression_obj.error_k, 0.05)
 
-        self.assertEqual(self.suppression_obj.nvalid, None)
+        self.assertEqual(self.suppression_obj.nvalid, 0)
         self.assertIsInstance(self.suppression_obj.df, pd.DataFrame)
 
     def test_suppress_non_optimal(self):
