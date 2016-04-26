@@ -54,11 +54,6 @@ class TestTwoImageMatching(unittest.TestCase):
         for i, node in cg.nodes_iter(data=True):
             ratio = node.coverage_ratio()
             self.assertIn(round(ratio,8), truth_ratios)
-        # Step: apply Adaptive non-maximal suppression
-        for i, node in cg.nodes_iter(data=True):
-            pass
-            #node.anms()
-            #self.assertNotEqual(node.nkeypoints, sum(node._mask_arrays['anms']))
 
         cg.match_features(k=2)
 
