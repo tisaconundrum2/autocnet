@@ -92,7 +92,7 @@ class TestTwoImageMatching(unittest.TestCase):
         cg.subpixel_register(clean_keys=['ransac'])
 
         # Step:
-        cg.suppress(clean_keys = 'ratio')
+        cg.suppress()
 
         # Step: And create a C object
         cnet = cg.to_cnet(clean_keys=['symmetry', 'ratio', 'ransac', 'subpixel'])
