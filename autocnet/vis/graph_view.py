@@ -176,8 +176,8 @@ def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
 
     matches, mask = edge._clean(clean_keys)
 
-    source_keypoints = edge.source.get_keypoints(index=mask.index)
-    destination_keypoints = edge.destination.get_keypoints(index=mask.index)
+    source_keypoints = edge.source.get_keypoints(index=mask)
+    destination_keypoints = edge.destination.get_keypoints(index=mask)
 
     # Plot the source
     source_idx = matches['source_idx'].values

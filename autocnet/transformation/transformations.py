@@ -7,7 +7,7 @@ import pandas as pd
 import pysal as ps
 
 from autocnet.matcher.outlier_detector import compute_fundamental_matrix
-from autocnet.utils.utils import make_homogeneous
+from autocnet.utils.utils import make_homogeneous, normalize_vector
 
 
 class TransformationMatrix(np.ndarray):
@@ -248,19 +248,48 @@ class FundamentalMatrix(TransformationMatrix):
             except:
                 pass
 
-    def compute_error(self, x1, x2, mask=None):
+    @property
+    def error(self):
         """
-        Give this homography, compute the planar reprojection error
-        between points a and b.
+        Using the currently unmasked correspondences, compute the reprojection
+        error.
+
+        Returns
+        -------
+        : ndarray
+          The current error
+
+        See Also
+        --------
+        compute_error : The method called to compute element-wise error.
+        """
+        x = self.x1.loc[self.mask]
+        x1 = self.x2.loc[self.mask]
+        return self.compute_error(self.x1, self.x2)
+
+    def compute_error(self, x, x1):
+        """
+        Given a set of matches and a known fundamental matrix,
+        compute distance between all match points and the associated
+        epipolar lines.
+
+        Ideal error is defined by $x^{\intercal}Fx = 0$, where x
+        where $x$ are all matchpoints in a given image and
+        $x^{\intercal}F$ defines the standard form of the
+        epipolar line in the second image.
+
+        The distance between a point and the associated epipolar
+        line is computed as: $d = \frac{\lvert ax_{0} + by_{0} + c \rvert}{\sqrt{a^{2} + b^{2}}}$.
 
         Parameters
         ----------
 
-        a : ndarray
-            n,2 array of x,y coordinates
+        x : dataframe
+            n,3 dataframe of homogeneous coordinates
 
-        b : ndarray
-            n,2 array of x,y coordinates
+        x1 : dataframe
+            n,3 dataframe of homogeneous coordinates with the same
+            length as argument a
 
         mask : Series
                Index to be used in the returned dataframe
@@ -275,37 +304,12 @@ class FundamentalMatrix(TransformationMatrix):
              df.x_rms, df.y_rms, and df.total_rms, respectively.
         """
 
-        if mask is not None:
-            mask = mask
-        else:
-            mask = self.mask
-        index = mask[mask == True].index
+        #Normalize the vector
+        l_norms = normalize_vector(x.dot(self.T))
 
-        x1 = self.x1.iloc[index].values
-        x2 = self.x2.iloc[index].values
-        err = np.zeros(x1.shape[0])
+        F_error = np.abs(np.sum(l_norms * x1, axis=1))
 
-        # TODO: Vectorize the error computation
-        for i, j in enumerate(x1):
-            a = self[0, 0] * j[0] + self[0, 1] * j[1] + self[0, 2]
-            b = self[1, 0] * j[0] + self[1, 1] * j[1] + self[1, 2]
-            c = self[2, 0] * j[0] + self[2, 1] * j[1] + self[2, 2]
-
-            s2 = 1 / (a * a + b * b)
-            d2 = x2[i][0] * a + x2[i][1] * b + c
-
-            a = self[0, 0] * x2[i][0] + self[0, 1] * x2[i][1] + self[0, 2]
-            b = self[1, 0] * x2[i][0] + self[1, 1] * x2[i][1] + self[1, 2]
-            c = self[2, 0] * x2[i][0] + self[2, 1] * x2[i][1] + self[2, 2]
-
-            s1 = 1 / (a * a + b * b)
-            d1 = j[0] * a + j[1] * b + c
-
-            err[i] = max(d1 * d1 * s1, d2 * d2 * s2)
-
-        error = pd.DataFrame(err, columns=['Reprojection Error'], index=index)
-
-        return error
+        return F_error
 
     def recompute_matrix(self):
         raise NotImplementedError

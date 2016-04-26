@@ -144,7 +144,7 @@ class Node(dict, MutableMapping):
         """
         if hasattr(self, '_keypoints'):
             try:
-                return self._keypoints.loc[index]
+                return self._keypoints.iloc[index]
             except:
                 return self._keypoints
         else:

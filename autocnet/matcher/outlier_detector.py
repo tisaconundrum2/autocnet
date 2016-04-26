@@ -53,7 +53,7 @@ class DistanceRatio(Observable):
     def nvalid(self):
         return self.mask.sum()
 
-    def compute(self, ratio=0.9, mask=None, mask_name=None, single=False):
+    def compute(self, ratio=0.95, mask=None, mask_name=None, single=False):
         """
         Compute and return a mask for a matches dataframe
         using Lowe's ratio test.  If keypoints have a single
@@ -147,7 +147,8 @@ class SpatialSuppression(Observable):
         self.max_radius = max(domain)
         self.min_radius = min_radius
         self.domain = domain
-        self.mask = None
+        self.mask = pd.Series(False, index=self.df.index)
+
         self.k = k
         self._error_k = error_k
 
@@ -174,7 +175,7 @@ class SpatialSuppression(Observable):
 
     def suppress(self):
         """
-        Suppress subpixel registered points to that k +- k * error_k
+        Suppress subpixel registered points so that k +- k * error_k
         points, with good spatial distribution, remain
         """
         process = True
@@ -258,8 +259,6 @@ class SpatialSuppression(Observable):
                 warnings.warn('Unable to optimally solve.  Returning with {} points'.format(len(result)))
                 process = False
 
-
-        self.mask = pd.Series(False, self.df.index)
         self.mask.loc[list(result)] = True
         state_package = {'mask':self.mask,
                          'k': self.k,
@@ -314,7 +313,7 @@ def mirroring_test(matches):
                  otherwise, they will be false. Keypoints with only one match will be False. Removes
                  duplicate rows.
     """
-    duplicate_mask = matches.duplicated(subset=['source_idx', 'destination_idx', 'distance'])
+    duplicate_mask = matches.duplicated(subset=['source_idx', 'destination_idx', 'distance'], keep='last')
     return duplicate_mask
 
 
@@ -362,7 +361,6 @@ def compute_fundamental_matrix(kp1, kp2, method='ransac', reproj_threshold=5.0, 
         method_ = cv2.FM_7POINT
     else:
         raise ValueError("Unknown outlier detection method.  Choices are: 'ransac', 'lmeds', or 'normal'.")
-
 
     transformation_matrix, mask = cv2.findFundamentalMat(kp1,
                                                      kp2,
