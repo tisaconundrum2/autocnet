@@ -1,7 +1,6 @@
 import pvl
 
 from autocnet.fileio import ControlNetFileV0002_pb2 as cnf
-from autocnet.control.control import POINT_TYPE, MEASURE_TYPE
 
 #TODO: Protobuf3 should be a conditional import, if availble use it, otherwise bail
 
@@ -150,28 +149,27 @@ class IsisStore(object):
         """
         point_sizes = []
         point_messages = []
-        for pid, point in cnet.groupby('pid'):
-            # Instantiate the proto spec
-            point_spec = cnf.ControlPointFileEntryV0002()
 
-            # Get the subset of the dataframe
-            try:
-                point_spec.id = pid
-            except:
-                point_spec.id = str(pid)
-            point_spec.type = POINT_TYPE
+        for pid, measure_list in cnet.point_to_correspondence.items():
+            point_spec = cnf.ControlPointFileEntryV0002()
+            point_spec.id = str(pid)
+            point_spec.type = pid.point_type
 
             # The reference index should always be the image with the lowest index
             point_spec.referenceIndex = 0
 
             # A single extend call is cheaper than many add calls to pack points
             measure_iterable = []
-            for name, row in point.iterrows():
+
+            for node_id, m in measure_list:
                 measure_spec = point_spec.Measure()
-                measure_spec.serialnumber = row.nid
-                measure_spec.type = row.point_type
-                measure_spec.sample = row.x
-                measure_spec.line = row.y
+                try:
+                    measure_spec.serialnumber = m.serial
+                except:
+                    measure_spec.serialnumber = str(m.serial)
+                measure_spec.type = m.measure_type
+                measure_spec.sample = float(m.x)
+                measure_spec.line = float(m.y)
 
                 measure_iterable.append(measure_spec)
             point_spec.measures.extend(measure_iterable)
@@ -291,8 +289,8 @@ class IsisStore(object):
                         ('Created', cnet.creationdate),
                         ('LastModified', cnet.modifieddate),
                         ('Description', description),
-                        ('NumberOfPoints', cnet.n),
-                        ('NumberOfMeasures', cnet.m),
+                        ('NumberOfPoints', cnet.n_points),
+                        ('NumberOfMeasures', cnet.n_measures),
                         ('Version', version)
                         ])
                   }),

@@ -1,91 +1,108 @@
+import collections
 from time import gmtime, strftime
 
-import pandas as pd
-
-POINT_TYPE = 2
-MEASURE_TYPE = 2
-
-
-class CSeries(pd.Series):
-    """
-    A custom pandas series that can accept additional methods
-    """
-    @property
-    def _constructor(self):
-        return CSeries  # pragma: no cover
-
-
-class C(pd.DataFrame):
-    """
-    Control network designed in the ISIS format.
-
-    Attributes
-    ----------
-
-    n : int
-        Number of control points
-
-    m : int
-        Number of control measures
-
-    creationdate : str
-                   The date that this control network was created.
-
-    modifieddate : str
-                   The date that this control network was last modified.
-
-    Examples
-    --------
-    This example illustrates the manual creation of a pandas dataframe with
-    a multi-index (created from a list of tuples).
-
-    >>> ids = ['pt1','pt1', 'pt1', 'pt2', 'pt2']
-    >>> ptype = [2,2,2,2,2]
-    >>> serials = ['a', 'b', 'c', 'b', 'c']
-    >>> mtype = [2,2,2,2,2]
-    >>> multi_index = pd.MultiIndex.from_tuples(list(zip(ids, ptype, serials, mtype)),\
-                                    names=['Id', 'Type', 'Serial Number', 'Measure Type'])
-    >>> columns = ['Random Number']
-    >>> data_length = 5
-    >>> data = np.random.randn(data_length)
-    >>> C = control.C(data, index=multi_index, columns=columns)
-
+class Point(object):
     """
 
-    def __init__(self, *args, **kwargs):
-        super(C, self).__init__(*args, **kwargs)
-        self._creationdate = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+    """
+    __slots__ = '_subpixel', 'point_id', 'point_type', 'correspondences'
+
+    def __init__(self, pid, point_type=2):
+        self.point_id = pid
+        self._subpixel = False
+        self.point_type = point_type
+        self.correspondences = []
+
+    def __repr__(self):
+        return str(self.point_id)
+
+    def __eq__(self, other):
+        return self.point_id == other
+
+    def __hash__(self):
+        return hash(self.point_id)
 
     @property
-    def _constructor(self):
-        return C
+    def subpixel(self):
+        return self._subpixel
 
-    _constructor_sliced = CSeries
+    @subpixel.setter
+    def subpixel(self, v):
+        if isinstance(v, bool):
+            self._subpixel = v
+        if self._subpixel is True:
+            self.point_type = 3
+
+
+class Correspondence(object):
+
+    __slots__ = 'id', 'x', 'y', 'measure_type', 'serial'
+
+    def __init__(self, id, x, y, measure_type=2, serial=None):
+        self.id = id
+        self.x = x
+        self.y = y
+        self.measure_type = measure_type
+        self.serial = serial
+
+
+    def __repr__(self):
+        return str(self.id)
+
+    def __eq__(self, other):
+        return self.id == other
+
+    def __hash__(self):
+        return hash(self.id)
+
+
+class CorrespondenceNetwork(object):
+    def __init__(self):
+        self.point_to_correspondence = collections.defaultdict(list)
+        self.correspondence_to_point = {}
+        self.point_id = 0
+        self.creationdate = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        self.modifieddate = strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
     @property
-    def n(self):
-        if not getattr(self, '_n', None):
-            self._n = len(self['pid'].unique())
-        return self._n
+    def n_points(self):
+        return len(self.point_to_correspondence.keys())
 
     @property
-    def m(self):
-        if not getattr(self, '_m', None):
-            self._m = len(self)
-        return self._m
+    def n_measures(self):
+        return len(self.correspondence_to_point.keys())
 
-    @property
-    def creationdate(self):
-        return self._creationdate
+    def add_correspondences(self, edge, matches):
+        # Convert the matches dataframe to a dict
+        df = matches.to_dict()
+        source_image = next(iter(df['source_image'].values()))
+        destination_image = next(iter(df['destination_image'].values()))
 
-    @property
-    def modifieddate(self):
-        if not getattr(self, '_modifieddate', None):
-            self._modifieddate = 'Not modified'
-        return self._modifieddate
+        # TODO: Handle subpixel registration here
+        s_kps = edge.source.get_keypoint_coordinates().values
+        d_kps = edge.destination.get_keypoint_coordinates().values
 
-    '''
-    @modifieddate.setter
-    def update_modifieddate(self):
-        self._modifieddate = strftime("%Y-%m-%d %H:%M:%S", gmtime())
-    '''
+        # Load the correspondence to point data structure
+        for k, source_idx in df['source_idx'].items():
+            p = Point(self.point_id)
+            destination_idx = df['destination_idx'][k]
+
+            sidx = Correspondence(source_idx, *s_kps[source_idx], serial=edge.source.isis_serial)
+            didx = Correspondence(destination_idx, *d_kps[destination_idx], serial=edge.destination.isis_serial)
+
+            p.correspondences = [sidx, didx]
+
+            self.correspondence_to_point[(source_image, source_idx)] = self.point_id
+            self.correspondence_to_point[(destination_image, destination_idx)] = self.point_id
+
+            self.point_to_correspondence[p].append((source_image, sidx))
+            self.point_to_correspondence[p].append((destination_image, didx))
+
+            self.point_id += 1
+        self._update_modified_date()
+
+    def _update_modified_date(self):
+        self.modifieddate = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+
+    def to_dataframe(self):
+        pass
