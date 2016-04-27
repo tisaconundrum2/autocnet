@@ -292,7 +292,7 @@ class Edge(dict, MutableMapping):
             raise AttributeError('This edge does not yet have any matches computed.')
 
         matches, mask = self._clean(clean_keys)
-        domain = self.source.geodata.raster_size
+        domain = self.source.handle.raster_size
 
         # Massage the dataframe into the correct structure
         coords = self.source.get_keypoint_coordinates()
