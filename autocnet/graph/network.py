@@ -8,7 +8,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-from autocnet.control.control import C
+from autocnet.control.control import CorrespondenceNetwork
 from autocnet.fileio import io_hdf
 from autocnet.fileio import io_json
 from autocnet.fileio import io_utils
@@ -444,6 +444,18 @@ class CandidateGraph(nx.Graph):
         for i, node in self.nodes_iter(data=True):
             filelist.append(node.image_path)
         return filelist
+
+    def get_cnet(self, clean_keys=[]):
+        cn = CorrespondenceNetwork()
+
+        for s, d, edge in self.edges_iter(data=True):
+            if clean_keys:
+                matches, _ = edge._clean(clean_keys)
+            else:
+                matches = edge.matches
+            cn.add_correspondences(edge, matches)
+
+        return cn
 
     def to_cnet(self, clean_keys=[], isis_serials=False):
         """
