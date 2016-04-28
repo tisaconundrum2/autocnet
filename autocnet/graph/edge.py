@@ -92,7 +92,6 @@ class Edge(dict, MutableMapping):
 
             _, mask = self._clean(clean_keys)
 
-
             self.distance_ratio = od.DistanceRatio(self.matches)
             self.distance_ratio.compute(mask=mask, **kwargs)
 
