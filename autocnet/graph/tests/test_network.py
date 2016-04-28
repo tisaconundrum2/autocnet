@@ -41,6 +41,15 @@ class TestCandidateGraph(unittest.TestCase):
         except:
             pass
 
+    def test_size(self):
+        graph = self.graph
+        self.assertEqual(graph.size(), graph.number_of_edges())
+
+        for u, v, e in graph.edges_iter(data=True):
+            e['weight'] = 10
+
+        self.assertEqual(graph.size('weight'), graph.number_of_edges()*10)
+
     def test_island_nodes(self):
         self.assertEqual(len(self.disconnected_graph.island_nodes()), 1)
 
