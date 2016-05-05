@@ -26,6 +26,7 @@ def write_filelist(lst, path="fromlist.lis"):
         handle.write('\n')
     return
 
+
 def to_isis(path, C, mode='w', version=VERSION,
             headerstartbyte=HEADERSTARTBYTE,
             networkid='None', targetname='None',
@@ -81,8 +82,7 @@ def to_isis(path, C, mode='w', version=VERSION,
                                                                            username,
                                                                            point_sizes)
             # Write the buffer header
-            store.write(buffer_header,HEADERSTARTBYTE)
-
+            store.write(buffer_header, HEADERSTARTBYTE)
             # Then write the points, so we know where to start writing, + 1 to avoid overwrite
             point_start_offset = HEADERSTARTBYTE + buffer_header_size
             for i, point in enumerate(point_messages):

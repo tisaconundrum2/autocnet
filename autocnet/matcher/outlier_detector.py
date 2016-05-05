@@ -221,7 +221,6 @@ class SpatialSuppression(Observable):
                     pts.append((p[['x', 'y']]))
                     if len(result) > self.k + self.k * self.error_k:
                         # Too many points, break
-                        print('TooMany')
                         min_idx = mid_idx
                         break
 
@@ -247,11 +246,9 @@ class SpatialSuppression(Observable):
 
             #  Check break conditions
             if self.k - self.k * self.error_k <= len(result) <= self.k + self.k * self.error_k:
-                print('Just right')
                 process = False
             elif len(result) < self.k:
                 # The radius is too large
-                print('TOOFEW')
                 max_idx = mid_idx
                 if min_idx == max_idx:
                     process = False

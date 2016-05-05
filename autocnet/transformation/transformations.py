@@ -175,6 +175,17 @@ class FundamentalMatrix(TransformationMatrix):
             compute this homography
     """
 
+    @property
+    def rank(self):
+        """
+        A valid fundamental matrix should be rank 2.
+        Hartley & Zisserman p. 280
+        """
+        rank = np.linalg.matrix_rank(self)
+        if rank != 2:
+            warnings.warn('F rank not equal to 2.  This indicates a poor F matrix.')
+        return rank
+
     def refine(self):
         pass
 

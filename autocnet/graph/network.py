@@ -1,20 +1,22 @@
 import itertools
 import math
 import os
+import warnings
+
 import dill as pickle
 import networkx as nx
 import numpy as np
 import pandas as pd
 
-from autocnet.fileio.io_gdal import GeoDataset
+from autocnet.control.control import CorrespondenceNetwork
 from autocnet.fileio import io_hdf
-from autocnet.control.control import C
 from autocnet.fileio import io_json
-from autocnet.matcher.matcher import FlannMatcher
-import autocnet.matcher.suppression_funcs as spf
+from autocnet.fileio import io_utils
+from autocnet.fileio.io_gdal import GeoDataset
+from autocnet.graph import markov_cluster
 from autocnet.graph.edge import Edge
 from autocnet.graph.node import Node
-from autocnet.graph import markov_cluster
+from autocnet.matcher.matcher import FlannMatcher
 from autocnet.vis.graph_view import plot_graph
 
 
@@ -35,6 +37,9 @@ class CandidateGraph(nx.Graph):
     clusters : dict
                of clusters with key as the cluster id and value as a
                list of node indices
+
+    cn : object
+         A control network object instantiated by calling generate_cnet.
     ----------
     """
     edge_attr_dict_factory = Edge
@@ -44,7 +49,6 @@ class CandidateGraph(nx.Graph):
         self.node_counter = 0
         node_labels = {}
         self.node_name_map = {}
-        self.graph_masks = pd.DataFrame()
 
         for node_name in self.nodes():
             image_name = os.path.basename(node_name)
@@ -66,11 +70,6 @@ class CandidateGraph(nx.Graph):
             e = self.edge[s][d]
             e.source = self.node[s]
             e.destination = self.node[d]
-            #del self.adj[d][s]
-
-        # Add the Edge class as a edge data structure
-        #for s, d, edge in self.edges_iter(data=True):
-            #self.edge[s][d] = Edge(self.node[s], self.node[d])
 
     @classmethod
     def from_graph(cls, graph):
@@ -107,11 +106,8 @@ class CandidateGraph(nx.Graph):
         : object
           A Network graph object
         """
-        if not isinstance(filelist, list):
-            with open(filelist, 'r') as f:
-                filelist = f.readlines()
-                filelist = map(str.rstrip, filelist)
-                filelist = filter(None, filelist)
+        if isinstance(filelist, str):
+            filelist = io_utils.file_to_list(filelist)
 
         # TODO: Reject unsupported file formats + work with more file formats
         if basepath:
@@ -121,23 +117,28 @@ class CandidateGraph(nx.Graph):
 
         # This is brute force for now, could swap to an RTree at some point.
         adjacency_dict = {}
+        valid_datasets = []
 
-        for i, j in itertools.permutations(datasets,2):
-            if not i.file_name in adjacency_dict.keys():
-                adjacency_dict[i.file_name] = []
-            if not j.file_name in adjacency_dict.keys():
-                adjacency_dict[j.file_name] = []
+        for i in datasets:
+            adjacency_dict[i.file_name] = []
 
-            # Grab the footprints and test for intersection
+            fp = i.footprint
+            if fp and fp.IsValid():
+                valid_datasets.append(i)
+            else:
+                warnings.warn('Missing or invalid geospatial data for {}'.format(i.base_name))
+
+        # Grab the footprints and test for intersection
+        for i, j in itertools.permutations(valid_datasets, 2):
             i_fp = i.footprint
             j_fp = j.footprint
 
             try:
-                if j_fp and i_fp and i_fp.Intersects(j_fp):
+                if i_fp.Intersects(j_fp):
                     adjacency_dict[i.file_name].append(j.file_name)
                     adjacency_dict[j.file_name].append(i.file_name)
             except:
-                warnings.warn('No or incorrect geospatial information for {} and/or {}'.format(i, j))
+                warnings.warn('Failed to calculated intersection between {} and {}'.format(i, j))
 
         return cls(adjacency_dict)
 
@@ -300,6 +301,11 @@ class CandidateGraph(nx.Graph):
             descriptors = node.descriptors
             # Load the neighbors of the current node into the FLANN matcher
             neighbors = self.neighbors(i)
+
+            # if node has no neighbors, skip
+            if not neighbors:
+                continue
+
             for n in neighbors:
                 neighbor_descriptors = self.node[n].descriptors
                 self._fl.add(neighbor_descriptors, n)
@@ -365,31 +371,51 @@ class CandidateGraph(nx.Graph):
         """
         _, self.clusters = func(self, *args, **kwargs)
 
-    def apply_func_to_edges(self, function, *args, graph_mask_keys=[], **kwargs):
+    def compute_triangular_cycles(self):
+        """
+        Find all cycles of length 3.  This is similar
+         to cycle_basis (networkX), but returns all cycles.
+         As opposed to all basis cycles.
+
+        Returns
+        -------
+        cycles : list
+                 A list of cycles in the form [(a,b,c), (c,d,e)],
+                 where letters indicate node identifiers
+
+        Examples
+        --------
+        >>> g = CandidateGraph()
+        >>> g.add_edges_from([(0,1), (0,2), (1,2), (0,3), (1,3), (2,3)])
+        >>> g.compute_triangular_cycles()
+        [(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)]
+        """
+        cycles = []
+        for s, d in self.edges_iter():
+            for n in self.nodes():
+                if(s,n) in self.edges() and (d,n) in self.edges():
+                    cycles.append((s,d,n))
+        return cycles
+
+    def apply_func_to_edges(self, function, *args, **kwargs):
         """
         Iterates over edges using an optional mask and and applies the given function.
         If func is not an attribute of Edge, raises AttributeError
+
         Parameters
         ----------
         function : obj
                    function to be called on every edge
+
         graph_mask_keys : list
                           of keys in graph_masks
         """
-
-        if graph_mask_keys:
-            merged_graph_mask = self.graph_masks[graph_mask_keys].all(axis=1)
-            edges_to_iter = merged_graph_mask[merged_graph_mask].index
-        else:
-            edges_to_iter = self.edges()
-
         if not isinstance(function, str):
             function = function.__name__
 
-        for s, d in edges_to_iter:
-            curr_edge = self.get_edge_data(s, d)
+        for s, d, edge in self.edges_iter(data=True):
             try:
-                func = getattr(curr_edge, function)
+                func = getattr(edge, function)
             except:
                 raise AttributeError(function, ' is not an attribute of Edge')
             else:
@@ -463,11 +489,8 @@ class CandidateGraph(nx.Graph):
            boolean mask for edges in the minimum spanning tree
         """
 
-        graph_mask = pd.Series(False, index=self.edges())
-        self.graph_masks['mst'] = graph_mask
-
         mst = nx.minimum_spanning_tree(self)
-        self.graph_masks['mst'][mst.edges()] = True
+        return self.create_edge_subgraph(mst.edges())
 
     def to_filelist(self):
         """
@@ -483,6 +506,29 @@ class CandidateGraph(nx.Graph):
         for i, node in self.nodes_iter(data=True):
             filelist.append(node.image_path)
         return filelist
+
+    def generate_cnet(self, clean_keys=[]):
+        """
+        Compute (or re-compute) a CorrespondenceNetwork attribute
+
+        Parameters
+        ----------
+        clean_keys : list
+                     of string clean keys to mask correspondences
+
+        See Also
+        --------
+        autocnet.control.control.CorrespondenceNetwork
+
+        """
+        self.cn = CorrespondenceNetwork()
+
+        for s, d, edge in self.edges_iter(data=True):
+            if clean_keys:
+                matches, _ = edge._clean(clean_keys)
+            else:
+                matches = edge.matches
+            self.cn.add_correspondences(edge, matches)
 
     def to_cnet(self, clean_keys=[], isis_serials=False):
         """
@@ -586,7 +632,7 @@ class CandidateGraph(nx.Graph):
 
             columns = ['x', 'y', 'idx', 'pid', 'nid', 'mid', 'point_type']
 
-            cnet = C(values, columns=columns)
+            cnet = CorrespondenceNetwork(values, columns=columns)
 
             if merged_cnet is None:
                 merged_cnet = cnet.copy(deep=True)
