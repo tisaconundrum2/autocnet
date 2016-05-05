@@ -28,7 +28,7 @@ class CandidateGraph(nx.Graph):
 
     Attributes
     node_counter : int
-                   The number of nodes in the graph. 
+                   The number of nodes in the graph.
     node_name_map : dict
                     The mapping of image labels (i.e. file base names) to their
                     corresponding node indices
@@ -66,11 +66,11 @@ class CandidateGraph(nx.Graph):
             e = self.edge[s][d]
             e.source = self.node[s]
             e.destination = self.node[d]
-            #del self.adj[d][s]
+            # del self.adj[d][s]
 
         # Add the Edge class as a edge data structure
-        #for s, d, edge in self.edges_iter(data=True):
-            #self.edge[s][d] = Edge(self.node[s], self.node[d])
+        # for s, d, edge in self.edges_iter(data=True):
+            # self.edge[s][d] = Edge(self.node[s], self.node[d])
 
     @classmethod
     def from_graph(cls, graph):
@@ -143,7 +143,6 @@ class CandidateGraph(nx.Graph):
 
         return cls(adjacency_dict)
 
-
     @classmethod
     def from_adjacency(cls, input_adjacency, basepath=None):
         """
@@ -182,7 +181,7 @@ class CandidateGraph(nx.Graph):
         ----------
         node_index : int
                      The index of the node.
-        
+
         Returns
         -------
          : str
@@ -555,7 +554,6 @@ class CandidateGraph(nx.Graph):
                 m1 = (source, int(row['source_idx']))
                 m2 = (destination, int(row['destination_idx']))
 
-
                 values.append([kp1.loc[m1_pid]['x'],
                                kp1.loc[m1_pid]['y'],
                                m1,
@@ -592,7 +590,7 @@ class CandidateGraph(nx.Graph):
 
                 # Inner merge on the dataframe identifies common points
                 common = pd.merge(merged_cnet, cnet, how='inner', on='idx', left_index=True, suffixes=['_r',
-                                                                                                      '_l'])
+                                                                                                       '_l'])
 
                 # Iterate over the points to be merged and merge them in.
                 for i, r in common.iterrows():
@@ -669,7 +667,7 @@ class CandidateGraph(nx.Graph):
         with open(filename, 'wb') as f:
             pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-    def plot(self, ax=None, **kwargs): # pragma: no cover
+    def plot(self, ax=None, **kwargs):  # pragma: no cover
         """
         Plot the graph object
 
@@ -683,7 +681,7 @@ class CandidateGraph(nx.Graph):
          : object
            A MatPlotLib axes object
         """
-        return plot_graph(self, ax=ax,  **kwargs)
+        return plot_graph(self, ax=ax, **kwargs)
 
     def create_edge_subgraph(self, edges):
         """
@@ -720,7 +718,7 @@ class CandidateGraph(nx.Graph):
                 H.adj[v] = H.adjlist_dict_factory()
             # Copy the edge attributes.
             H.edge[u][v] = self.edge[u][v]
-            #H.edge[v][u] = self.edge[v][u]
+            # H.edge[v][u] = self.edge[v][u]
         H.graph = self.graph
         return H
 
