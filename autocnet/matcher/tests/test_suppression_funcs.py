@@ -33,6 +33,5 @@ class Test_Suppression(unittest.TestCase):
 
     def test_error(self):
         col = self.df.apply(sf.error, axis=1, args=[None])
-        self.assertNotEqual(col.all(), self.df['error'].all())
-
+        self.assertEqual(col.all(), self.df['error'].all())
 
