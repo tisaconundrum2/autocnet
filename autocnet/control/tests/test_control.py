@@ -70,7 +70,7 @@ class TestC(unittest.TestCase):
             correspondences.extend(v)
         self.assertEqual(points[0], points[0])
         self.assertNotEqual(points[-1], points[1])
-        self.assertEqual(correspondences[0][0], correspondences[0][0])
+        self.assertEqual(correspondences[1][0], correspondences[1][0])
 
     def test_to_dataframe(self):
         self.C.to_dataframe()
