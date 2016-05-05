@@ -160,10 +160,8 @@ class SpatialSuppression(Observable):
 
     @property
     def nvalid(self):
-        try:
-            return self.mask.sum()
-        except:
-            return None
+        return self.mask.sum()
+
 
     @property
     def error_k(self):

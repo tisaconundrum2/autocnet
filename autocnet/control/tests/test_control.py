@@ -54,3 +54,24 @@ class TestC(unittest.TestCase):
 
     def test_creation_date(self):
         self.assertEqual(self.C.creationdate, strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+
+    def test_point_subpixel(self):
+        for k, v in self.C.point_to_correspondence.items():
+            self.assertFalse(k.subpixel)
+            k.subpixel = True
+            self.assertTrue(k.subpixel)
+            break
+
+    def test_equalities(self):
+        points = []
+        correspondences = []
+        for k, v in self.C.point_to_correspondence.items():
+            points.append(k)
+            correspondences.extend(v)
+        self.assertEqual(points[0], points[0])
+        self.assertNotEqual(points[-1], points[1])
+        self.assertEqual(correspondences[0][0], correspondences[0][0])
+
+    def test_to_dataframe(self):
+        self.C.to_dataframe()
+

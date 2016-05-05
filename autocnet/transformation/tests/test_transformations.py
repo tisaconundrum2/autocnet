@@ -49,7 +49,8 @@ class TestHomography(unittest.TestCase):
 
 class TestFundamentalMatrix(unittest.TestCase):
 
-    def test_FundamentalMatrix(self):
+    @classmethod
+    def setUpClass(cls):
         nbr_inliers = 20
         fp = np.array(np.random.standard_normal((nbr_inliers, 2)))  # inliers
 
@@ -61,11 +62,21 @@ class TestFundamentalMatrix(unittest.TestCase):
         # normalize hom. coordinates
         tp /= tp[-1, :np.newaxis]
 
-        F = transformations.FundamentalMatrix(static_F,
+        cls.F = transformations.FundamentalMatrix(static_F,
                                               pd.DataFrame(fph, columns=['x', 'y', 'h']),
                                               pd.DataFrame(tp.T, columns=['x', 'y', 'h']),
                                               mask=pd.Series(True, index=np.arange(fp.shape[0])))
 
-        self.assertAlmostEqual(F.determinant, 0.624999, 5)
-        self.assertIsInstance(F.error, pd.Series)
+    def test_f_error(self):
+        self.assertIsInstance(self.F.error, pd.Series)
 
+    def test_f_determinant(self):
+        self.assertAlmostEqual(self.F.determinant, 0.624999, 5)
+
+    def test_f_rank(self):
+        # Degenerate Case
+        self.assertEqual(self.F.rank, 3)
+
+    def test_f_refine(self):
+        r = self.F.refine()
+        self.assertIsNone(r)

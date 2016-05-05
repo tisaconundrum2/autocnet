@@ -94,3 +94,11 @@ class TestSpatialSuppression(unittest.TestCase):
         self.suppression_obj.suppress()
         self.assertIn(self.suppression_obj.mask.sum(), list(range(27, 34)))
 
+        with warnings.catch_warnings(record=True) as w:
+            self.suppression_obj.k = 101
+            self.suppression_obj.suppress()
+            self.assertEqual(len(w), 1)
+            self.assertTrue(issubclass(w[0].category, UserWarning))
+
+
+
