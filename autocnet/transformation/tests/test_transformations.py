@@ -46,9 +46,11 @@ class TestHomography(unittest.TestCase):
             h = transformations.Homography(np.arange(4).reshape(2,2),
                                            np.arange(3), np.arange(3), None)
 
+
 class TestFundamentalMatrix(unittest.TestCase):
 
-    def test_FundamentalMatrix(self):
+    @classmethod
+    def setUpClass(cls):
         nbr_inliers = 20
         fp = np.array(np.random.standard_normal((nbr_inliers, 2)))  # inliers
 
@@ -60,25 +62,31 @@ class TestFundamentalMatrix(unittest.TestCase):
         # normalize hom. coordinates
         tp /= tp[-1, :np.newaxis]
 
-        F = transformations.FundamentalMatrix(static_F,
-                                              pd.DataFrame(fp, columns=['x', 'y']),
-                                              pd.DataFrame(tp.T[:, :2], columns=['x', 'y']),
+        cls.F = transformations.FundamentalMatrix(static_F,
+                                              pd.DataFrame(fph, columns=['x', 'y', 'h']),
+                                              pd.DataFrame(tp.T, columns=['x', 'y', 'h']),
                                               mask=pd.Series(True, index=np.arange(fp.shape[0])))
 
-        self.assertAlmostEqual(F.determinant, 0.624999, 5)
+    def test_f_error(self):
+        self.assertIsInstance(self.F.error, pd.Series)
 
-        self.assertIsInstance(F.error, pd.DataFrame)
+    def test_f_determinant(self):
+        self.assertAlmostEqual(self.F.determinant, 0.624999, 5)
 
+    def test_f_rank(self):
+        # Degenerate Case
+        self.assertEqual(self.F.rank, 3)
+
+    def test_f_refine(self):
         # This should raise an error.
-        F.refine()
-        self.assertIsInstance(F.error, pd.DataFrame)
-        self.assertEqual(len(F._action_stack), 1)
+        self.F.refine()
+        self.assertEqual(len(self.F._action_stack), 1)
 
         # Previous error should preclude do/undo
-        F.rollback()
-        self.assertEqual(F._current_action_stack, 0)
-        F.rollforward()
-        self.assertEqual(F._current_action_stack, 0)
+        self.F.rollback()
+        self.assertEqual(self.F._current_action_stack, 0)
+        self.F.rollforward()
+        self.assertEqual(self.F._current_action_stack, 0)
 
-        F._clean_attrs()
-        self.assertNotIn('_error', F.__dict__)
+        self.F._clean_attrs()
+        self.assertNotIn('_error', self.F.__dict__)

@@ -7,7 +7,7 @@ import pandas as pd
 import pysal as ps
 
 from autocnet.matcher.outlier_detector import compute_fundamental_matrix
-from autocnet.utils.utils import make_homogeneous
+from autocnet.utils.utils import make_homogeneous, normalize_vector
 
 
 class TransformationMatrix(np.ndarray):
@@ -175,50 +175,52 @@ class FundamentalMatrix(TransformationMatrix):
             compute this homography
     """
 
-    def refine(self, method=ps.esda.mapclassify.Fisher_Jenks, df=None, bin_id=0, **kwargs):
+    @property
+    def rank(self):
+        """
+        A valid fundamental matrix should be rank 2.
+        Hartley & Zisserman p. 280
+        """
+        rank = np.linalg.matrix_rank(self)
+        if rank != 2:
+            warnings.warn('F rank not equal to 2.  This indicates a poor F matrix.')
+        return rank
+
+    def refine(self, method=ps.esda.mapclassify.Fisher_Jenks, values=None, bin_id=0, **kwargs):
         """
         Refine the fundamental matrix by accepting some data classification
         method that accepts an ndarray and returns an object with a bins
         attribute, where bins are data breaks.  Using the bin_id, mask
         all values greater than the selected bin.  Then compute a
         new fundamental matrix.
-
         The matrix is "refined" based on the reprojection errors for
         each point.
-
         Parameters
         ----------
-
         method : object
                  A function that accepts and ndarray and returns an object
                  with a bins attribute
-
-        df      : dataframe
-                Dataframe (from which a ndarray will be extracted) to pass to the method.
-
+        values      : ndarray
+                      (n,1) of values to use used for classification
         bin_id : int
                  The index into the bins object.  Data classified > this
                  id is masked
-
         kwargs : dict
                  Keyword args supported by the data classifier
-
         Returns
         -------
         FundamentalMatrix : object
                             A fundamental matrix class object
-
         mask : series
                A bool mask with index attribute identifying the valid
                data in the new fundamental matrix.
         """
         # Perform the data classification
-        if df is None:
-            df = self.error
-        fj = method(df.values.ravel(), **kwargs)
-        bins = fj.bins
+        if values is None:
+            values = self.error
+        fj = method(values.ravel(), **kwargs)
         # Mask the data that falls outside the provided bins
-        mask = df.iloc[:, 0] <= bins[bin_id]
+        mask = values <= fj.yb[bin_id]
         new_x1 = self.x1.iloc[mask[mask == True].index]
         new_x2 = self.x2.iloc[mask[mask == True].index]
         fmatrix, new_mask = compute_fundamental_matrix(new_x1.values, new_x2.values)
@@ -248,64 +250,60 @@ class FundamentalMatrix(TransformationMatrix):
             except:
                 pass
 
-    def compute_error(self, x1, x2, mask=None):
+    @property
+    def error(self):
         """
-        Give this homography, compute the planar reprojection error
-        between points a and b.
+        Using the currently unmasked correspondences, compute the reprojection
+        error.
+
+        Returns
+        -------
+        : ndarray
+          The current error
+
+        See Also
+        --------
+        compute_error : The method called to compute element-wise error.
+        """
+        x = self.x1.loc[self.mask]
+        x1 = self.x2.loc[self.mask]
+        return self.compute_error(self.x1, self.x2)
+
+    def compute_error(self, x, x1):
+        """
+        Given a set of matches and a known fundamental matrix,
+        compute distance between all match points and the associated
+        epipolar lines.
+
+        Ideal error is defined by $x^{\intercal}Fx = 0$, where x
+        where $x$ are all matchpoints in a given image and
+        $x^{\intercal}F$ defines the standard form of the
+        epipolar line in the second image.
+
+        The distance between a point and the associated epipolar
+        line is computed as: $d = \frac{\lvert ax_{0} + by_{0} + c \rvert}{\sqrt{a^{2} + b^{2}}}$.
 
         Parameters
         ----------
 
-        a : ndarray
-            n,2 array of x,y coordinates
+        x : dataframe
+            n,3 dataframe of homogeneous coordinates
 
-        b : ndarray
-            n,2 array of x,y coordinates
-
-        mask : Series
-               Index to be used in the returned dataframe
+        x1 : dataframe
+            n,3 dataframe of homogeneous coordinates with the same
+            length as argument x
 
         Returns
         -------
-
-        df : dataframe
-             With columns for x_residual, y_residual, rmse, and
-             error contribution.  The dataframe also has cumulative
-             x, t, and total RMS statistics accessible via
-             df.x_rms, df.y_rms, and df.total_rms, respectively.
+        F_error : ndarray
+                  n,1 vector of reprojection errors
         """
 
-        if mask is not None:
-            mask = mask
-        else:
-            mask = self.mask
-        index = mask[mask == True].index
+        # Normalize the vector
+        l_norms = normalize_vector(x.dot(self.T))
+        F_error = np.abs(np.sum(l_norms * x1, axis=1))
 
-        x1 = self.x1.iloc[index].values
-        x2 = self.x2.iloc[index].values
-        err = np.zeros(x1.shape[0])
-
-        # TODO: Vectorize the error computation
-        for i, j in enumerate(x1):
-            a = self[0, 0] * j[0] + self[0, 1] * j[1] + self[0, 2]
-            b = self[1, 0] * j[0] + self[1, 1] * j[1] + self[1, 2]
-            c = self[2, 0] * j[0] + self[2, 1] * j[1] + self[2, 2]
-
-            s2 = 1 / (a * a + b * b)
-            d2 = x2[i][0] * a + x2[i][1] * b + c
-
-            a = self[0, 0] * x2[i][0] + self[0, 1] * x2[i][1] + self[0, 2]
-            b = self[1, 0] * x2[i][0] + self[1, 1] * x2[i][1] + self[1, 2]
-            c = self[2, 0] * x2[i][0] + self[2, 1] * x2[i][1] + self[2, 2]
-
-            s1 = 1 / (a * a + b * b)
-            d1 = j[0] * a + j[1] * b + c
-
-            err[i] = max(d1 * d1 * s1, d2 * d2 * s2)
-
-        error = pd.DataFrame(err, columns=['Reprojection Error'], index=index)
-
-        return error
+        return F_error
 
     def recompute_matrix(self):
         raise NotImplementedError

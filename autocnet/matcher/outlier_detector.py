@@ -53,7 +53,7 @@ class DistanceRatio(Observable):
     def nvalid(self):
         return self.mask.sum()
 
-    def compute(self, ratio=0.9, mask=None, mask_name=None, single=False):
+    def compute(self, ratio=0.95, mask=None, mask_name=None, single=False):
         """
         Compute and return a mask for a matches dataframe
         using Lowe's ratio test.  If keypoints have a single
@@ -138,17 +138,18 @@ class SpatialSuppression(Observable):
 
     """
 
-    def __init__(self, df, domain, min_radius=2, k=250, error_k=0.1):
+    def __init__(self, df, domain, min_radius=1, k=250, error_k=0.1):
         columns = df.columns
         for i in ['x', 'y', 'strength']:
             if i not in columns:
                 raise ValueError('The dataframe is missing a {} column.'.format(i))
-        self._df = df.sort_values(by=['strength'], ascending=False).copy()
+        self.df = df.sort_values(by=['strength'], ascending=False).copy()
         self.max_radius = max(domain)
         self.min_radius = min_radius
         self.domain = domain
-        self.mask = None
-        self._k = k
+        self.mask = pd.Series(False, index=self.df.index)
+
+        self.k = k
         self._error_k = error_k
 
         self.attrs = ['mask', 'k', 'error_k']
@@ -159,18 +160,8 @@ class SpatialSuppression(Observable):
 
     @property
     def nvalid(self):
-        try:
-            return self.mask.sum()
-        except:
-            return None
+        return self.mask.sum()
 
-    @property
-    def k(self):
-        return self._k
-
-    @k.setter
-    def k(self, v):
-        self._k = v
 
     @property
     def error_k(self):
@@ -180,23 +171,23 @@ class SpatialSuppression(Observable):
     def error_k(self, v):
         self._error_k = v
 
-    @property
-    def df(self):
-        return self._df
-
     def suppress(self):
         """
-        Suppress subpixel registered points to that k +- k * error_k
+        Suppress subpixel registered points so that k +- k * error_k
         points, with good spatial distribution, remain
         """
+        process = True
         if self.k > len(self.df):
             warnings.warn('Only {} valid points, but {} points requested'.format(len(self.df), self.k))
             self.k = len(self.df)
+            result = self.df.index
+            process = False
         search_space = np.linspace(self.min_radius, self.max_radius / 16, 250)
         cell_sizes = (search_space / math.sqrt(2)).astype(np.int)
         min_idx = 0
         max_idx = len(search_space) - 1
-        while True:
+
+        while process:
             mid_idx = int((min_idx + max_idx) / 2)
             r = search_space[mid_idx]
 
@@ -253,15 +244,16 @@ class SpatialSuppression(Observable):
 
             #  Check break conditions
             if self.k - self.k * self.error_k <= len(result) <= self.k + self.k * self.error_k:
-                break
+                process = False
             elif len(result) < self.k:
                 # The radius is too large
                 max_idx = mid_idx
+                if min_idx == max_idx:
+                    process = False
             elif min_idx == mid_idx or mid_idx == max_idx:
                 warnings.warn('Unable to optimally solve.  Returning with {} points'.format(len(result)))
-                break
+                process = False
 
-        self.mask = pd.Series(False, self.df.index)
         self.mask.loc[list(result)] = True
         state_package = {'mask': self.mask,
                          'k': self.k,
@@ -316,7 +308,7 @@ def mirroring_test(matches):
                  otherwise, they will be false. Keypoints with only one match will be False. Removes
                  duplicate rows.
     """
-    duplicate_mask = matches.duplicated(subset=['source_idx', 'destination_idx', 'distance'])
+    duplicate_mask = matches.duplicated(subset=['source_idx', 'destination_idx', 'distance'], keep='last')
     return duplicate_mask
 
 

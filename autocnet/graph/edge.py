@@ -90,9 +90,9 @@ class Edge(dict, MutableMapping):
     def ratio_check(self, clean_keys=[], **kwargs):
         if hasattr(self, 'matches'):
 
-            _, mask = self._clean(clean_keys)
+            matches, mask = self._clean(clean_keys)
 
-            self.distance_ratio = od.DistanceRatio(self.matches)
+            self.distance_ratio = od.DistanceRatio(matches)
             self.distance_ratio.compute(mask=mask, **kwargs)
 
             # Setup to be notified
@@ -110,23 +110,27 @@ class Edge(dict, MutableMapping):
             raise AttributeError('Matches have not been computed for this edge')
             return
 
-        all_source_keypoints = self.source.get_keypoint_coordinates(matches['source_idx'])
-        all_destin_keypoints = self.destination.get_keypoint_coordinates(matches['destination_idx'])
         matches, mask = self._clean(clean_keys)
-        s_keypoints = self.source.get_keypoint_coordinates(matches['source_idx']).values
-        d_keypoints = self.destination.get_keypoint_coordinates(matches['destination_idx']).values
-        transformation_matrix, fundam_mask = od.compute_fundamental_matrix(s_keypoints,
-                                                                           d_keypoints,
+
+        s_keypoints = self.source.get_keypoint_coordinates(index=matches['source_idx'],
+                                                           homogeneous=True)
+        d_keypoints = self.destination.get_keypoint_coordinates(index=matches['destination_idx'],
+                                                                homogeneous=True)
+
+        transformation_matrix, fundam_mask = od.compute_fundamental_matrix(s_keypoints.values,
+                                                                           d_keypoints.values,
                                                                            **kwargs)
         try:
             fundam_mask = fundam_mask.ravel()
         except:
             return
+
         # Convert the truncated RANSAC mask back into a full length mask
         mask[mask] = fundam_mask
+
         self.fundamental_matrix = FundamentalMatrix(transformation_matrix,
-                                                    all_source_keypoints,
-                                                    all_destin_keypoints,
+                                                    s_keypoints,
+                                                    d_keypoints,
                                                     mask=mask)
 
         # Subscribe the health watcher to the fundamental matrix observable
@@ -163,8 +167,8 @@ class Edge(dict, MutableMapping):
 
         matches, mask = self._clean(clean_keys)
 
-        s_keypoints = self.source.get_keypoint_coordinates(matches['source_idx'])
-        d_keypoints = self.destination.get_keypoint_coordinates(matches['destination_idx'])
+        s_keypoints = self.source.get_keypoint_coordinates(index=matches['source_idx'])
+        d_keypoints = self.destination.get_keypoint_coordinates(index=matches['destination_idx'])
 
         transformation_matrix, ransac_mask = od.compute_homography(s_keypoints.values,
                                                                    d_keypoints.values,
@@ -283,6 +287,9 @@ class Edge(dict, MutableMapping):
                            as the strength of a given row in the matches data
                            frame.
 
+        suppression_args : tuple
+                           Arguments to be passed on to the suppression function
+
         clean_keys : list
                      of mask keys to be used to reduce the total size
                      of the matches dataframe.
@@ -296,7 +303,7 @@ class Edge(dict, MutableMapping):
         # Massage the dataframe into the correct structure
         coords = self.source.get_keypoint_coordinates()
         merged = matches.merge(coords, left_on=['source_idx'], right_index=True)
-        merged['strength'] = merged.apply(suppression_func, axis=1)
+        merged['strength'] = merged.apply(suppression_func, axis=1, args=([self]))
 
         if not hasattr(self, 'suppression'):
             # Instantiate the suppression object and suppress matches

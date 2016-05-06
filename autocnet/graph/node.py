@@ -151,7 +151,7 @@ class Node(dict, MutableMapping):
         else:
             return None
 
-    def get_keypoint_coordinates(self, index=None):
+    def get_keypoint_coordinates(self, index=None, homogeneous=False):
         """
         Return the coordinates of the keypoints without any ancillary data
 
@@ -160,16 +160,21 @@ class Node(dict, MutableMapping):
         index : iterable
                 indices for of the keypoints to return
 
+        homogeneous : bool
+                      If True, return homogeneous coordinates in the form
+                      [x, y, 1]. Default: False
+
         Returns
         -------
          : dataframe
            A pandas dataframe of keypoint coordinates
         """
-        keypoints = self.get_keypoints(index=index)
-        try:
-            return keypoints[['x', 'y']]
-        except:
-            return None
+        keypoints = self.get_keypoints(index=index)[['x', 'y']]
+
+        if homogeneous:
+            keypoints['homogeneous'] = 1
+
+        return keypoints
 
     def extract_features(self, array, **kwargs):
         """
