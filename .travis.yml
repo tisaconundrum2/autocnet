@@ -38,6 +38,7 @@ install:
   - pip install -r requirements.txt
   - pip install coverage
   - pip install coveralls
+  - ./runipynbs.py
 
 script:
   - nosetests --with-coverage --cover-package=autocnet
@@ -54,9 +55,9 @@ notifications:
     on_start: never     
   email:
       recipients:
-          - kberry@usgs.gov
-          - dmlytle@usgs.gov
-          - jwbacker@usgs.gov
-          - krodriguez@usgs.gov
+#          - kberry@usgs.gov
+#          - dmlytle@usgs.gov
+#          - jwbacker@usgs.gov
+#          - krodriguez@usgs.gov
       on_success: always
       on_failure: always
