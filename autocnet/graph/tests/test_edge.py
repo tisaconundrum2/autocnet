@@ -2,10 +2,10 @@ import unittest
 from unittest.mock import Mock
 
 import pandas as pd
-import numpy as np
 
 from .. import edge
 from .. import node
+
 
 class TestEdge(unittest.TestCase):
 
@@ -44,5 +44,3 @@ class TestEdge(unittest.TestCase):
     def test_compute_fundamental_matrix(self):
         with self.assertRaises(AttributeError):
             self.edge.compute_fundamental_matrix()
-
-

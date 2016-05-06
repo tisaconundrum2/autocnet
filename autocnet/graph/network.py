@@ -1,5 +1,4 @@
 import itertools
-import math
 import os
 import warnings
 
@@ -29,7 +28,7 @@ class CandidateGraph(nx.Graph):
 
     Attributes
     node_counter : int
-                   The number of nodes in the graph. 
+                   The number of nodes in the graph.
     node_name_map : dict
                     The mapping of image labels (i.e. file base names) to their
                     corresponding node indices
@@ -142,7 +141,6 @@ class CandidateGraph(nx.Graph):
 
         return cls(adjacency_dict)
 
-
     @classmethod
     def from_adjacency(cls, input_adjacency, basepath=None):
         """
@@ -181,7 +179,7 @@ class CandidateGraph(nx.Graph):
         ----------
         node_index : int
                      The index of the node.
-        
+
         Returns
         -------
          : str
@@ -530,6 +528,7 @@ class CandidateGraph(nx.Graph):
                 matches = edge.matches
             self.cn.add_correspondences(edge, matches)
 
+
     def to_json_file(self, outputfile):
         """
         Write the edge structure to a JSON adjacency list
@@ -583,7 +582,7 @@ class CandidateGraph(nx.Graph):
         with open(filename, 'wb') as f:
             pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-    def plot(self, ax=None, **kwargs): # pragma: no cover
+    def plot(self, ax=None, **kwargs):  # pragma: no cover
         """
         Plot the graph object
 
@@ -597,7 +596,7 @@ class CandidateGraph(nx.Graph):
          : object
            A MatPlotLib axes object
         """
-        return plot_graph(self, ax=ax,  **kwargs)
+        return plot_graph(self, ax=ax, **kwargs)
 
     def create_edge_subgraph(self, edges):
         """
@@ -634,7 +633,7 @@ class CandidateGraph(nx.Graph):
                 H.adj[v] = H.adjlist_dict_factory()
             # Copy the edge attributes.
             H.edge[u][v] = self.edge[u][v]
-            #H.edge[v][u] = self.edge[v][u]
+            # H.edge[v][u] = self.edge[v][u]
         H.graph = self.graph
         return H
 
@@ -655,11 +654,10 @@ class CandidateGraph(nx.Graph):
             The number of edges or sum of edge weights in the graph.
 
         """
-        s = sum(self.degree(weight=weight).values()) / 2
-        if weight is None:
-            return math.ceil(s)
+        if weight:
+            return sum(e[weight] for s, d, e in self.edges_iter(data=True))
         else:
-            return s
+            return len(self.edges())
 
     def create_node_subgraph(self, nodes):
         """
