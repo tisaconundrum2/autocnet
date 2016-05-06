@@ -38,7 +38,7 @@ install:
   - pip install -r requirements.txt
   - pip install coverage
   - pip install coveralls
-  - ./runipynbs.py
+  - python runipynbs.py
 
 script:
   - nosetests --with-coverage --cover-package=autocnet
