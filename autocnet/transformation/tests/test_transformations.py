@@ -78,5 +78,15 @@ class TestFundamentalMatrix(unittest.TestCase):
         self.assertEqual(self.F.rank, 3)
 
     def test_f_refine(self):
-        r = self.F.refine()
-        self.assertIsNone(r)
+        # This should raise an error.
+        self.F.refine()
+        self.assertEqual(len(self.F._action_stack), 1)
+
+        # Previous error should preclude do/undo
+        self.F.rollback()
+        self.assertEqual(self.F._current_action_stack, 0)
+        self.F.rollforward()
+        self.assertEqual(self.F._current_action_stack, 0)
+
+        self.F._clean_attrs()
+        self.assertNotIn('_error', self.F.__dict__)

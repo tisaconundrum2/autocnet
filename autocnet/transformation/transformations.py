@@ -186,8 +186,62 @@ class FundamentalMatrix(TransformationMatrix):
             warnings.warn('F rank not equal to 2.  This indicates a poor F matrix.')
         return rank
 
-    def refine(self):
-        pass
+    def refine(self, method=ps.esda.mapclassify.Fisher_Jenks, values=None, bin_id=0, **kwargs):
+        """
+        Refine the fundamental matrix by accepting some data classification
+        method that accepts an ndarray and returns an object with a bins
+        attribute, where bins are data breaks.  Using the bin_id, mask
+        all values greater than the selected bin.  Then compute a
+        new fundamental matrix.
+        The matrix is "refined" based on the reprojection errors for
+        each point.
+        Parameters
+        ----------
+        method : object
+                 A function that accepts and ndarray and returns an object
+                 with a bins attribute
+        values      : ndarray
+                      (n,1) of values to use used for classification
+        bin_id : int
+                 The index into the bins object.  Data classified > this
+                 id is masked
+        kwargs : dict
+                 Keyword args supported by the data classifier
+        Returns
+        -------
+        FundamentalMatrix : object
+                            A fundamental matrix class object
+        mask : series
+               A bool mask with index attribute identifying the valid
+               data in the new fundamental matrix.
+        """
+        # Perform the data classification
+        if values is None:
+            values = self.error
+        fj = method(values.ravel(), **kwargs)
+        # Mask the data that falls outside the provided bins
+        mask = values <= fj.yb[bin_id]
+        new_x1 = self.x1.iloc[mask[mask == True].index]
+        new_x2 = self.x2.iloc[mask[mask == True].index]
+        fmatrix, new_mask = compute_fundamental_matrix(new_x1.values, new_x2.values)
+        mask[mask == True] = new_mask
+
+        # Update the current state
+        self[:] = fmatrix
+        self.mask = mask
+
+        # Update the action stack
+        try:
+            state_package = {'arr': fmatrix.copy(),
+                             'mask': self.mask.copy()}
+
+            self._action_stack.append(state_package)
+            self._current_action_stack = len(self._action_stack) - 1  # 0 based vs. 1 based
+            self._clean_attrs()
+            self._notify_subscribers(self)
+        except:
+            warnings.warn('Refinement outlier detection removed all observations.',
+                          UserWarning)
 
     def _clean_attrs(self):
         for a in ['_error', '_determinant', '_condition']:
