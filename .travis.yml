@@ -34,6 +34,7 @@ install:
   # Install the non-conda packages if required, requirements.txt duplicates are ignored
   - conda install -c https://conda.anaconda.org/jlaura opencv3=3.0.0
   - conda config --add channels conda-forge
+  - conda install runipy
   - conda install -c https://conda.anaconda.org/conda-forge gdal h5py
   - pip install -r requirements.txt
   - pip install coverage
