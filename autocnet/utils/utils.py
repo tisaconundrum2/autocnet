@@ -10,7 +10,7 @@ def normalize_vector(line):
     Parameters
     ----------
     line : ndarray
-           Standard line form coefficients
+           Standard form of a line (Ax + By + C = 0)
 
     Returns
     -------

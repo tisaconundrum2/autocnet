@@ -112,7 +112,7 @@ class CorrespondenceNetwork(object):
                               This attribute serves as a low memory reverse lookup table
 
     point_id : int
-               The current 'new' point id if an additional point were to be adde
+               The current 'new' point id if an additional point were to be added
 
     n_points : int
                The number of points in the CorrespondenceNetwork

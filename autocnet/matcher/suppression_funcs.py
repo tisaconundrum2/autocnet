@@ -23,6 +23,10 @@ def distance(row, edge):
 
 
 def error(row, edge):
+    """
+    Suppression function that takes the reprojection error
+    in a fundamental matrix as the inverse strength.
+    """
     key = row.name
     try:
         return 1 / edge.fundamental_matrix.error.iloc[key]
