@@ -56,20 +56,13 @@ class TestThreeImageMatching(unittest.TestCase):
         cg.apply_func_to_edges("compute_homography", clean_keys=['symmetry', 'ratio'])
 
         # Step: And create a C object
-        cnet = cg.to_cnet(clean_keys=['symmetry', 'ratio', 'ransac'])
+        cg.generate_cnet(clean_keys=['symmetry', 'ratio', 'ransac'])
 
         # Step: Create a fromlist to go with the cnet and write it to a file
         filelist = cg.to_filelist()
         write_filelist(filelist, 'TestThreeImageMatching_fromlist.lis')
 
-        # Step update the serial numbers
-        nid_to_serial = {}
-        for i, node in cg.nodes_iter(data=True):
-            nid_to_serial[i] = self.serial_numbers[node.image_name]
-
-        cnet.replace({'nid': nid_to_serial}, inplace=True)
-        # Step: Output a control network
-        to_isis('TestThreeImageMatching.net', cnet, mode='wb',
+        to_isis('TestThreeImageMatching.net', cg.cn, mode='wb',
                 networkid='TestThreeImageMatching', targetname='Moon')
 
     def tearDown(self):
