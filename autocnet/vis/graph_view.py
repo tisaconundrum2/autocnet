@@ -164,8 +164,8 @@ def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
     x = s_shape[1] + d_shape[1] + image_space
     composite = np.zeros((y, x))
 
-    composite[:, :s_shape[1]] = source_array
-    composite[:, s_shape[1] + image_space:] = destination_array
+    composite[0: s_shape[0], :s_shape[1]] = source_array
+    composite[0: d_shape[0], s_shape[1] + image_space:] = destination_array
 
     if 'cmap' in image_kwargs:
         cmap = image_kwargs['cmap']
@@ -187,7 +187,7 @@ def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
     # Plot the destination
     destination_idx = matches['destination_idx'].values
     d_kps = destination_keypoints.loc[destination_idx]
-    x_offset = s_shape[0] + image_space
+    x_offset = s_shape[1] + image_space
     newx = d_kps['x'] + x_offset
     ax.scatter(newx, d_kps['y'], **scatter_kwargs)
 
