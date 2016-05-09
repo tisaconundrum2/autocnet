@@ -1,6 +1,5 @@
 import os
 import sys
-sys.path.insert(0, os.path.abspath('..'))
 
 import unittest
 
@@ -13,6 +12,8 @@ import numpy as np
 from autocnet.examples import get_path
 
 from .. import network
+
+sys.path.insert(0, os.path.abspath('..'))
 
 
 class TestCandidateGraph(unittest.TestCase):
@@ -41,6 +42,15 @@ class TestCandidateGraph(unittest.TestCase):
         except:
             pass
 
+    def test_size(self):
+        graph = self.graph
+        self.assertEqual(graph.size(), graph.number_of_edges())
+
+        for u, v, e in graph.edges_iter(data=True):
+            e['weight'] = 10
+
+        self.assertEqual(graph.size('weight'), graph.number_of_edges()*10)
+
     def test_island_nodes(self):
         self.assertEqual(len(self.disconnected_graph.island_nodes()), 1)
 
@@ -53,17 +63,20 @@ class TestCandidateGraph(unittest.TestCase):
         except AttributeError:
             pass
 
-        mst_graph.extract_features(extractor_parameters={'nfeatures': 500})
+
+        mst_graph.extract_features(extractor_parameters={'nfeatures': 50})
         mst_graph.match_features()
         mst_graph.apply_func_to_edges("symmetry_check")
+
+        # Test passing the func by signature
+        mst_graph.apply_func_to_edges(graph[0][1].symmetry_check)
 
         self.assertFalse(graph[0][2].masks['symmetry'].all())
         self.assertFalse(graph[0][1].masks['symmetry'].all())
 
         try:
             self.assertTrue(graph[1][2].masks['symmetry'].all())
-        except:
-            pass
+        except: pass
 
     def test_connected_subgraphs(self):
         subgraph_list = self.disconnected_graph.connected_subgraphs()
@@ -103,7 +116,8 @@ class TestCandidateGraph(unittest.TestCase):
         for i in ['all_out.hdf', 'one_out.hdf']:
             try:
                 os.remove(i)
-            except: pass
+            except:
+                pass
 
     def test_fromlist(self):
         mock_list = ['AS15-M-0295_SML.png', 'AS15-M-0296_SML.png', 'AS15-M-0297_SML.png',
@@ -131,10 +145,10 @@ class TestCandidateGraph(unittest.TestCase):
 
     def test_subset_graph(self):
         g = self.graph
-        edge_sub = g.create_edge_subgraph([(0,2)])
+        edge_sub = g.create_edge_subgraph([(0, 2)])
         self.assertEqual(len(edge_sub.nodes()), 2)
 
-        node_sub = g.create_node_subgraph([0,1])
+        node_sub = g.create_node_subgraph([0, 1])
         self.assertEqual(len(node_sub), 2)
 
     def test_filter(self):
@@ -173,11 +187,13 @@ class TestCandidateGraph(unittest.TestCase):
         graph = network.CandidateGraph.from_adjacency(test_dict)
         mst_graph = graph.minimum_spanning_tree()
 
-        print(len(mst_graph.edges()))
-
         self.assertEqual(sorted(mst_graph.nodes()), sorted(graph.nodes()))
         self.assertEqual(len(mst_graph.edges()), len(graph.edges())-5)
 
+    def test_triangular_cycles(self):
+        cycles = self.graph.compute_triangular_cycles()
+        # Node order is variable, length is not
+        self.assertEqual(len(cycles), 1)
 
     def tearDown(self):
         pass
