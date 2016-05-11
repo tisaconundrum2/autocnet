@@ -165,10 +165,10 @@ class CandidateGraph(nx.Graph):
         """
         if not isinstance(input_adjacency, dict):
             input_adjacency = io_json.read_json(input_adjacency)
-            if basepath is not None:
-                for k, v in input_adjacency.items():
-                    input_adjacency[k] = [os.path.join(basepath, i) for i in v]
-                    input_adjacency[os.path.join(basepath, k)] = input_adjacency.pop(k)
+        if basepath is not None:
+            for k, v in input_adjacency.items():
+                input_adjacency[k] = [os.path.join(basepath, i) for i in v]
+                input_adjacency[os.path.join(basepath, k)] = input_adjacency.pop(k)
         return cls(input_adjacency)
 
     def get_name(self, node_index):
