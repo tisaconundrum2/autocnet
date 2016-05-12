@@ -8,6 +8,12 @@ class TestUtils(unittest.TestCase):
     def setUp(self):
         pass
 
+    def test_cross_form(self):
+        a = np.array([-1, 0, 1.25])
+        np.testing.assert_array_almost_equal(utils.crossform(a), np.array([[0., -1.25,  0.],
+                                                                           [1.25,  0.,  1.],
+                                                                           [-0., -1.,  0.]]))
+
     def test_checkbandnumbers(self):
         self.assertTrue(utils.checkbandnumbers([1,2,3,4,5], (2,5,1)))
         self.assertFalse(utils.checkbandnumbers([1,2,4], (1,2,3)))

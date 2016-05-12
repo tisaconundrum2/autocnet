@@ -41,10 +41,7 @@ class TestHomography(unittest.TestCase):
 
     def test_Homography_fail(self):
         with self.assertRaises(TypeError):
-            h = transformations.Homography([1,2,3], np.arange(3), np.arange(3), None)
-        with self.assertRaises(ValueError):
-            h = transformations.Homography(np.arange(4).reshape(2,2),
-                                           np.arange(3), np.arange(3), None)
+            transformations.Homography([1,2,3], np.arange(3), np.arange(3), None)
 
 
 class TestFundamentalMatrix(unittest.TestCase):

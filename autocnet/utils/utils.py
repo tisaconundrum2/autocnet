@@ -3,6 +3,23 @@ import numpy as np
 import pandas as pd
 
 
+def crossform(a):
+    """
+    Return the cross form, e.g. a in the cross product of a b.
+    Parameters
+    ----------
+    a : ndarray
+        (3,) vector
+
+    Returns
+    -------
+    a : ndarray
+        (3,3)
+    """
+    return np.array([[0, -a[2], a[1]],
+                     [a[2], 0, -a[0]],
+                     [-a[1], a[0], 0]])
+
 def normalize_vector(line):
     """
     Normalize a standard form line

@@ -5,10 +5,11 @@ import warnings
 import numpy as np
 import pandas as pd
 import pysal as ps
+from scipy import optimize
 
 from autocnet.matcher.outlier_detector import compute_fundamental_matrix
-from autocnet.utils.utils import make_homogeneous, normalize_vector
-
+from autocnet.utils.utils import make_homogeneous, normalize_vector, crossform
+from autocnet.camera import camera
 
 class TransformationMatrix(np.ndarray):
     """
@@ -18,19 +19,19 @@ class TransformationMatrix(np.ndarray):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def __new__(cls, inputarr, x1, x2, mask):
+    def __new__(cls, inputarr, x1, x2, mask, local_mask=None):
         if not isinstance(inputarr, np.ndarray):
-            raise TypeError('The homography must be an ndarray')
-        if not inputarr.shape[0] == 3 and not inputarr.shape[1] == 3:
-            raise ValueError('The homography must be a 3x3 matrix.')
+            raise TypeError('The transformation must be an ndarray')
 
         obj = np.asarray(inputarr).view(cls)
         obj.x1 = x1
         obj.x2 = x2
         obj.mask = mask
+        obj.local_mask = local_mask
         obj._action_stack = deque(maxlen=10)
         obj._current_action_stack = 0
         obj._observers = set()
+
         # Seed the state package with the initial creation state
         if mask is not None:
             state_package = {'arr': obj.copy(),
@@ -185,6 +186,40 @@ class FundamentalMatrix(TransformationMatrix):
         if rank != 2:
             warnings.warn('F rank not equal to 2.  This indicates a poor F matrix.')
         return rank
+
+    def refine_with_mle(self, **kwargs):
+        """
+        Given a linear approximation of F, refine using Maximum Liklihood estimation
+        as per Hartley and Zisseman p.285, algorithm 11.3.
+
+        References
+        ----------
+        .. [Hartley2003]
+
+        Returns
+        -------
+
+        """
+
+        p = camera.idealized_camera()
+        p1 = camera.estimated_camera_from_f(self)
+
+        correspondences1 = self.x1[self.local_mask]
+        correspondences2 = self.x2[self.local_mask]
+
+        result = optimize.leastsq(camera.projection_error, p1[:], args=(p,
+                                                                        correspondences1.values,
+                                                                        correspondences2.calues),
+                                  **kwargs)
+
+        if result[-1] > 4:
+            warnings.warn('MLE failed to find an improved fundamental matrix.')
+
+        # Scipy solvers are 1D, reshape to the correct form
+        pgs = result[0].reshape(3,4)
+        m = pgs[:, 3]
+        M = pgs[:, 0:3]
+        self[:] = crossform(m).dot(M)
 
     def refine(self, method=ps.esda.mapclassify.Fisher_Jenks, values=None, bin_id=0, **kwargs):
         """

@@ -102,7 +102,7 @@ class Edge(dict, MutableMapping):
         else:
             raise AttributeError('No matches have been computed for this edge.')
 
-    def compute_fundamental_matrix(self, clean_keys=[], **kwargs):
+    def compute_fundamental_matrix(self, clean_keys=[], method='linear', **kwargs):
 
         if hasattr(self, 'matches'):
             matches = self.matches
@@ -127,11 +127,13 @@ class Edge(dict, MutableMapping):
 
         # Convert the truncated RANSAC mask back into a full length mask
         mask[mask] = fundam_mask
-
+        # Pass in the truncated mask to the fundamental matrix.  These are
+        # only those points that have pased previous outlier checks
         self.fundamental_matrix = FundamentalMatrix(transformation_matrix,
                                                     s_keypoints,
                                                     d_keypoints,
-                                                    mask=mask)
+                                                    mask=mask,
+                                                    local_mask=fundam_mask)
 
         # Subscribe the health watcher to the fundamental matrix observable
         self.fundamental_matrix.subscribe(self._health.update)
