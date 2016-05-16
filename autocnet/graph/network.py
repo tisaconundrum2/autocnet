@@ -1,5 +1,4 @@
 import itertools
-import math
 import os
 import warnings
 
@@ -8,7 +7,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-from autocnet.control.control import C
+from autocnet.control.control import CorrespondenceNetwork
 from autocnet.fileio import io_hdf
 from autocnet.fileio import io_json
 from autocnet.fileio import io_utils
@@ -29,7 +28,7 @@ class CandidateGraph(nx.Graph):
 
     Attributes
     node_counter : int
-                   The number of nodes in the graph. 
+                   The number of nodes in the graph.
     node_name_map : dict
                     The mapping of image labels (i.e. file base names) to their
                     corresponding node indices
@@ -37,6 +36,9 @@ class CandidateGraph(nx.Graph):
     clusters : dict
                of clusters with key as the cluster id and value as a
                list of node indices
+
+    cn : object
+         A control network object instantiated by calling generate_cnet.
     ----------
     """
     edge_attr_dict_factory = Edge
@@ -67,11 +69,6 @@ class CandidateGraph(nx.Graph):
             e = self.edge[s][d]
             e.source = self.node[s]
             e.destination = self.node[d]
-            #del self.adj[d][s]
-
-        # Add the Edge class as a edge data structure
-        #for s, d, edge in self.edges_iter(data=True):
-            #self.edge[s][d] = Edge(self.node[s], self.node[d])
 
     @classmethod
     def from_graph(cls, graph):
@@ -144,7 +141,6 @@ class CandidateGraph(nx.Graph):
 
         return cls(adjacency_dict)
 
-
     @classmethod
     def from_adjacency(cls, input_adjacency, basepath=None):
         """
@@ -169,10 +165,10 @@ class CandidateGraph(nx.Graph):
         """
         if not isinstance(input_adjacency, dict):
             input_adjacency = io_json.read_json(input_adjacency)
-            if basepath is not None:
-                for k, v in input_adjacency.items():
-                    input_adjacency[k] = [os.path.join(basepath, i) for i in v]
-                    input_adjacency[os.path.join(basepath, k)] = input_adjacency.pop(k)
+        if basepath is not None:
+            for k, v in input_adjacency.items():
+                input_adjacency[k] = [os.path.join(basepath, i) for i in v]
+                input_adjacency[os.path.join(basepath, k)] = input_adjacency.pop(k)
         return cls(input_adjacency)
 
     def get_name(self, node_index):
@@ -183,7 +179,7 @@ class CandidateGraph(nx.Graph):
         ----------
         node_index : int
                      The index of the node.
-        
+
         Returns
         -------
          : str
@@ -373,14 +369,42 @@ class CandidateGraph(nx.Graph):
         """
         _, self.clusters = func(self, *args, **kwargs)
 
+    def compute_triangular_cycles(self):
+        """
+        Find all cycles of length 3.  This is similar
+         to cycle_basis (networkX), but returns all cycles.
+         As opposed to all basis cycles.
+
+        Returns
+        -------
+        cycles : list
+                 A list of cycles in the form [(a,b,c), (c,d,e)],
+                 where letters indicate node identifiers
+
+        Examples
+        --------
+        >>> g = CandidateGraph()
+        >>> g.add_edges_from([(0,1), (0,2), (1,2), (0,3), (1,3), (2,3)])
+        >>> g.compute_triangular_cycles()
+        [(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)]
+        """
+        cycles = []
+        for s, d in self.edges_iter():
+            for n in self.nodes():
+                if(s,n) in self.edges() and (d,n) in self.edges():
+                    cycles.append((s,d,n))
+        return cycles
+
     def apply_func_to_edges(self, function, *args, **kwargs):
         """
         Iterates over edges using an optional mask and and applies the given function.
         If func is not an attribute of Edge, raises AttributeError
+
         Parameters
         ----------
         function : obj
                    function to be called on every edge
+
         graph_mask_keys : list
                           of keys in graph_masks
         """
@@ -394,6 +418,63 @@ class CandidateGraph(nx.Graph):
                 raise AttributeError(function, ' is not an attribute of Edge')
             else:
                 func(*args, **kwargs)
+
+    def symmetry_checks(self):
+        '''
+        Apply a symmetry check to all edges in the graph
+        '''
+        self.apply_func_to_edges('symmetry_check')
+
+    def ratio_checks(self, *args, **kwargs):
+        '''
+        Apply a ratio check to all edges in the graph
+
+        See Also
+        --------
+        autocnet.matcher.outlier_detector.DistanceRatio.compute
+        '''
+        self.apply_func_to_edges('ratio_check', *args, **kwargs)
+
+    def compute_homographies(self, *args, **kwargs):
+        '''
+        Compute homographies for all edges using identical parameters
+
+        See Also
+        --------
+        autocnet.graph.edge.Edge.compute_homography
+        autocnet.matcher.outlier_detector.compute_homography
+        '''
+        self.apply_func_to_edges('compute_homography', *args, **kwargs)
+
+    def compute_fundamental_matrices(self, *args, **kwargs):
+        '''
+        Compute fundmental matrices for all edges using identical parameters
+
+        See Also
+        --------
+        autocnet.matcher.outlier_detector.compute_fundamental_matrix
+        '''
+        self.apply_func_to_edges('compute_fundamental_matrix', *args, **kwargs)
+
+    def subpixel_register(self, *args, **kwargs):
+        '''
+        Compute subpixel offsets for all edges using identical parameters
+
+        See Also
+        --------
+        autocnet.graph.edge.Edge.subpixel_register
+        '''
+        self.apply_func_to_edges('subpixel_register', *args, **kwargs)
+
+    def suppress(self, *args, **kwargs):
+        '''
+        Apply a metric of point suppression to the graph
+
+        See Also
+        --------
+        autocnet.matcher.outlier_detector.SpatialSuppression
+        '''
+        self.apply_func_to_edges('suppress', *args, **kwargs)
 
     def minimum_spanning_tree(self):
         """
@@ -424,141 +505,29 @@ class CandidateGraph(nx.Graph):
             filelist.append(node.image_path)
         return filelist
 
-    def to_cnet(self, clean_keys=[], isis_serials=False):
+    def generate_cnet(self, clean_keys=[]):
         """
-        Generate a control network (C) object from a graph
+        Compute (or re-compute) a CorrespondenceNetwork attribute
 
         Parameters
         ----------
-
         clean_keys : list
-             of strings identifying the masking arrays to use, e.g. ratio, symmetry
+                     of string clean keys to mask correspondences
 
-        isis_serials : bool
-                       Replace the node ID (nid) values with an ISIS
-                       serial number. Default False
+        See Also
+        --------
+        autocnet.control.control.CorrespondenceNetwork
 
-        Returns
-        -------
-
-        merged_cnet : C
-                      A control network object
         """
+        self.cn = CorrespondenceNetwork()
 
-        def _validate_cnet(cnet):
-            """
-            Once the control network is aggregated from graph edges,
-            ensure that a given correspondence in a given image does
-            not match multiple correspondences in a different image.
-
-            Parameters
-            ----------
-            cnet : C
-                   control network object
-
-            Returns
-            -------
-             : C
-               the cleaned control network
-            """
-            mask = np.zeros(len(cnet), dtype=bool)
-            counter = 0
-            for i, group in cnet.groupby('pid'):
-                group_size = len(group)
-                if len(group) != len(group['nid'].unique()):
-                    mask[counter: counter + group_size] = False
-                else:
-                    mask[counter: counter + group_size] = True
-                counter += group_size
-
-            return cnet[mask]
-
-        merged_cnet = None
-
-        for source, destination, edge in self.edges_iter(data=True):
-            matches = edge.matches
-
-            # Merge all of the masks
+        for s, d, edge in self.edges_iter(data=True):
             if clean_keys:
-                matches, mask = edge._clean(clean_keys)
-
-            subpixel = False
-            point_type = 2
-            if 'subpixel' in clean_keys:
-                subpixel = True
-                point_type = 3
-
-            kp1 = self.node[source].get_keypoints()
-            kp2 = self.node[destination].get_keypoints()
-            pt_idx = 0
-            values = []
-            for i, (idx, row) in enumerate(matches.iterrows()):
-                # Composite matching key (node_id, point_id)
-                m1_pid = int(row['source_idx'])
-                m2_pid = int(row['destination_idx'])
-                m1 = (source, int(row['source_idx']))
-                m2 = (destination, int(row['destination_idx']))
-
-
-                values.append([kp1.loc[m1_pid]['x'],
-                               kp1.loc[m1_pid]['y'],
-                               m1,
-                               pt_idx,
-                               source,
-                               idx,
-                               point_type])
-
-                if subpixel:
-                    kp2x = kp2.loc[m2_pid]['x'] + row['x_offset']
-                    kp2y = kp2.loc[m2_pid]['y'] + row['y_offset']
-                else:
-                    kp2x = kp2.loc[m2_pid]['x']
-                    kp2y = kp2.loc[m2_pid]['y']
-
-                values.append([kp2x,
-                               kp2y,
-                               m2,
-                               pt_idx,
-                               destination,
-                               idx,
-                               point_type])
-                pt_idx += 1
-
-            columns = ['x', 'y', 'idx', 'pid', 'nid', 'mid', 'point_type']
-
-            cnet = C(values, columns=columns)
-
-            if merged_cnet is None:
-                merged_cnet = cnet.copy(deep=True)
+                matches, _ = edge._clean(clean_keys)
             else:
-                pid_offset = merged_cnet['pid'].max() + 1  # Get the current max point index
-                cnet[['pid']] += pid_offset
+                matches = edge.matches
+            self.cn.add_correspondences(edge, matches)
 
-                # Inner merge on the dataframe identifies common points
-                common = pd.merge(merged_cnet, cnet, how='inner', on='idx', left_index=True, suffixes=['_r',
-                                                                                                      '_l'])
-
-                # Iterate over the points to be merged and merge them in.
-                for i, r in common.iterrows():
-                    new_pid = r['pid_r']
-                    update_pid = r['pid_l']
-                    cnet.loc[cnet['pid'] == update_pid, ['pid']] = new_pid  # Update the point ids
-
-                # Perform the concat
-                merged_cnet = pd.concat([merged_cnet, cnet])
-                merged_cnet.drop_duplicates(['idx', 'pid'], keep='first', inplace=True)
-
-        # Final validation to remove any correspondence with multiple correspondences in the same image
-        merged_cnet = _validate_cnet(merged_cnet)
-
-        # If the user wants ISIS serial numbers, replace the nid with the serial.
-        if isis_serials is True:
-            nid_to_serial = {}
-            for i, node in self.nodes_iter(data=True):
-                nid_to_serial[i] = node.isis_serial
-            merged_cnet.replace({'nid': nid_to_serial}, inplace=True)
-
-        return merged_cnet
 
     def to_json_file(self, outputfile):
         """
@@ -613,7 +582,7 @@ class CandidateGraph(nx.Graph):
         with open(filename, 'wb') as f:
             pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-    def plot(self, ax=None, **kwargs): # pragma: no cover
+    def plot(self, ax=None, **kwargs):  # pragma: no cover
         """
         Plot the graph object
 
@@ -627,7 +596,7 @@ class CandidateGraph(nx.Graph):
          : object
            A MatPlotLib axes object
         """
-        return plot_graph(self, ax=ax,  **kwargs)
+        return plot_graph(self, ax=ax, **kwargs)
 
     def create_edge_subgraph(self, edges):
         """
@@ -664,7 +633,7 @@ class CandidateGraph(nx.Graph):
                 H.adj[v] = H.adjlist_dict_factory()
             # Copy the edge attributes.
             H.edge[u][v] = self.edge[u][v]
-            #H.edge[v][u] = self.edge[v][u]
+            # H.edge[v][u] = self.edge[v][u]
         H.graph = self.graph
         return H
 
@@ -685,11 +654,10 @@ class CandidateGraph(nx.Graph):
             The number of edges or sum of edge weights in the graph.
 
         """
-        s = sum(self.degree(weight=weight).values()) / 2
-        if weight is None:
-            return math.ceil(s)
+        if weight:
+            return sum(e[weight] for s, d, e in self.edges_iter(data=True))
         else:
-            return s
+            return len(self.edges())
 
     def create_node_subgraph(self, nodes):
         """

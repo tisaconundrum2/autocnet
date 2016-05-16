@@ -54,49 +54,50 @@ class TestTwoImageMatching(unittest.TestCase):
         for i, node in cg.nodes_iter(data=True):
             ratio = node.coverage_ratio()
             self.assertIn(round(ratio,8), truth_ratios)
-        # Step: apply Adaptive non-maximal suppression
-        for i, node in cg.nodes_iter(data=True):
-            pass
-            #node.anms()
-            #self.assertNotEqual(node.nkeypoints, sum(node._mask_arrays['anms']))
 
         cg.match_features(k=2)
+
+        # Perform the symmetry check
+        cg.symmetry_checks()
+        # Perform the ratio check
+        cg.ratio_checks(clean_keys = ['symmetry'])
+        # Create fundamental matrix
+        cg.compute_fundamental_matrices(clean_keys = ['symmetry', 'ratio'])
 
         for source, destination, edge in cg.edges_iter(data=True):
 
             # Perform the symmetry check
-            edge.symmetry_check()
             self.assertIn(edge.masks['symmetry'].sum(), range(400, 600))
-
             # Perform the ratio test
-            edge.ratio_check(clean_keys=['symmetry'])
             self.assertIn(edge.masks['ratio'].sum(), range(30, 100))
 
+            # Range needs to be set
+            self.assertIn(edge.masks['fundamental'].sum(), range(20, 100))
+
+
         # Step: Compute the homographies and apply RANSAC
-        cg.apply_func_to_edges("compute_homography", clean_keys=['symmetry', 'ratio'])
+        cg.compute_homographies(clean_keys=['symmetry', 'ratio'])
 
         # Step: Compute the overlap ratio and coverage ratio
         for s, d, edge in cg.edges_iter(data=True):
             edge.coverage_ratio(clean_keys=['symmetry', 'ratio'])
 
         # Step: Compute subpixel offsets for candidate points
-        cg.apply_func_to_edges("subpixel_register", clean_keys=['ransac'])
+        cg.subpixel_register(clean_keys=['ransac'])
+
+        # Step:
+        cg.suppress()
 
         # Step: And create a C object
-        cnet = cg.to_cnet(clean_keys=['symmetry', 'ratio', 'ransac', 'subpixel'])
+        cnet = cg.generate_cnet(clean_keys=['symmetry', 'ratio', 'ransac', 'subpixel'])
 
         # Step: Create a fromlist to go with the cnet and write it to a file
         filelist = cg.to_filelist()
         write_filelist(filelist, path="fromlis.lis")
 
-        # Step update the serial numbers
-        nid_to_serial = {}
-        for i, node in cg.nodes_iter(data=True):
-            nid_to_serial[i] = self.serial_numbers[node.image_name]
 
-        cnet.replace({'nid': nid_to_serial}, inplace=True)
         # Step: Output a control network
-        to_isis('TestTwoImageMatching.net', cnet, mode='wb',
+        to_isis('TestTwoImageMatching.net', cg.cn, mode='wb',
                 networkid='TestTwoImageMatching', targetname='Moon')
 
     def tearDown(self):

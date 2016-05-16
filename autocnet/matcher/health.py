@@ -7,6 +7,7 @@ class EdgeHealth(object):
 
 
     """
+
     def __init__(self):
         self.FundamentalMatrix = 0.0
 

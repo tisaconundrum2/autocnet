@@ -93,7 +93,6 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(pts.shape, (25,3))
         np.testing.assert_array_equal(pts[:, -1], np.ones(25))
 
-
     def test_remove_field_name(self):
         starray = np.array([(1 ,2.,'String'), (2, 3.,"String2")],
               dtype=[('index', 'i4'),('bar', 'f4'), ('baz', 'S10')])
@@ -101,3 +100,13 @@ class TestUtils(unittest.TestCase):
               dtype=[('bar', 'f4'), ('baz', 'S10')])
         cleaned_array = utils.remove_field_name(starray, 'index')
         np.testing.assert_array_equal(cleaned_array, truth)
+
+    def test_normalize_vector(self):
+        x = np.array([1,1,1], dtype=np.float)
+        y = utils.normalize_vector(x)
+        np.testing.assert_array_almost_equal(np.array([ 0.70710678,  0.70710678,  0.70710678]), y)
+
+        x = np.repeat(np.arange(1,5), 3).reshape(-1, 3)
+        y = utils.normalize_vector(x)
+        truth = np.tile(np.array([ 0.70710678,  0.70710678,  0.70710678]), 4).reshape(4,3)
+        np.testing.assert_array_almost_equal(truth, y)

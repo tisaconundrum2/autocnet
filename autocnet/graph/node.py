@@ -58,6 +58,7 @@ class Node(dict, MutableMapping):
         Type: {}
         """.format(self.node_id, self.image_name, self.image_path,
                    self.nkeypoints, self.masks, self.__class__)
+
     @property
     def geodata(self):
         if not getattr(self, '_geodata', None):
@@ -150,7 +151,7 @@ class Node(dict, MutableMapping):
         else:
             return None
 
-    def get_keypoint_coordinates(self, index=None):
+    def get_keypoint_coordinates(self, index=None, homogeneous=False):
         """
         Return the coordinates of the keypoints without any ancillary data
 
@@ -159,16 +160,21 @@ class Node(dict, MutableMapping):
         index : iterable
                 indices for of the keypoints to return
 
+        homogeneous : bool
+                      If True, return homogeneous coordinates in the form
+                      [x, y, 1]. Default: False
+
         Returns
         -------
          : dataframe
            A pandas dataframe of keypoint coordinates
         """
-        keypoints = self.get_keypoints(index=index)
-        try:
-            return keypoints[['x', 'y']]
-        except:
-            return None
+        keypoints = self.get_keypoints(index=index)[['x', 'y']]
+
+        if homogeneous:
+            keypoints['homogeneous'] = 1
+
+        return keypoints
 
     def extract_features(self, array, **kwargs):
         """
@@ -183,7 +189,7 @@ class Node(dict, MutableMapping):
 
         """
         keypoint_objs, descriptors = fe.extract_features(array, **kwargs)
-        keypoints = np.empty((len(keypoint_objs), 7),dtype=np.float32)
+        keypoints = np.empty((len(keypoint_objs), 7), dtype=np.float32)
         for i, kpt in enumerate(keypoint_objs):
             octave = kpt.octave & 8
             layer = (kpt.octave >> 8) & 255
@@ -193,7 +199,7 @@ class Node(dict, MutableMapping):
                 octave = (-128 | octave)
             keypoints[i] = kpt.pt[0], kpt.pt[1], kpt.response, kpt.size, kpt.angle, octave, layer  # y, x
         self._keypoints = pd.DataFrame(keypoints, columns=['x', 'y', 'response', 'size',
-                                                          'angle', 'octave', 'layer'])
+                                                           'angle', 'octave', 'layer'])
         self._nkeypoints = len(self._keypoints)
         self.descriptors = descriptors.astype(np.float32)
 
@@ -337,4 +343,3 @@ class Node(dict, MutableMapping):
         mask = panel[clean_keys].all(axis=1)
         matches = self._keypoints[mask]
         return matches, mask
-
