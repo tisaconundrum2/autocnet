@@ -192,13 +192,12 @@ class SpatialSuppression(Observable):
         if self.k > len(self.df):
             warnings.warn('Only {} valid points, but {} points requested'.format(len(self.df), self.k))
             self.k = len(self.df)
-        search_space = np.linspace(self.min_radius, self.max_radius / 16, 250)
+        search_space = np.linspace(self.min_radius, self.max_radius, 250)
         cell_sizes = (search_space / math.sqrt(2)).astype(np.int)
         min_idx = 0
         max_idx = len(search_space) - 1
         while True:
             mid_idx = int((min_idx + max_idx) / 2)
-            r = search_space[mid_idx]
 
             cell_size = cell_sizes[mid_idx]
             n_x_cells = int(self.domain[0] / cell_size)

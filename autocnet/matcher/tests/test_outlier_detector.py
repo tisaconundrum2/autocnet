@@ -10,7 +10,7 @@ import pandas as pd
 sys.path.append(os.path.abspath('..'))
 
 from .. import matcher, outlier_detector
-
+from autocnet.matcher.outlier_detector import SpatialSuppression
 
 class TestOutlierDetector(unittest.TestCase):
 
@@ -93,4 +93,13 @@ class TestSpatialSuppression(unittest.TestCase):
         self.suppression_obj.k = 30
         self.suppression_obj.suppress()
         self.assertIn(self.suppression_obj.mask.sum(), list(range(27, 34)))
+
+    def spatial_suppression_testing(self):
+        r = np.random.RandomState(12345)
+        df = pd.DataFrame(r.uniform(0,1,(500, 3)), columns=['x', 'y', 'strength'])
+        minimum = SpatialSuppression(df, (1,1), k = 1)
+
+        minimum.suppress()
+        df.plot(kind = 'scatter', x = 'x', y = 'y')
+
 
