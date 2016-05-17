@@ -1,0 +1,24 @@
+name: autocnet
+channels:
+  - conda-forge
+  - jlaura
+dependencies:
+  - jlaura:
+    - opencv3=3.0.0
+  - conda-forge:
+    - gdal>1.11.2
+    - h5py
+  - pip:
+    - pvl
+    - pysal
+    - protobuf
+  - cython
+  - dill
+  - networkx
+  - numexpr
+  - numpy>1.10.0
+  - pandas
+  - pillow
+  - pyaml
+  - scipy>1.17.0
+  - sqlalchemy
