@@ -96,8 +96,8 @@ class TestSpatialSuppression(unittest.TestCase):
 
     def spatial_suppression_testing(self):
         r = np.random.RandomState(12345)
-        df = pd.DataFrame(r.uniform(0,1,(500, 3)), columns=['x', 'y', 'strength'])
-        minimum = SpatialSuppression(df, (1,1), k = 1)
+        df = pd.DataFrame(r.uniform(0,4,(500, 3)), columns=['x', 'y', 'strength'])
+        minimum = SpatialSuppression(df, (4,4), k = 1)
 
         minimum.suppress()
         df.plot(kind = 'scatter', x = 'x', y = 'y')

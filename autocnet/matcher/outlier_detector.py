@@ -193,7 +193,7 @@ class SpatialSuppression(Observable):
             warnings.warn('Only {} valid points, but {} points requested'.format(len(self.df), self.k))
             self.k = len(self.df)
         search_space = np.linspace(self.min_radius, self.max_radius, 250)
-        cell_sizes = (search_space / math.sqrt(2)).astype(np.int)
+        cell_sizes = search_space / math.sqrt(2)
         min_idx = 0
         max_idx = len(search_space) - 1
         while True:
@@ -230,19 +230,19 @@ class SpatialSuppression(Observable):
                         min_idx = mid_idx
                         break
 
-                    y_min = y_center - 5
+                    y_min = y_center - int(round(cell_size, 0))
                     if y_min < 0:
                         y_min = 0
 
-                    x_min = x_center - 5
+                    x_min = x_center - int(round(cell_size, 0))
                     if x_min < 0:
                         x_min = 0
 
-                    y_max = y_center + 5
+                    y_max = y_center + int(round(cell_size, 0))
                     if y_max > grid.shape[0]:
                         y_max = grid.shape[0]
 
-                    x_max = x_center + 5
+                    x_max = x_center + int(round(cell_size, 0))
                     if x_max > grid.shape[1]:
                         x_max = grid.shape[1]
 
