@@ -3,11 +3,9 @@ channels:
   - conda-forge
   - jlaura
 dependencies:
-  - jlaura:
-    - opencv3=3.0.0
-  - conda-forge:
-    - gdal>1.11.2
-    - h5py
+  - opencv3=3.0.0
+  - gdal>1.11.2
+  - h5py
   - pip:
     - pvl
     - pysal
