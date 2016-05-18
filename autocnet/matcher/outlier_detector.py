@@ -215,7 +215,6 @@ class SpatialSuppression(Observable):
 
                 if cell == False:
                     result.append(idx)
-                    x = len(result)
                     pts.append((p[['x', 'y']]))
                     if len(result) > self.k + self.k * self.error_k:
                         # Too many points, break
