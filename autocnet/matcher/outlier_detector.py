@@ -224,6 +224,7 @@ class SpatialSuppression(Observable):
 
                 if cell == False:
                     result.append(idx)
+                    x = len(result)
                     pts.append((p[['x', 'y']]))
                     if len(result) > self.k + self.k * self.error_k:
                         # Too many points, break
@@ -256,9 +257,16 @@ class SpatialSuppression(Observable):
             elif len(result) < self.k:
                 # The radius is too large
                 max_idx = mid_idx
+                if max_idx == 0:
+                    warnings.warn('Unable to retrieve {} points. Consider reducing the amount of points you request(k)'
+                                  .format(self.k))
+                    break
             elif min_idx == mid_idx or mid_idx == max_idx:
                 warnings.warn('Unable to optimally solve.  Returning with {} points'.format(len(result)))
                 break
+
+            if len(result) == self.k:
+                x = 0
 
         self.mask = pd.Series(False, self.df.index)
         self.mask.loc[list(result)] = True

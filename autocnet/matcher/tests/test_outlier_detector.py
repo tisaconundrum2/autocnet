@@ -94,12 +94,27 @@ class TestSpatialSuppression(unittest.TestCase):
         self.suppression_obj.suppress()
         self.assertIn(self.suppression_obj.mask.sum(), list(range(27, 34)))
 
-    def spatial_suppression_testing(self):
+    def spatial_suppression_edge_testing(self):
         r = np.random.RandomState(12345)
-        df = pd.DataFrame(r.uniform(0,4,(500, 3)), columns=['x', 'y', 'strength'])
-        minimum = SpatialSuppression(df, (4,4), k = 1)
 
-        minimum.suppress()
-        df.plot(kind = 'scatter', x = 'x', y = 'y')
+        df1 = pd.DataFrame(r.uniform(0,1,(500, 3)), columns=['x', 'y', 'strength'])
+        sup1 = SpatialSuppression(df1, (1,1), k = 1)
+        self.assertRaises(ValueError, sup1.suppress)
+
+
+        df2 = pd.DataFrame(r.uniform(0,6,(500, 3)), columns=['x', 'y', 'strength'])
+        sup2 = SpatialSuppression(df2, (6,6), k = 4)
+        sup2.suppress()
+        self.assertEqual(len(df2[sup2.mask]), 4)
+
+        df3 = pd.DataFrame(r.uniform(0,100,(500, 3)), columns=['x', 'y', 'strength'])
+        sup3 = SpatialSuppression(df3, (100,100), k = 15)
+        sup3.suppress()
+        self.assertEqual(len(df3[sup3.mask]), 17)
+
+        df4 = pd.DataFrame(r.uniform(0,100,(500, 3)), columns=['x', 'y', 'strength'])
+        sup4 = SpatialSuppression(df4, (100,100), k = 100)
+        sup4.suppress()
+        self.assertEqual(len(df4[sup4.mask]), 111)
 
 
