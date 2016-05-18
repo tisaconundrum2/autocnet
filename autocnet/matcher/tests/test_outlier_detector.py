@@ -104,13 +104,13 @@ class TestSpatialSuppression(unittest.TestCase):
 
         df1 = pd.DataFrame(r.uniform(0,1,(500, 3)), columns=['x', 'y', 'strength'])
         sup1 = SpatialSuppression(df1, (1,1), k = 1)
-        self.assertRaises(ValueError, sup1.suppress)
+        self.assertRaises(ValueError, sup1.suppress())
 
 
-        df2 = pd.DataFrame(r.uniform(0,6,(500, 3)), columns=['x', 'y', 'strength'])
-        sup2 = SpatialSuppression(df2, (6,6), k = 4)
+        df2 = pd.DataFrame(r.uniform(0,25,(500, 3)), columns=['x', 'y', 'strength'])
+        sup2 = SpatialSuppression(df2, (25,25), k = 25)
         sup2.suppress()
-        self.assertEqual(len(df2[sup2.mask]), 4)
+        self.assertEqual(len(df2[sup2.mask]), 25)
 
         df3 = pd.DataFrame(r.uniform(0,100,(500, 3)), columns=['x', 'y', 'strength'])
         sup3 = SpatialSuppression(df3, (100,100), k = 15)

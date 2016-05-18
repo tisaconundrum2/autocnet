@@ -138,7 +138,7 @@ class SpatialSuppression(Observable):
 
     """
 
-    def __init__(self, df, domain, min_radius=1, k=250, error_k=0.1):
+    def __init__(self, df, domain, min_radius=1.5, k=250, error_k=0.1):
         columns = df.columns
         for i in ['x', 'y', 'strength']:
             if i not in columns:
@@ -182,7 +182,7 @@ class SpatialSuppression(Observable):
             self.k = len(self.df)
             result = self.df.index
             process = False
-        search_space = np.linspace(self.min_radius, self.max_radius, 250)
+        search_space = np.linspace(self.min_radius, self.max_radius, 100)
         cell_sizes = search_space / math.sqrt(2)
         min_idx = 0
         max_idx = len(search_space) - 1
@@ -242,6 +242,7 @@ class SpatialSuppression(Observable):
                     grid[y_min: y_max,
                          x_min: x_max] = True
 
+
             #  Check break conditions
             if self.k - self.k * self.error_k <= len(result) <= self.k + self.k * self.error_k:
                 process = False
@@ -251,6 +252,7 @@ class SpatialSuppression(Observable):
                 if max_idx == 0:
                     warnings.warn('Unable to retrieve {} points. Consider reducing the amount of points you request(k)'
                                   .format(self.k))
+                    process = False
                 if min_idx == max_idx:
                     process = False
             elif min_idx == mid_idx or mid_idx == max_idx:
