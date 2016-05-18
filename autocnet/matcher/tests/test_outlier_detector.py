@@ -6,15 +6,10 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from .. import outlier_detector
-
-<<<<<<< HEAD
 from .. import matcher, outlier_detector
 from autocnet.matcher.outlier_detector import SpatialSuppression
-=======
-sys.path.append(os.path.abspath('..'))
 
->>>>>>> dd5bb1a3b9810162d4ece48163e4db74b5bb3ac8
+sys.path.append(os.path.abspath('..'))
 
 class TestOutlierDetector(unittest.TestCase):
 
