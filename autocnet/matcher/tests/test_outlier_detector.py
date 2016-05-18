@@ -99,31 +99,36 @@ class TestSpatialSuppression(unittest.TestCase):
             self.assertEqual(len(w), 1)
             self.assertTrue(issubclass(w[0].category, UserWarning))
 
-    def spatial_suppression_edge_testing(self):
-        r = np.random.RandomState(12345)
+class testSuppressionRanges(unittest.TestCase):
 
-        df1 = pd.DataFrame(r.uniform(0,1,(500, 3)), columns=['x', 'y', 'strength'])
-        sup1 = SpatialSuppression(df1, (1,1), k = 1)
-        self.assertRaises(ValueError, sup1.suppress())
+    def setUp(self):
+        self.r = np.random.RandomState(12345)
 
+    def test_one_by_one(self):
+        df = pd.DataFrame(self.r.uniform(0,1,(500, 3)), columns=['x', 'y', 'strength'])
+        sup = SpatialSuppression(df, (1,1), k = 1)
+        self.assertRaises(ValueError, sup.suppress())
 
-        df2 = pd.DataFrame(r.uniform(0,25,(500, 3)), columns=['x', 'y', 'strength'])
-        sup2 = SpatialSuppression(df2, (25,25), k = 25)
-        sup2.suppress()
-        self.assertEqual(len(df2[sup2.mask]), 27)
+    def test_min_max(self):
+        df = pd.DataFrame(self.r.uniform(0,2,(500, 3)), columns=['x', 'y', 'strength'])
+        sup = SpatialSuppression(df, (1.5,1.5), k = 1)
+        sup.suppress()
+        self.assertEqual(len(df[sup.mask]), 1)
 
-        df3 = pd.DataFrame(r.uniform(0,100,(500, 3)), columns=['x', 'y', 'strength'])
-        sup3 = SpatialSuppression(df3, (100,100), k = 15)
-        sup3.suppress()
-        self.assertEqual(len(df3[sup3.mask]), 17)
+    def test_point_overload(self):
+        df = pd.DataFrame(self.r.uniform(0,15,(500, 3)), columns=['x', 'y', 'strength'])
+        sup = SpatialSuppression(df, (15,15), k = 200)
+        sup.suppress()
+        self.assertEqual(len(df[sup.mask]), 75)
 
-        df4 = pd.DataFrame(r.uniform(0,15,(500, 3)), columns=['x', 'y', 'strength'])
-        sup4 = SpatialSuppression(df4, (15,15), k = 200)
-        sup4.suppress()
-        self.assertEqual(len(df4[sup4.mask]), 500)
+    def test_small_distribution(self):
+        df = pd.DataFrame(self.r.uniform(0,25,(500, 3)), columns=['x', 'y', 'strength'])
+        sup = SpatialSuppression(df, (25,25), k = 25)
+        sup.suppress()
+        self.assertEqual(len(df[sup.mask]), 25)
 
-        df2 = pd.DataFrame(r.uniform(0,2,(500, 3)), columns=['x', 'y', 'strength'])
-        sup2 = SpatialSuppression(df2, (1.5,1.5), k = 1)
-        sup2.suppress()
-        self.assertEqual(len(df2[sup2.mask]), 1)
-
+    def test_normal_distribution(self):
+        df = pd.DataFrame(self.r.uniform(0,100,(500, 3)), columns=['x', 'y', 'strength'])
+        sup = SpatialSuppression(df, (100,100), k = 15)
+        sup.suppress()
+        self.assertEqual(len(df[sup.mask]), 17)
