@@ -91,7 +91,7 @@ class TestSpatialSuppression(unittest.TestCase):
     def test_suppress(self):
         self.suppression_obj.k = 30
         self.suppression_obj.suppress()
-        self.assertIn(self.suppression_obj.mask.sum(), list(range(27, 34)))
+        self.assertIn(self.suppression_obj.mask.sum(), list(range(27, 35)))
 
         with warnings.catch_warnings(record=True) as w:
             self.suppression_obj.k = 101
@@ -110,15 +110,20 @@ class TestSpatialSuppression(unittest.TestCase):
         df2 = pd.DataFrame(r.uniform(0,25,(500, 3)), columns=['x', 'y', 'strength'])
         sup2 = SpatialSuppression(df2, (25,25), k = 25)
         sup2.suppress()
-        self.assertEqual(len(df2[sup2.mask]), 25)
+        self.assertEqual(len(df2[sup2.mask]), 27)
 
         df3 = pd.DataFrame(r.uniform(0,100,(500, 3)), columns=['x', 'y', 'strength'])
         sup3 = SpatialSuppression(df3, (100,100), k = 15)
         sup3.suppress()
         self.assertEqual(len(df3[sup3.mask]), 17)
 
-        df4 = pd.DataFrame(r.uniform(0,100,(500, 3)), columns=['x', 'y', 'strength'])
-        sup4 = SpatialSuppression(df4, (100,100), k = 100)
+        df4 = pd.DataFrame(r.uniform(0,15,(500, 3)), columns=['x', 'y', 'strength'])
+        sup4 = SpatialSuppression(df4, (15,15), k = 200)
         sup4.suppress()
-        self.assertEqual(len(df4[sup4.mask]), 111)
+        self.assertEqual(len(df4[sup4.mask]), 500)
+
+        df2 = pd.DataFrame(r.uniform(0,2,(500, 3)), columns=['x', 'y', 'strength'])
+        sup2 = SpatialSuppression(df2, (1.5,1.5), k = 1)
+        sup2.suppress()
+        self.assertEqual(len(df2[sup2.mask]), 1)
 
