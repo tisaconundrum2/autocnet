@@ -60,3 +60,4 @@ notifications:
           - krodriguez@usgs.gov
       on_success: always
       on_failure: always
+      
