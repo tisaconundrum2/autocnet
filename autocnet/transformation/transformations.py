@@ -11,6 +11,7 @@ from autocnet.matcher.outlier_detector import compute_fundamental_matrix
 from autocnet.utils.utils import make_homogeneous, normalize_vector, crossform
 from autocnet.camera import camera
 
+
 class TransformationMatrix(np.ndarray):
     """
     Abstract Base Class representing a 3x3 transformation matrix.
@@ -195,10 +196,6 @@ class FundamentalMatrix(TransformationMatrix):
         References
         ----------
         .. [Hartley2003]
-
-        Returns
-        -------
-
         """
 
         p = camera.idealized_camera()
@@ -207,19 +204,27 @@ class FundamentalMatrix(TransformationMatrix):
         correspondences1 = self.x1[self.local_mask]
         correspondences2 = self.x2[self.local_mask]
 
-        result = optimize.leastsq(camera.projection_error, p1[:], args=(p,
-                                                                        correspondences1.values,
-                                                                        correspondences2.calues),
-                                  **kwargs)
+        if 'method' in kwargs.keys():
+            method = kwargs.pop('method')
+        else:
+            method = 'trf'
+        result = optimize.least_squares(camera.projection_error, p1.ravel(), args=(p,
+                                                                             correspondences1.values,
+                                                                             correspondences2.values),
+                                        method=method,
+                                        xtol=1e-6,
+                                        ftol=1e-6,
+                                        gtol=1e-6,
+                                        **kwargs)
 
         if result[-1] > 4:
             warnings.warn('MLE failed to find an improved fundamental matrix.')
 
         # Scipy solvers are 1D, reshape to the correct form
         pgs = result[0].reshape(3,4)
-        m = pgs[:, 3]
+        t = pgs[:, 3]
         M = pgs[:, 0:3]
-        self[:] = crossform(m).dot(M)
+        self[:] = crossform(t).dot(M)
 
     def refine(self, method=ps.esda.mapclassify.Fisher_Jenks, values=None, bin_id=0, **kwargs):
         """
