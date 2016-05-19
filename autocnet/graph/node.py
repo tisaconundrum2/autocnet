@@ -226,7 +226,7 @@ class Node(dict, MutableMapping):
 
         allkps = pd.DataFrame(data=clean_kps, columns=columns, index=index)
 
-        self._keypoints = allkps.sort_values(by='response', ascending=False).head(250)
+        self._keypoints = allkps.sort_values(by='response', ascending=False)
 
         if isinstance(in_path, str):
             hdf = None

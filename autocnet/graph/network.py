@@ -4,8 +4,6 @@ import warnings
 
 import dill as pickle
 import networkx as nx
-import numpy as np
-import pandas as pd
 
 from autocnet.control.control import CorrespondenceNetwork
 from autocnet.fileio import io_hdf
@@ -15,7 +13,6 @@ from autocnet.fileio.io_gdal import GeoDataset
 from autocnet.graph import markov_cluster
 from autocnet.graph.edge import Edge
 from autocnet.graph.node import Node
-from autocnet.matcher.matcher import FlannMatcher
 from autocnet.vis.graph_view import plot_graph
 
 
@@ -279,76 +276,15 @@ class CandidateGraph(nx.Graph):
 
         hdf = None
 
-    def match_features(self, k=None):
+    def match_features(self, **kwargs):
         """
         For all connected edges in the graph, apply feature matching
 
-        Parameters
+        See Also
         ----------
-        k : int
-            The number of matches to find per feature.
+        autocnet.graph.edge.Edge.match
         """
-        # Instantiate a single flann matcher to be resused for all nodes
-
-        self._fl = FlannMatcher()
-        for i, node in self.nodes_iter(data=True):
-
-            # Grab the descriptors
-            if not hasattr(node, 'descriptors'):
-                raise AttributeError('Descriptors must be extracted before matching can occur.')
-            descriptors = node.descriptors
-            # Load the neighbors of the current node into the FLANN matcher
-            neighbors = self.neighbors(i)
-
-            # if node has no neighbors, skip
-            if not neighbors:
-                continue
-
-            for n in neighbors:
-                neighbor_descriptors = self.node[n].descriptors
-                self._fl.add(neighbor_descriptors, n)
-            self._fl.train()
-
-            if k is None:
-                k = (self.degree(i) * 2)
-
-            # Query and then empty the FLANN matcher for the next node
-            matches = self._fl.query(descriptors, i, k=k)
-            self.add_matches(matches)
-
-            self._fl.clear()
-
-    def add_matches(self, matches):
-        """
-        Adds match data to a node and attributes the data to the
-        appropriate edges, e.g. if A-B have a match, edge A-B is attributed
-        with the pandas dataframe.
-
-        Parameters
-        ----------
-        matches : dataframe
-                  The pandas dataframe containing the matches
-        """
-        edges = self.edges()
-        source_groups = matches.groupby('source_image')
-        for i, source_group in source_groups:
-            for j, dest_group in source_group.groupby('destination_image'):
-                destination_key = int(dest_group['destination_image'].values[0])
-                source_key = int(dest_group['source_image'].values[0])
-                if (source_key, destination_key) in edges:
-                    edge = self.edge[source_key][destination_key]
-                else:
-                    edge = self.edge[destination_key][source_key]
-                    dest_group.rename(columns={'source_image': 'destination_image',
-                                               'source_idx': 'destination_idx',
-                                               'destination_image': 'source_image',
-                                               'destination_idx': 'source_idx'},
-                                      inplace=False)
-                if hasattr(edge, 'matches'):
-                    df = edge.matches
-                    edge.matches = df.append(dest_group, ignore_index=True)
-                else:
-                    edge.matches = dest_group
+        self.apply_func_to_edges('match', *args, **kwargs)
 
     def compute_clusters(self, func=markov_cluster.mcl, *args, **kwargs):
         """
@@ -527,7 +463,6 @@ class CandidateGraph(nx.Graph):
             else:
                 matches = edge.matches
             self.cn.add_correspondences(edge, matches)
-
 
     def to_json_file(self, outputfile):
         """

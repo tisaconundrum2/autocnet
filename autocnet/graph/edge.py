@@ -11,6 +11,7 @@ from autocnet.matcher import health
 from autocnet.matcher import outlier_detector as od
 from autocnet.matcher import suppression_funcs as spf
 from autocnet.matcher import subpixel as sp
+from autocnet.matcher.matcher import FlannMatcher
 from autocnet.transformation.transformations import FundamentalMatrix, Homography
 from autocnet.vis.graph_view import plot_edge
 
@@ -39,6 +40,7 @@ class Edge(dict, MutableMapping):
 
         self.homography = None
         self.fundamental_matrix = None
+        self.matches = None
         self._subpixel_offsets = None
 
         self._observers = set()
@@ -80,6 +82,25 @@ class Edge(dict, MutableMapping):
     def health(self):
         return self._health.health
 
+    def match(self, k=2):
+
+        def mono_matches(a, b):
+            fl.add(a.descriptors, a.node_id)
+            fl.train()
+            self._add_matches(fl.query(b.descriptors, b.node_id, k))
+            fl.clear()
+
+        fl = FlannMatcher()
+        mono_matches(self.source, self.destination)
+        mono_matches(self.destination, self.source)
+
+    def _add_matches(self, matches):
+        if self.matches is None:
+            self.matches = matches
+        else:
+            df = self.matches
+            self.matches = df.append(matches, ignore_index=True)
+
     def symmetry_check(self):
         if hasattr(self, 'matches'):
             mask = od.mirroring_test(self.matches)
@@ -103,17 +124,32 @@ class Edge(dict, MutableMapping):
             raise AttributeError('No matches have been computed for this edge.')
 
     def compute_fundamental_matrix(self, clean_keys=[], method='linear', **kwargs):
+        """
+        Estimate the fundamental matrix (F) using the correspondences tagged to this
+        edge.
 
-        if hasattr(self, 'matches'):
-            matches = self.matches
-        else:
+
+        Parameters
+        ----------
+        clean_keys : list
+                     Of strings used to apply masks to omit correspondences
+
+        method : {linear, nonlinear}
+                 Method to use to compute F.  Linear is significantly faster at
+                 the cost of reduced accuracy.
+
+        See Also
+        --------
+        autocnet.transformation.transformations.FundamentalMatrix
+       :
+        """
+        if not hasattr(self, 'matches'):
             raise AttributeError('Matches have not been computed for this edge')
             return
-
         matches, mask = self._clean(clean_keys)
 
         s_keypoints = self.source.get_keypoint_coordinates(index=matches['source_idx'],
-                                                           homogeneous=True)
+                                                                 homogeneous=True)
         d_keypoints = self.destination.get_keypoint_coordinates(index=matches['destination_idx'],
                                                                 homogeneous=True)
 
@@ -125,6 +161,7 @@ class Edge(dict, MutableMapping):
         except:
             return
 
+
         # Convert the truncated RANSAC mask back into a full length mask
         mask[mask] = fundam_mask
         # Pass in the truncated mask to the fundamental matrix.  These are
@@ -135,12 +172,21 @@ class Edge(dict, MutableMapping):
                                                     mask=mask,
                                                     local_mask=fundam_mask)
 
+        if method != 'linear':
+            self.fundamental_matrix.refine_with_mle(method=method)
+
         # Subscribe the health watcher to the fundamental matrix observable
         self.fundamental_matrix.subscribe(self._health.update)
         self.fundamental_matrix._notify_subscribers(self.fundamental_matrix)
 
         # Set the initial state of the fundamental mask in the masks
         self.masks = ('fundamental', mask)
+
+    def add_putative_matches(self):
+        if not hasattr(self, 'fundamental_matrix'):
+            raise(ValueError, 'Fundamental matric has not been computed')
+
+        F = self.fundamental_matrix
 
     def compute_homography(self, method='ransac', clean_keys=[], pid=None, **kwargs):
         """
