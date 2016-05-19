@@ -138,7 +138,7 @@ class SpatialSuppression(Observable):
 
     """
 
-    def __init__(self, df, domain, min_radius=1, k=250, error_k=0.1):
+    def __init__(self, df, domain, min_radius=1.5, k=250, error_k=0.1):
         columns = df.columns
         for i in ['x', 'y', 'strength']:
             if i not in columns:
@@ -182,14 +182,13 @@ class SpatialSuppression(Observable):
             self.k = len(self.df)
             result = self.df.index
             process = False
-        search_space = np.linspace(self.min_radius, self.max_radius / 16, 250)
-        cell_sizes = (search_space / math.sqrt(2)).astype(np.int)
+        search_space = np.linspace(self.min_radius, self.max_radius, 100)
+        cell_sizes = search_space / math.sqrt(2)
         min_idx = 0
         max_idx = len(search_space) - 1
 
         while process:
             mid_idx = int((min_idx + max_idx) / 2)
-            r = search_space[mid_idx]
 
             cell_size = cell_sizes[mid_idx]
             n_x_cells = int(self.domain[0] / cell_size)
@@ -222,19 +221,19 @@ class SpatialSuppression(Observable):
                         min_idx = mid_idx
                         break
 
-                    y_min = y_center - 5
+                    y_min = y_center - int(round(cell_size, 0))
                     if y_min < 0:
                         y_min = 0
 
-                    x_min = x_center - 5
+                    x_min = x_center - int(round(cell_size, 0))
                     if x_min < 0:
                         x_min = 0
 
-                    y_max = y_center + 5
+                    y_max = y_center + int(round(cell_size, 0))
                     if y_max > grid.shape[0]:
                         y_max = grid.shape[0]
 
-                    x_max = x_center + 5
+                    x_max = x_center + int(round(cell_size, 0))
                     if x_max > grid.shape[1]:
                         x_max = grid.shape[1]
 
@@ -242,18 +241,24 @@ class SpatialSuppression(Observable):
                     grid[y_min: y_max,
                          x_min: x_max] = True
 
+
             #  Check break conditions
             if self.k - self.k * self.error_k <= len(result) <= self.k + self.k * self.error_k:
                 process = False
             elif len(result) < self.k:
                 # The radius is too large
                 max_idx = mid_idx
+                if max_idx == 0:
+                    warnings.warn('Unable to retrieve {} points. Consider reducing the amount of points you request(k)'
+                                  .format(self.k))
+                    process = False
                 if min_idx == max_idx:
                     process = False
             elif min_idx == mid_idx or mid_idx == max_idx:
                 warnings.warn('Unable to optimally solve.  Returning with {} points'.format(len(result)))
                 process = False
 
+        self.mask = pd.Series(False, self.df.index)
         self.mask.loc[list(result)] = True
         state_package = {'mask': self.mask,
                          'k': self.k,
