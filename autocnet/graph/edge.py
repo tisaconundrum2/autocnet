@@ -31,6 +31,11 @@ class Edge(dict, MutableMapping):
                  With key equal to an autoincrementing integer and value
                  equal to a dict of parameters used to generate this
                  realization.
+
+    weight : dict
+             Dictionary with two keys overlap_area, and overlap_percn
+             overlap_area returns the area overlaped by both images
+             overlap_percn retuns the total percentage of overlap
     """
 
     def __init__(self, source=None, destination=None):
@@ -40,6 +45,8 @@ class Edge(dict, MutableMapping):
         self.homography = None
         self.fundamental_matrix = None
         self._subpixel_offsets = None
+
+        self.weight = {}
 
         self._observers = set()
 
@@ -79,6 +86,21 @@ class Edge(dict, MutableMapping):
     @property
     def health(self):
         return self._health.health
+
+    def overlap(self):
+        if hasattr(self, 'weight'):
+            poly1 = self.source.geodata.footprint
+            poly2 = self.destination.geodata.footprint
+
+            intersection = poly1.Intersection(poly2)
+            self._overlap_area = intersection.GetArea()
+
+            total_area = poly1.GetArea()
+            intersection_area = intersection.GetArea()
+            self._overlap_percn = (intersection_area/total_area)*100
+
+            self.weight['overlap_area'] = self._overlap_area
+            self.weight['overlap_percn'] = self._overlap_percn
 
     def symmetry_check(self):
         if hasattr(self, 'matches'):
