@@ -5,7 +5,10 @@ branches:
 only:
   - master
 
-# We manually install Python via conda, so omit python 3.5 from here.
+python:
+  - "3.5"
+
+before_install:
 
 install:
   # We do this conditionally because it saves us some downloading if the
@@ -23,10 +26,17 @@ install:
   # Useful for debugging any issues with conda
   - conda info -a
 
-  # Create autocnet env
+  # Create a virtual env and install dependencies
   - conda create env
-  - source activate autocnet
+  - conda create -y -q -n test-env python=$TRAVIS_PYTHON_VERSION nose numpy pillow scipy pandas networkx scikit-image sqlalchemy numexpr dill cython pyyaml
+  # Activate the env
+  - source activate test-env
 
+  # Install the non-conda packages if required, requirements.txt duplicates are ignored
+  - conda install -c https://conda.anaconda.org/jlaura opencv3=3.0.0
+  - conda config --add channels conda-forge
+  - conda install -c https://conda.anaconda.org/conda-forge gdal h5py
+  - pip install -r requirements.txt
   # Development installation
   - conda install nose coverage
   - pip install coveralls
