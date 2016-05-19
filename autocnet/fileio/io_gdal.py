@@ -151,6 +151,9 @@ class GeoDataset(object):
     def __repr__(self):
         return os.path.basename(self.file_name)
 
+    def __reduce__(self):
+        return self.__class__, (self.file_name,)
+
     @property
     def base_name(self):
         if not getattr(self, '_base_name', None):
