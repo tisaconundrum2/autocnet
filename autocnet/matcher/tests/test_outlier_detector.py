@@ -101,8 +101,9 @@ class TestSpatialSuppression(unittest.TestCase):
 
 class testSuppressionRanges(unittest.TestCase):
 
-    def setUp(self):
-        self.r = np.random.RandomState(12345)
+    @classmethod
+    def setUpClass(cls):
+        cls.r = np.random.RandomState(12345)
 
     def test_one_by_one(self):
         df = pd.DataFrame(self.r.uniform(0,1,(500, 3)), columns=['x', 'y', 'strength'])
@@ -119,13 +120,13 @@ class testSuppressionRanges(unittest.TestCase):
         df = pd.DataFrame(self.r.uniform(0,15,(500, 3)), columns=['x', 'y', 'strength'])
         sup = SpatialSuppression(df, (15,15), k = 200)
         sup.suppress()
-        self.assertEqual(len(df[sup.mask]), 75)
+        self.assertEqual(len(df[sup.mask]), 70)
 
     def test_small_distribution(self):
         df = pd.DataFrame(self.r.uniform(0,25,(500, 3)), columns=['x', 'y', 'strength'])
         sup = SpatialSuppression(df, (25,25), k = 25)
         sup.suppress()
-        self.assertEqual(len(df[sup.mask]), 25)
+        self.assertEqual(len(df[sup.mask]), 28)
 
     def test_normal_distribution(self):
         df = pd.DataFrame(self.r.uniform(0,100,(500, 3)), columns=['x', 'y', 'strength'])
