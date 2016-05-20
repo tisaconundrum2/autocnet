@@ -17,6 +17,7 @@ from autocnet.graph.edge import Edge
 from autocnet.graph.node import Node
 from autocnet.matcher.matcher import FlannMatcher
 from autocnet.vis.graph_view import plot_graph
+from autocnet.cg import cg
 
 
 class CandidateGraph(nx.Graph):
@@ -475,6 +476,9 @@ class CandidateGraph(nx.Graph):
         autocnet.matcher.outlier_detector.SpatialSuppression
         '''
         self.apply_func_to_edges('suppress', *args, **kwargs)
+
+    def overlap(self, *args, **kwargs):
+        self.apply_func_to_edges('overlap')
 
     def minimum_spanning_tree(self):
         """

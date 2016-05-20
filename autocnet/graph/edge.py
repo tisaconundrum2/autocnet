@@ -13,6 +13,7 @@ from autocnet.matcher import suppression_funcs as spf
 from autocnet.matcher import subpixel as sp
 from autocnet.transformation.transformations import FundamentalMatrix, Homography
 from autocnet.vis.graph_view import plot_edge
+from autocnet.cg import cg
 
 
 class Edge(dict, MutableMapping):
@@ -86,21 +87,6 @@ class Edge(dict, MutableMapping):
     @property
     def health(self):
         return self._health.health
-
-    def overlap(self):
-        if hasattr(self, 'weight'):
-            poly1 = self.source.geodata.footprint
-            poly2 = self.destination.geodata.footprint
-
-            intersection = poly1.Intersection(poly2)
-            self._overlap_area = intersection.GetArea()
-
-            total_area = poly1.GetArea()
-            intersection_area = intersection.GetArea()
-            self._overlap_percn = (intersection_area/total_area)*100
-
-            self.weight['overlap_area'] = self._overlap_area
-            self.weight['overlap_percn'] = self._overlap_percn
 
     def symmetry_check(self):
         if hasattr(self, 'matches'):
@@ -432,3 +418,16 @@ class Edge(dict, MutableMapping):
             mask = pd.Series(True, self.matches.index)
 
         return matches, mask
+
+    def overlap(self):
+        poly1 = self.source.geodata.footprint
+        poly2 = self.destination.geodata.footprint
+
+        self._overlapinfo = cg.two_poly_overlap(poly1, poly2)
+        hull_poly = cg.convex_hull(self.source.get_keypoint_coordinates())
+        self._convex_overlap = cg.hull_overlap(poly1, poly2, hull_poly)
+
+        self.weight['overlap_area'] = self._overlapinfo[1]
+        self.weight['overlap_percn'] = self._overlapinfo[0]
+        self.weight['overlap_coverage'] = self._convex_overlap
+
