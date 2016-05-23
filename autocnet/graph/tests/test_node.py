@@ -81,5 +81,3 @@ class TestNode(unittest.TestCase):
     def test_overlap(self):
         points = np.random.RandomState(12345)
         # apply mock array to node object
-
-        node.overlap()
