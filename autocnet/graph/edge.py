@@ -423,11 +423,8 @@ class Edge(dict, MutableMapping):
         poly1 = self.source.geodata.footprint
         poly2 = self.destination.geodata.footprint
 
-        self._overlapinfo = cg.two_poly_overlap(poly1, poly2)
-        hull_poly = cg.convex_hull(self.source.get_keypoint_coordinates())
-        self._convex_overlap = cg.hull_overlap(poly1, poly2, hull_poly)
+        overlapinfo = cg.two_poly_overlap(poly1, poly2)
 
-        self.weight['overlap_area'] = self._overlapinfo[1]
-        self.weight['overlap_percn'] = self._overlapinfo[0]
-        self.weight['overlap_coverage'] = self._convex_overlap
+        self.weight['overlap_area'] = overlapinfo[1]
+        self.weight['overlap_percn'] = overlapinfo[0]
 

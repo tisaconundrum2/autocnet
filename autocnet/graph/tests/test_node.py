@@ -7,6 +7,8 @@ import warnings
 import numpy as np
 import pandas as pd
 
+from autocnet.graph.network import CandidateGraph
+from autocnet.graph import node
 from autocnet.examples import get_path
 from autocnet.fileio.io_gdal import GeoDataset
 
@@ -75,3 +77,9 @@ class TestNode(unittest.TestCase):
         self.assertTrue((kps.sort(axis=0) == self.node.get_keypoints().sort(axis=0)).all().all())
 
         os.remove('node_test.hdf')
+
+    def test_overlap(self):
+        points = np.random.RandomState(12345)
+        # apply mock array to node object
+
+        node.overlap()

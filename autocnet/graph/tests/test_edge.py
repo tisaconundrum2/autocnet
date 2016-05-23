@@ -1,9 +1,9 @@
 import unittest
 
-from unittest.mock import patch
 from unittest.mock import Mock
-from unittest.mock import PropertyMock
 from osgeo import ogr
+
+from autocnet.cg import cg
 
 import pandas as pd
 
@@ -50,14 +50,5 @@ class TestEdge(unittest.TestCase):
             self.edge.compute_fundamental_matrix()
 
     def test_overlap(self):
-        wkt1 = "POLYGON ((0 40, 40 40, 40 0, 0 0, 0 40))"
-        wkt2 = "POLYGON ((20 60, 60 60, 60 20, 20 20, 20 60))"
-
-        poly1 = ogr.CreateGeometryFromWkt(wkt1)
-        poly2 = ogr.CreateGeometryFromWkt(wkt2)
-
-        with patch.object(self.edge.source.geodata, 'footprint' ,new_callable=PropertyMock) as patch_fp:
-            patch_fp.return_value = poly1
-
-        with patch.object(self.edge.destination.geodata, 'footprint' ,new_callable=PropertyMock) as patch_fp:
-            patch_fp.return_value = poly2
+        x = 0
+        # apply mock arrays to both nodes on the edge

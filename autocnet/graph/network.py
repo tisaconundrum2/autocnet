@@ -478,6 +478,13 @@ class CandidateGraph(nx.Graph):
         self.apply_func_to_edges('suppress', *args, **kwargs)
 
     def overlap(self, *args, **kwargs):
+        '''
+        Compute the percentage and area coverage of two images
+
+        See Also
+        --------
+        autocnet.cg.cg.two_image_overlap
+        '''
         self.apply_func_to_edges('overlap')
 
     def minimum_spanning_tree(self):

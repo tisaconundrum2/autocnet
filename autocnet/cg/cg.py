@@ -1,6 +1,8 @@
 import json
 import ogr
 import pandas as pd
+
+from autocnet.fileio import io_gdal
 from scipy.spatial import ConvexHull
 
 
@@ -65,16 +67,11 @@ def convex_hull(points):
 
     """
 
-    points.pixel_to_latlon()
-
     if isinstance(points, pd.DataFrame) :
         points = pd.DataFrame.as_matrix(points)
 
     hull = ConvexHull(points)
-    coordinates = [[i,j] for (i, j) in hull.points]
-    geom = {"type": "Polygon", "coordinates": [coordinates]}
-    hull_poly = ogr.CreateGeometryFromJson(json.dumps(geom))
-    return hull_poly
+    return hull
 
 def two_poly_overlap(poly1, poly2):
     """
@@ -95,7 +92,7 @@ def two_poly_overlap(poly1, poly2):
             The ratio convex hull volume / ideal_area
 
     """
-    a_o = poly1.Intersection(poly2).GetArea()
+    a_o = poly2.Intersection(poly1).GetArea()
     area1 = poly1.GetArea()
     area2 = poly2.GetArea()
 
@@ -103,9 +100,3 @@ def two_poly_overlap(poly1, poly2):
     overlap_percn = (a_o / (area1 + area2 - a_o)) * 100
     overlap_info = [overlap_percn, overlap_area]
     return overlap_info
-
-def hull_overlap(poly1, poly2, convex_poly):
-    a_o = poly1.Intersection(poly2)
-    convex_overlap = convex_poly.Intersection(a_o)
-    point_coverage = (convex_overlap.GetArea()/a_o.GetArea())*100
-    return point_coverage
