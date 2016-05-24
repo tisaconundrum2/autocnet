@@ -1,9 +1,6 @@
 import unittest
 
 from unittest.mock import Mock
-from osgeo import ogr
-
-from autocnet.cg import cg
 
 import pandas as pd
 
@@ -48,7 +45,3 @@ class TestEdge(unittest.TestCase):
     def test_compute_fundamental_matrix(self):
         with self.assertRaises(AttributeError):
             self.edge.compute_fundamental_matrix()
-
-    def test_overlap(self):
-        x = 0
-        # apply mock arrays to both nodes on the edge

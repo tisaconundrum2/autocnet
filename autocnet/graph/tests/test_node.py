@@ -78,6 +78,10 @@ class TestNode(unittest.TestCase):
 
         os.remove('node_test.hdf')
 
-    def test_overlap(self):
-        points = np.random.RandomState(12345)
-        # apply mock array to node object
+    def test_coverage(self):
+        image = self.node.get_array()
+        self.node.extract_features(image, method='sift', extractor_parameters={'nfeatures': 10})
+
+        coverage_percn = self.node.coverage()
+
+        self.assertEqual(coverage_percn, 0.3806139557604381)
