@@ -157,6 +157,7 @@ def ccs_batch(directory,searchstring='*CCS*.csv',is_sav=False,to_csv=None,lookup
     #Should add a progress bar for importing large numbers of files    
     dt=[]
     for i in filelist:
+        
         if is_sav:
             t=time.time()
             tmp=CCS_SAV(i)
@@ -164,8 +165,11 @@ def ccs_batch(directory,searchstring='*CCS*.csv',is_sav=False,to_csv=None,lookup
         else:
             t=time.time()
             tmp=CCS(i)
+            
             dt.append(time.time()-t)
-        try:
+        if i==filelist[0]:
+            combined=tmp
+        else:
             #This ensures that rounding errors are not causing mismatches in columns            
             cols1=list(combined['wvl'].columns)
             cols2=list(tmp['wvl'].columns)
@@ -173,8 +177,7 @@ def ccs_batch(directory,searchstring='*CCS*.csv',is_sav=False,to_csv=None,lookup
                 combined=pd.concat([combined,tmp])
             else:
                 print("Wavelengths don't match!")
-        except:
-            combined=tmp
+
     combined.loc[:,('meta','sclock')]=pd.to_numeric(combined.loc[:,('meta','sclock')])
         
     if lookupfile is not None:

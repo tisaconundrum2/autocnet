@@ -28,7 +28,7 @@ def mask(df,maskfile):
     mask = pd.read_csv(maskfile, sep=',')  #read the mask file
     tmp=[]
     for i in mask.index:
-        tmp.append((df['wvl'].columns>=mask.ix[i,'min_wvl'])&(df['wvl'].columns<=mask.ix[i,'max_wvl']))
+        tmp.append((np.array(df['wvl'].columns,dtype='float')>=mask.ix[i,'min_wvl'])&(np.array(df['wvl'].columns,dtype='float')<=mask.ix[i,'max_wvl']))
 
     #combine the indexes for each range in the mask file into a single masking vector and use that to mask the spectra
     masked=np.any(np.array(tmp),axis=0)

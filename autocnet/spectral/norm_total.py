@@ -21,7 +21,7 @@ def norm_spect(df,ranges):
     allind=[]    
     for i in ranges:
         #Find the indices for the range
-        ind=(wvls>=i[0])&(wvls<=i[1])
+        ind=(np.array(wvls,dtype='float')>=i[0])&(np.array(wvls,dtype='float')<=i[1])
         #find the columns for the range
         cols=wvls[ind]
         #keep track of the indices used for all ranges

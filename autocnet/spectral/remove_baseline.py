@@ -56,6 +56,9 @@ def remove_baseline(df,method='als',segment=True,params=None):
     df_baseline=df.copy()
     df_baseline['wvl']=br.baseline
     df['wvl']=br.fit_transform(wvls,spectra)
+    
+    
+    #need to add a record of what baseline removal has been applied and what the settings were in the metadata
     return df, df_baseline    
             
     
