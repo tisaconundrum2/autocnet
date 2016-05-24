@@ -4,8 +4,6 @@ import warnings
 
 import dill as pickle
 import networkx as nx
-import numpy as np
-import pandas as pd
 
 from autocnet.control.control import CorrespondenceNetwork
 from autocnet.fileio import io_hdf
@@ -475,6 +473,16 @@ class CandidateGraph(nx.Graph):
         autocnet.matcher.outlier_detector.SpatialSuppression
         '''
         self.apply_func_to_edges('suppress', *args, **kwargs)
+
+    def overlap(self):
+        '''
+        Compute the percentage and area coverage of two images
+
+        See Also
+        --------
+        autocnet.cg.cg.two_image_overlap
+        '''
+        self.apply_func_to_edges('overlap')
 
     def minimum_spanning_tree(self):
         """
