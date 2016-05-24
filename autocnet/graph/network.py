@@ -276,7 +276,7 @@ class CandidateGraph(nx.Graph):
 
         hdf = None
 
-    def match_features(self, **kwargs):
+    def match_features(self, *args, **kwargs):
         """
         For all connected edges in the graph, apply feature matching
 

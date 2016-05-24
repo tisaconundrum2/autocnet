@@ -86,15 +86,14 @@ def generate_serial_number(label):
 
             sub_group = find_nested_in_dict(label, search_position)
             serial_entry = sub_group[search_key]
-            print(serial_entry)
             if serial_entry in search_translation.keys():
                 serial_entry = search_translation[serial_entry]
             elif '*' in search_translation.keys() and search_translation['*'] != '*':
                 serial_entry = search_translation['*']
 
             serial_number.append(serial_entry)
-        except:pass
-    print('HERE!')
+        except:
+            pass
     return '/'.join(serial_number)
 
 
@@ -103,6 +102,7 @@ class SerialNumberDecoder(pvl.decoder.PVLDecoder):
     A PVL Decoder class to handle cube label parsing for the purpose of creating a valid ISIS
     serial number. Inherits from the PVLDecoder in planetarypy's pvl module.
     """
+
     def cast_unquoated_string(self, value):
         """
         Overrides the parent class's method so that any un-quoted string type value found in the

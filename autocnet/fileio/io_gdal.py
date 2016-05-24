@@ -214,11 +214,6 @@ class GeoDataset(object):
                 xy_extent = self.xy_extent
                 lowerlat, lowerlon = self.pixel_to_latlon(xy_extent[0][0], xy_extent[0][1])
                 upperlat, upperlon = self.pixel_to_latlon(xy_extent[1][0], xy_extent[1][1])
-                geom = {"type": "Polygon", "coordinates": [[[lowerlat, lowerlon],
-                                                           [lowerlat, upperlon],
-                                                           [upperlat, upperlon],
-                                                           [upperlat, lowerlon],
-                                                           [lowerlat, lowerlon]]]}
             self._latlon_extent = [(lowerlat, lowerlon), (upperlat, upperlon)]
         return self._latlon_extent
 

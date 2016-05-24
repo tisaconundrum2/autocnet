@@ -55,8 +55,8 @@ def pattern_match(template, image, upsampling=16, func=cv2.TM_CCOEFF_NORMED, err
     if upsampling < 1:
         raise ValueError
 
-    u_template = zoom(template, upsampling, order=1)
-    u_image = zoom(image, upsampling, order=1)
+    u_template = zoom(template, upsampling, order=3)
+    u_image = zoom(image, upsampling, order=3)
 
     result = cv2.matchTemplate(u_image, u_template, method=func)
     min_corr, max_corr, min_loc, max_loc = cv2.minMaxLoc(result)
