@@ -69,7 +69,9 @@ class Edge(dict, MutableMapping):
         # state, dynamically draw the mask from the object.
         for c in self._masks.columns:
             if c in mask_lookup:
-                self._masks[c] = getattr(self, mask_lookup[c]).mask
+                truncated_mask = getattr(self, mask_lookup[c]).mask
+                self._masks[c] = False
+                self._masks[c].iloc[truncated_mask.index] = truncated_mask
         return self._masks
 
     @masks.setter
@@ -99,7 +101,9 @@ class Edge(dict, MutableMapping):
             self.matches = matches
         else:
             df = self.matches
-            self.matches = df.append(matches, ignore_index=True)
+            self.matches = df.append(matches,
+                                     ignore_index=True,
+                                     verify_integrity=True)
 
     def symmetry_check(self):
         if hasattr(self, 'matches'):
@@ -123,7 +127,7 @@ class Edge(dict, MutableMapping):
         else:
             raise AttributeError('No matches have been computed for this edge.')
 
-    def compute_fundamental_matrix(self, clean_keys=[], method='linear', **kwargs):
+    def compute_fundamental_matrix(self, clean_keys=[], **kwargs):
         """
         Estimate the fundamental matrix (F) using the correspondences tagged to this
         edge.
@@ -153,27 +157,16 @@ class Edge(dict, MutableMapping):
         d_keypoints = self.destination.get_keypoint_coordinates(index=matches['destination_idx'],
                                                                 homogeneous=True)
 
-        transformation_matrix, fundam_mask = od.compute_fundamental_matrix(s_keypoints.values,
-                                                                           d_keypoints.values,
-                                                                           **kwargs)
-        try:
-            fundam_mask = fundam_mask.ravel()
-        except:
-            return
 
+        # Replace the index with the matches index.
+        s_keypoints.index = matches.index
+        d_keypoints.index = matches.index
+
+        self.fundamental_matrix = FundamentalMatrix(np.zeros((3,3)), index=matches.index)
+        self.fundamental_matrix.compute(s_keypoints, d_keypoints, **kwargs)
 
         # Convert the truncated RANSAC mask back into a full length mask
-        mask[mask] = fundam_mask
-        # Pass in the truncated mask to the fundamental matrix.  These are
-        # only those points that have pased previous outlier checks
-        self.fundamental_matrix = FundamentalMatrix(transformation_matrix,
-                                                    s_keypoints,
-                                                    d_keypoints,
-                                                    mask=mask,
-                                                    local_mask=fundam_mask)
-
-        if method != 'linear':
-            self.fundamental_matrix.refine_with_mle(method=method)
+        mask[mask] = self.fundamental_matrix.mask
 
         # Subscribe the health watcher to the fundamental matrix observable
         self.fundamental_matrix.subscribe(self._health.update)
@@ -181,6 +174,7 @@ class Edge(dict, MutableMapping):
 
         # Set the initial state of the fundamental mask in the masks
         self.masks = ('fundamental', mask)
+
 
     def add_putative_matches(self):
         if not hasattr(self, 'fundamental_matrix'):

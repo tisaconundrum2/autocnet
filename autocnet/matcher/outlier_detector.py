@@ -53,7 +53,7 @@ class DistanceRatio(Observable):
     def nvalid(self):
         return self.mask.sum()
 
-    def compute(self, ratio=0.95, mask=None, mask_name=None, single=False):
+    def compute(self, ratio=0.8, mask=None, mask_name=None, single=False):
         """
         Compute and return a mask for a matches dataframe
         using Lowe's ratio test.  If keypoints have a single
@@ -87,10 +87,14 @@ class DistanceRatio(Observable):
         self.single = single
         if mask is not None:
             self.mask = mask.copy()
-            new_mask = self.matches[mask].groupby('source_idx')['distance'].transform(func).astype('bool')
-            self.mask[mask == True] = new_mask
+            mask_s = self.matches[mask].groupby('source_idx')['distance'].transform(func).astype('bool')
+            mask_d = self.matches[mask].groupby('destination_idx')['distance'].transform(func).astype('bool')
+            self.mask[mask] = mask_s & mask_d
         else:
-            self.mask = self.matches.groupby('source_idx')['distance'].transform(func).astype('bool')
+            mask_s = self.matches.groupby('source_idx')['distance'].transform(func).astype('bool')
+            mask_d = self.matches.groupby('destination_idx')['distance'].transformat(func).astype('bool')
+
+            self.mask = (mask_s & mask_d)
 
         state_package = {'ratio': ratio,
                          'mask': self.mask.copy(),
@@ -354,6 +358,8 @@ def compute_fundamental_matrix(kp1, kp2, method='ransac', reproj_threshold=5.0, 
         method_ = cv2.FM_LMEDS
     elif method == 'normal':
         method_ = cv2.FM_7POINT
+    elif method == '8point':
+        method_ = cv2.FM_8POINT
     else:
         raise ValueError("Unknown outlier detection method.  Choices are: 'ransac', 'lmeds', or 'normal'.")
 

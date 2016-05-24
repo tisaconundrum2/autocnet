@@ -1,5 +1,7 @@
 import unittest
 import numpy as np
+import pandas as pd
+
 from .. import utils
 
 
@@ -116,3 +118,12 @@ class TestUtils(unittest.TestCase):
         y = utils.normalize_vector(x)
         truth = np.tile(np.array([ 0.70710678,  0.70710678,  0.70710678]), 4).reshape(4,3)
         np.testing.assert_array_almost_equal(truth, y)
+
+    def test_slope(self):
+        x1 = pd.DataFrame({'x': np.arange(1, 11),
+                           'y': np.arange(1, 11)})
+        x2 = pd.DataFrame({'x': np.arange(6, 16),
+                           'y': np.arange(11, 21)})
+
+        slope = utils.calculate_slope(x1, x2)
+        self.assertEqual(slope[0], 2)

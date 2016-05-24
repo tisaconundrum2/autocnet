@@ -1,7 +1,9 @@
 import abc
+import math
 from collections import deque
 import warnings
 
+import cv2
 import numpy as np
 import pandas as pd
 import pysal as ps
@@ -20,26 +22,16 @@ class TransformationMatrix(np.ndarray):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def __new__(cls, inputarr, x1, x2, mask, local_mask=None):
-        if not isinstance(inputarr, np.ndarray):
-            raise TypeError('The transformation must be an ndarray')
+    def __new__(cls, ndarray, index):
 
-        obj = np.asarray(inputarr).view(cls)
-        obj.x1 = x1
-        obj.x2 = x2
-        obj.mask = mask
-        obj.local_mask = local_mask
+        obj = np.asarray(ndarray).view(cls)
+        obj.index = index
         obj._action_stack = deque(maxlen=10)
         obj._current_action_stack = 0
         obj._observers = set()
 
-        # Seed the state package with the initial creation state
-        if mask is not None:
-            state_package = {'arr': obj.copy(),
-                             'mask': obj.mask.copy()}
-        else:
-            state_package = {'arr': obj.copy(),
-                             'mask': None}
+        state_package = {'arr': obj.copy(),
+                         'mask': None}
         obj._action_stack.append(state_package)
 
         return obj
@@ -48,21 +40,29 @@ class TransformationMatrix(np.ndarray):
     def __array_finalize__(self, obj):
         if obj is None:
             return
-        self.x1 = getattr(obj, 'x1', None)
-        self.x2 = getattr(obj, 'x2', None)
-        self.mask = getattr(obj, 'mask', None)
         self._action_stack = getattr(obj, '_action_stack', None)
         self._current_action_stack = getattr(obj, '_current_action_stack', None)
         self._observers = getattr(obj, '_observers', None)
 
+        self.x1 = getattr(obj, 'x1', None)
+        self.x2 = getattr(obj, 'x2', None)
+        self.index = getattr(obj, 'index', None)
+        self.mask = getattr(obj, 'mask', None)
+
     @abc.abstractproperty
     def determinant(self):
-        if not getattr(self, '_determinant', None):
-            self._determinant = np.linalg.det(self)
-        return self._determinant
+        return np.linalg.det(self)
+
+    @abc.abstractproperty
+    def rank(self):
+        return np.linalg.matrix_rank(self)
 
     @abc.abstractproperty
     def condition(self):
+        """
+        The condition is a measure of the numerical stability of the
+        solution to a set of linear equations.
+        """
         if not getattr(self, '_condition', None):
             s = np.linalg.svd(self, compute_uv=False)
             self._condition = s[0] / s[1]
@@ -166,6 +166,16 @@ class FundamentalMatrix(TransformationMatrix):
     Attributes
     ----------
 
+    x1 : ndarray
+         (n,2) array of point correspondences used to compute F
+
+    x2 : ndarray
+         (n,2) array of point correspondences used to compute F
+
+    mask : ndarray
+           (n, 2) boolean array indicating whether a correspondence is
+           considered an inliner
+
     determinant : float
                   The determinant of the matrix
 
@@ -176,17 +186,6 @@ class FundamentalMatrix(TransformationMatrix):
             describing the error of the points used to
             compute this homography
     """
-
-    @property
-    def rank(self):
-        """
-        A valid fundamental matrix should be rank 2.
-        Hartley & Zisserman p. 280
-        """
-        rank = np.linalg.matrix_rank(self)
-        if rank != 2:
-            warnings.warn('F rank not equal to 2.  This indicates a poor F matrix.')
-        return rank
 
     def refine_with_mle(self, **kwargs):
         """
@@ -305,8 +304,8 @@ class FundamentalMatrix(TransformationMatrix):
         --------
         compute_error : The method called to compute element-wise error.
         """
-        x = self.x1.loc[self.mask]
-        x1 = self.x2.loc[self.mask]
+        x = self.x1[self.mask]
+        x1 = self.x2[self.mask]
         return self.compute_error(self.x1, self.x2)
 
     def compute_error(self, x, x1):
@@ -344,6 +343,122 @@ class FundamentalMatrix(TransformationMatrix):
         F_error = np.abs(np.sum(l_norms * x1, axis=1))
 
         return F_error
+
+    def _normalize(self, a):
+        """
+        Normalize a set of coordinates such that the origin is
+        translated to the center and then scaled isotropically such
+        that the average distance from the origin is $\sqrt{2}$.
+
+        Parameters
+        ----------
+        a : DataFrame
+            (n,3) of homogeneous coordinates
+
+        Returns
+        -------
+        normalized : ndarray
+                     (3,3) tranformation matrix
+        """
+
+        # Compute the normalization matrix
+        centroid = a[['x', 'y']].mean()
+        dist = np.sqrt(np.sum(((a[['x', 'y']] - centroid)**2).values, axis=1))
+        mean_dist = np.mean(dist)
+        sq2 = math.sqrt(2)
+
+        normalizer = np.array([[sq2 / mean_dist, 0, -sq2 / mean_dist * centroid[0]],
+                       [0, sq2 / mean_dist,  -sq2 / mean_dist * centroid[1]],
+                       [0, 0, 1]])
+
+        return normalizer
+
+    def compute(self, kp1, kp2, method='ransac', reproj_threshold=2.0, confidence=0.99):
+        """
+        Given two arrays of keypoints compute the fundamental matrix
+
+        Parameters
+        ----------
+        kp1 : ndarray
+              (n, 2) of coordinates from the source image
+
+        kp2 : ndarray
+              (n, 2) of coordinates from the destination image
+
+        method : {'ransac', 'lmeds', 'normal', '8point'}
+                  The openCV algorithm to use for outlier detection
+
+        reproj_threshold : float
+                           The maximum distances in pixels a reprojected points
+                           can be from the epipolar line to be considered an inlier
+
+        confidence : float
+                     [0, 1] that the estimated matrix is correct
+
+        Notes
+        -----
+        While the method is user definable, if the number of input points
+        is < 7, normal outlier detection is automatically used, if 7 > n > 15,
+        least medians is used, and if 7 > 15, ransac can be used.
+        """
+        if method == 'ransac':
+            method_ = cv2.FM_RANSAC
+        elif method == 'lmeds':
+            method_ = cv2.FM_LMEDS
+        elif method == 'normal':
+            method_ = cv2.FM_7POINT
+        elif method == '8point':
+            method_ = cv2.FM_8POINT
+        else:
+            raise ValueError("Unknown outlier detection method. Choices are: 'ransac', 'lmeds', '8point', or 'normal'.")
+
+        #x1_norm = self._normalize(kp1)
+        #x2_norm = self._normalize(kp2)
+
+        #kp1_norm = kp1.values.dot(x1_norm)
+        #kp2_norm = kp2.values.dot(x2_norm)
+
+
+        F, mask = cv2.findFundamentalMat(kp1.values,
+                                         kp2.values,
+                                         method_,
+                                         param1=reproj_threshold,
+                                         param2=confidence)
+
+        try:
+            mask = mask.astype(bool).ravel()  # Enforce dimensionality
+        except:
+            pass  # pragma: no cover
+
+        # Ensure that the singularity constraint is met
+        self._enforce_singularity_constraint()
+
+        # Set instance variables to inputs
+        self.x1 = kp1
+        self.x2 = kp2
+        self.mask = pd.Series(mask, index=self.index)
+
+        # Denormalize F_Prime to F and set
+        #f = x2_norm.T.dot(transformation_matrix).dot(x1_norm)
+        self[:] = F
+
+
+
+    def _enforce_singularity_constraint(self):
+        """
+        The fundamental matrix should be rank 2.  In instances when it is not,
+        the singularity constraint should be enforced.  This is forces epipolar lines
+        to be conincident.
+
+        References
+        ----------
+        .. [Hartley2003]
+
+        """
+        if self.rank != 2:
+            u, d, vt = np.linalg.svd(self)
+            f1 = u.dot(np.diag([d[0], d[1], 0])).dot(vt)
+            self[:] = f1
 
     def recompute_matrix(self):
         raise NotImplementedError

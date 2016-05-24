@@ -144,9 +144,9 @@ class Node(dict, MutableMapping):
 
         """
         if hasattr(self, '_keypoints'):
-            try:
-                return self._keypoints.iloc[index]
-            except:
+            if index is not None:
+                return self._keypoints.loc[index]
+            else:
                 return self._keypoints
         else:
             return None

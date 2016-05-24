@@ -20,6 +20,7 @@ def crossform(a):
                      [a[2], 0, -a[0]],
                      [-a[1], a[0], 0]])
 
+
 def normalize_vector(line):
     """
     Normalize a standard form line
@@ -235,3 +236,37 @@ def remove_field_name(a, name):
         names.remove(name)
     b = a[names]
     return b
+
+
+def calculate_slope(x1, x2):
+    """
+    Calculates the 2-dimensional slope between the points in two dataframes each containing two columns ['x', 'y']
+    The slope is calculated from x1 to x2.
+
+    Parameters
+    ----------
+    x1 : dataframe
+         Each row is a point with columns ['x', 'y']
+    x2 : dataframe
+        Each row is a point with columns ['x', 'y']
+
+    Returns
+    -------
+    : dataframe
+      A dataframe with the slope between the points in x1 and x2 for each row.
+    """
+
+
+    sl = False
+    if isinstance(x1, pd.DataFrame):
+        index = x1.index
+        sl = True
+        x1 = x1.values
+    if isinstance(x2, pd.DataFrame):
+        x2 = x2.values
+    slopes = (x2[:,1] - x1[:,1])/(x2[:,0] - x1[:,0])
+
+    if sl:
+        slopes = pd.Series(slopes, index=index)
+    return slopes
+
