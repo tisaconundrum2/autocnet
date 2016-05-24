@@ -4,8 +4,6 @@ import warnings
 
 import dill as pickle
 import networkx as nx
-import numpy as np
-import pandas as pd
 
 from autocnet.control.control import CorrespondenceNetwork
 from autocnet.fileio import io_hdf
@@ -17,7 +15,6 @@ from autocnet.graph.edge import Edge
 from autocnet.graph.node import Node
 from autocnet.matcher.matcher import FlannMatcher
 from autocnet.vis.graph_view import plot_graph
-from autocnet.cg import cg
 
 
 class CandidateGraph(nx.Graph):

@@ -1,12 +1,7 @@
 import os
-import ogr
 
 import unittest
-from unittest.mock import Mock
 
-from autocnet.fileio import io_gdal
-from autocnet.graph import edge
-from autocnet.graph import node
 from autocnet.examples import get_path
 from autocnet.fileio.io_controlnetwork import to_isis
 from autocnet.fileio.io_controlnetwork import write_filelist
@@ -110,28 +105,3 @@ class TestTwoImageMatching(unittest.TestCase):
             os.remove('TestTwoImageMatching.net')
             os.remove('fromlist.lis')
         except: pass
-
-    def test_edge_overlap(self):
-        e = edge.Edge()
-        e.weight = {}
-        source = Mock(spec = node.Node)
-        destination = Mock(spec = node.Node)
-        e.destination = destination
-        e.source = source
-        geodata_s = Mock(spec = io_gdal.GeoDataset)
-        geodata_d = Mock(spec = io_gdal.GeoDataset)
-        source.geodata = geodata_s
-        destination.geodata = geodata_d
-
-        wkt1 = "POLYGON ((0 40, 40 40, 40 0, 0 0, 0 40))"
-        wkt2 = "POLYGON ((20 60, 60 60, 60 20, 20 20, 20 60))"
-
-        poly1 = ogr.CreateGeometryFromWkt(wkt1)
-        poly2 = ogr.CreateGeometryFromWkt(wkt2)
-
-        source.geodata.footprint = poly1
-        destination.geodata.footprint = poly2
-
-        e.overlap()
-        self.assertEqual(e.weight['overlap_area'], 400)
-        self.assertEqual(e.weight['overlap_percn'], 14.285714285714285)
