@@ -35,11 +35,13 @@ install:
   # Install the non-conda packages if required, requirements.txt duplicates are ignored
   - conda install -c https://conda.anaconda.org/jlaura opencv3=3.0.0
   - conda config --add channels conda-forge
+  - conda install runipy
   - conda install -c https://conda.anaconda.org/conda-forge gdal h5py
   - pip install -r requirements.txt
   # Development installation
   - conda install nose coverage
   - pip install coveralls
+  - python runipynbs.py
 
 script:
   - nosetests --with-coverage --cover-package=autocnet
@@ -50,16 +52,16 @@ after_success:
 notifications:
   webhooks:
     urls:
-      - https://webhooks.gitter.im/e/6cbe4b65fff6764ed80f
+ #     - https://webhooks.gitter.im/e/6cbe4b65fff6764ed80f
     on_success: always  
     on_failure: always  
     on_start: never     
   email:
       recipients:
-          - kberry@usgs.gov
-          - dmlytle@usgs.gov
-          - jwbacker@usgs.gov
-          - krodriguez@usgs.gov
+#          - kberry@usgs.gov
+#          - dmlytle@usgs.gov
+#          - jwbacker@usgs.gov
+#          - krodriguez@usgs.gov
       on_success: always
       on_failure: always
       

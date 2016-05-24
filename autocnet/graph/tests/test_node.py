@@ -75,3 +75,11 @@ class TestNode(unittest.TestCase):
         self.assertTrue((kps.sort(axis=0) == self.node.get_keypoints().sort(axis=0)).all().all())
 
         os.remove('node_test.hdf')
+
+    def test_coverage(self):
+        image = self.node.get_array()
+        self.node.extract_features(image, method='sift', extractor_parameters={'nfeatures': 10})
+
+        coverage_percn = self.node.coverage()
+
+        self.assertAlmostEqual(coverage_percn, 38.06139557)

@@ -14,6 +14,7 @@ from autocnet.matcher import subpixel as sp
 from autocnet.matcher.matcher import FlannMatcher
 from autocnet.transformation.transformations import FundamentalMatrix, Homography
 from autocnet.vis.graph_view import plot_edge
+from autocnet.cg import cg
 
 
 class Edge(dict, MutableMapping):
@@ -32,6 +33,11 @@ class Edge(dict, MutableMapping):
                  With key equal to an autoincrementing integer and value
                  equal to a dict of parameters used to generate this
                  realization.
+
+    weight : dict
+             Dictionary with two keys overlap_area, and overlap_percn
+             overlap_area returns the area overlaped by both images
+             overlap_percn retuns the total percentage of overlap
     """
 
     def __init__(self, source=None, destination=None):
@@ -42,6 +48,8 @@ class Edge(dict, MutableMapping):
         self.fundamental_matrix = None
         self.matches = None
         self._subpixel_offsets = None
+
+        self.weight = {}
 
         self._observers = set()
 
@@ -452,3 +460,18 @@ class Edge(dict, MutableMapping):
             mask = pd.Series(True, self.matches.index)
 
         return matches, mask
+
+    def overlap(self):
+        """
+        Acts on an edge and returns the overlap area and percentage of overlap
+        between the two images on the edge. Data is returned to the
+        weight dictionary
+        """
+        poly1 = self.source.geodata.footprint
+        poly2 = self.destination.geodata.footprint
+
+        overlapinfo = cg.two_poly_overlap(poly1, poly2)
+
+        self.weight['overlap_area'] = overlapinfo[1]
+        self.weight['overlap_percn'] = overlapinfo[0]
+

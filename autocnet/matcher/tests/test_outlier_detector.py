@@ -6,10 +6,10 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from .. import outlier_detector
+from .. import matcher, outlier_detector
+from autocnet.matcher.outlier_detector import SpatialSuppression
 
 sys.path.append(os.path.abspath('..'))
-
 
 class TestOutlierDetector(unittest.TestCase):
 
@@ -91,7 +91,7 @@ class TestSpatialSuppression(unittest.TestCase):
     def test_suppress(self):
         self.suppression_obj.k = 30
         self.suppression_obj.suppress()
-        self.assertIn(self.suppression_obj.mask.sum(), list(range(27, 34)))
+        self.assertIn(self.suppression_obj.mask.sum(), list(range(27, 35)))
 
         with warnings.catch_warnings(record=True) as w:
             self.suppression_obj.k = 101
@@ -99,3 +99,37 @@ class TestSpatialSuppression(unittest.TestCase):
             self.assertEqual(len(w), 1)
             self.assertTrue(issubclass(w[0].category, UserWarning))
 
+class testSuppressionRanges(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.r = np.random.RandomState(12345)
+
+    def test_one_by_one(self):
+        df = pd.DataFrame(self.r.uniform(0,1,(500, 3)), columns=['x', 'y', 'strength'])
+        sup = SpatialSuppression(df, (1,1), k = 1)
+        self.assertRaises(ValueError, sup.suppress())
+
+    def test_min_max(self):
+        df = pd.DataFrame(self.r.uniform(0,2,(500, 3)), columns=['x', 'y', 'strength'])
+        sup = SpatialSuppression(df, (1.5,1.5), k = 1)
+        sup.suppress()
+        self.assertEqual(len(df[sup.mask]), 1)
+
+    def test_point_overload(self):
+        df = pd.DataFrame(self.r.uniform(0,15,(500, 3)), columns=['x', 'y', 'strength'])
+        sup = SpatialSuppression(df, (15,15), k = 200)
+        sup.suppress()
+        self.assertEqual(len(df[sup.mask]), 70)
+
+    def test_small_distribution(self):
+        df = pd.DataFrame(self.r.uniform(0,25,(500, 3)), columns=['x', 'y', 'strength'])
+        sup = SpatialSuppression(df, (25,25), k = 25)
+        sup.suppress()
+        self.assertEqual(len(df[sup.mask]), 28)
+
+    def test_normal_distribution(self):
+        df = pd.DataFrame(self.r.uniform(0,100,(500, 3)), columns=['x', 'y', 'strength'])
+        sup = SpatialSuppression(df, (100,100), k = 15)
+        sup.suppress()
+        self.assertEqual(len(df[sup.mask]), 17)
