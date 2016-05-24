@@ -2,7 +2,6 @@ import json
 import ogr
 import pandas as pd
 
-from autocnet.fileio import io_gdal
 from scipy.spatial import ConvexHull
 
 
@@ -61,9 +60,9 @@ def convex_hull(points):
 
     Returns
     -------
-    hull_poly : ogr
-             an ogr polygon that is built out of
-             the convex_hull
+    hull : 2-D convex hull
+            Provides a convex hull that is used
+            to determine coverage
 
     """
 
@@ -72,6 +71,7 @@ def convex_hull(points):
 
     hull = ConvexHull(points)
     return hull
+
 
 def two_poly_overlap(poly1, poly2):
     """
@@ -89,7 +89,8 @@ def two_poly_overlap(poly1, poly2):
     Returns
     -------
      overlap_info : list
-            The ratio convex hull volume / ideal_area
+            Percentage of overlap between the two images
+            and the area that is being overlapped
 
     """
     a_o = poly2.Intersection(poly1).GetArea()

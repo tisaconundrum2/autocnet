@@ -1,7 +1,5 @@
 import warnings
 from collections import MutableMapping
-import json
-import ogr
 
 import numpy as np
 import pandas as pd
@@ -422,6 +420,11 @@ class Edge(dict, MutableMapping):
         return matches, mask
 
     def overlap(self):
+        """
+        Acts on an edge and returns the overlap area and percentage of overlap
+        between the two images on the edge. Data is returned to the
+        weight dictionary
+        """
         poly1 = self.source.geodata.footprint
         poly2 = self.destination.geodata.footprint
 

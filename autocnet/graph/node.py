@@ -1,13 +1,10 @@
 from collections import MutableMapping
 import os
 import warnings
-import json
-import ogr
 
 import numpy as np
 import pandas as pd
 from scipy.misc import bytescale
-from scipy.spatial import ConvexHull
 
 from autocnet.cg import cg
 from autocnet.fileio.io_gdal import GeoDataset
@@ -119,6 +116,18 @@ class Node(dict, MutableMapping):
         return self._isis_serial
 
     def coverage(self):
+        """
+        Determines the area of keypoint coverage
+        using the unprojected image, resulting
+        in a rough estimation of the area being covered.
+
+        Returns
+        -------
+        coverage_area :  float
+                        Area covered by the generated
+                        keypoints
+        """
+
         points = self.get_keypoint_coordinates()
         hull = cg.convex_hull(points)
         hull_area = hull.volume

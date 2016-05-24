@@ -7,8 +7,6 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from autocnet.graph.network import CandidateGraph
-from autocnet.graph import node
 from autocnet.examples import get_path
 from autocnet.fileio.io_gdal import GeoDataset
 
