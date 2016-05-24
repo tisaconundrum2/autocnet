@@ -119,7 +119,8 @@ class Node(dict, MutableMapping):
         """
         Determines the area of keypoint coverage
         using the unprojected image, resulting
-        in a rough estimation of the area being covered.
+        in a rough estimation of the percentage area
+        being covered.
 
         Returns
         -------
@@ -137,7 +138,7 @@ class Node(dict, MutableMapping):
 
         total_area = max_x * max_y
 
-        self.coverage_area = hull_area/total_area
+        self.coverage_area = (hull_area/total_area)*100
 
         return self.coverage_area
 

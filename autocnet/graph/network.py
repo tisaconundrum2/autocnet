@@ -474,7 +474,7 @@ class CandidateGraph(nx.Graph):
         '''
         self.apply_func_to_edges('suppress', *args, **kwargs)
 
-    def overlap(self, *args, **kwargs):
+    def overlap(self):
         '''
         Compute the percentage and area coverage of two images
 
