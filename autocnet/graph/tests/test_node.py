@@ -82,4 +82,4 @@ class TestNode(unittest.TestCase):
 
         coverage_percn = self.node.coverage()
 
-        self.assertEqual(coverage_percn, 0.3806139557604381)
+        self.assertAlmostEqual(coverage_percn, 0.380613955)

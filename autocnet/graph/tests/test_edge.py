@@ -71,4 +71,4 @@ class TestEdge(unittest.TestCase):
 
         e.overlap()
         self.assertEqual(e.weight['overlap_area'], 400)
-        self.assertEqual(e.weight['overlap_percn'], 14.285714285714285)
+        self.assertAlmostEqual(e.weight['overlap_percn'], 14.285714285)

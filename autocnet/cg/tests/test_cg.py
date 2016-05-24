@@ -31,4 +31,4 @@ class TestArea(unittest.TestCase):
         info = cg.two_poly_overlap(poly1, poly2)
 
         self.assertEqual(info[1], 400)
-        self.assertEqual(info[0], 14.285714285714285)
+        self.assertAlmostEqual(info[0], 14.285714285)
