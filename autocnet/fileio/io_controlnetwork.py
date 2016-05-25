@@ -27,7 +27,7 @@ def write_filelist(lst, path="fromlist.lis"):
     return
 
 
-def to_isis(path, C, mode='w', version=VERSION,
+def to_isis(path, network, mode='w', version=VERSION,
             headerstartbyte=HEADERSTARTBYTE,
             networkid='None', targetname='None',
             description='None', username=DEFAULTUSERNAME):
@@ -74,9 +74,9 @@ def to_isis(path, C, mode='w', version=VERSION,
 
     if isinstance(path, str):
         with IsisStore(path, mode) as store:
-            point_messages, point_sizes = store.create_points(C)
+            point_messages, point_sizes = store.create_points(network)
             points_bytes = sum(point_sizes)
-            buffer_header, buffer_header_size = store.create_buffer_header(C, networkid,
+            buffer_header, buffer_header_size = store.create_buffer_header(network, networkid,
                                                                            targetname,
                                                                            description,
                                                                            username,
@@ -89,7 +89,7 @@ def to_isis(path, C, mode='w', version=VERSION,
                 store.write(point, point_start_offset)
                 point_start_offset += point_sizes[i]
 
-            header = store.create_pvl_header(C, version, headerstartbyte, networkid,
+            header = store.create_pvl_header(network, version, headerstartbyte, networkid,
                                              targetname, description, username,
                                              buffer_header_size, points_bytes)
 
@@ -100,9 +100,17 @@ def to_isis(path, C, mode='w', version=VERSION,
 class IsisStore(object):
     """
     Class to manage IO of an ISIS control network (version 2).
+
+    Attributes
+    ----------
+    pointid : int
+              The current index to be assigned to newly added points
     """
 
     def __init__(self, path, mode=None, **kwargs):
+        self.pointid = 0
+        self.nmeasures = 0
+
         self._path = path
         if not mode:
             mode = 'a' # pragma: no cover
@@ -149,36 +157,38 @@ class IsisStore(object):
         """
         point_sizes = []
         point_messages = []
+        for i, node in cnet.nodes(data=True):
+            for pid, measure_list in node.point_to_correspondence.items():
+                point_spec = cnf.ControlPointFileEntryV0002()
+                point_spec.id = str(self.pointid)
+                point_spec.type = pid.point_type
 
-        for pid, measure_list in cnet.point_to_correspondence.items():
-            point_spec = cnf.ControlPointFileEntryV0002()
-            point_spec.id = str(pid)
-            point_spec.type = pid.point_type
+                # The reference index should always be the image with the lowest index
+                point_spec.referenceIndex = 0
 
-            # The reference index should always be the image with the lowest index
-            point_spec.referenceIndex = 0
+                # A single extend call is cheaper than many add calls to pack points
+                measure_iterable = []
 
-            # A single extend call is cheaper than many add calls to pack points
-            measure_iterable = []
+                for node_id, m in measure_list:
+                    measure_spec = point_spec.Measure()
+                    try:
+                        measure_spec.serialnumber = m.serial
+                    except:
+                        measure_spec.serialnumber = str(m.serial)
+                    measure_spec.type = m.measure_type
+                    measure_spec.sample = float(m.x)
+                    measure_spec.line = float(m.y)
 
-            for node_id, m in measure_list:
-                measure_spec = point_spec.Measure()
-                try:
-                    measure_spec.serialnumber = m.serial
-                except:
-                    measure_spec.serialnumber = str(m.serial)
-                measure_spec.type = m.measure_type
-                measure_spec.sample = float(m.x)
-                measure_spec.line = float(m.y)
+                    measure_iterable.append(measure_spec)
+                    self.nmeasures += 1
+                point_spec.measures.extend(measure_iterable)
 
-                measure_iterable.append(measure_spec)
-            point_spec.measures.extend(measure_iterable)
+                point_message = point_spec.SerializeToString()
+                point_sizes.append(point_spec.ByteSize())
+                point_messages.append(point_message)
 
-            point_message = point_spec.SerializeToString()
-            point_sizes.append(point_spec.ByteSize())
-            point_messages.append(point_message)
-
-        return point_messages, point_sizes
+                self.pointid += 1
+            return point_messages, point_sizes
 
     def create_buffer_header(self, cnet, networkid, targetname,
                              description, username, point_sizes):
@@ -289,8 +299,8 @@ class IsisStore(object):
                         ('Created', cnet.creationdate),
                         ('LastModified', cnet.modifieddate),
                         ('Description', description),
-                        ('NumberOfPoints', cnet.n_points),
-                        ('NumberOfMeasures', cnet.n_measures),
+                        ('NumberOfPoints', self.pointid),
+                        ('NumberOfMeasures', self.nmeasures),
                         ('Version', version)
                         ])
                   }),
