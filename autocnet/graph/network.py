@@ -1,11 +1,11 @@
 import itertools
 import os
+from time import gmtime, strftime
 import warnings
 
 import dill as pickle
 import networkx as nx
 
-from autocnet.control.control import CorrespondenceNetwork
 from autocnet.fileio import io_hdf
 from autocnet.fileio import io_json
 from autocnet.fileio import io_utils
@@ -66,6 +66,9 @@ class CandidateGraph(nx.Graph):
             e = self.edge[s][d]
             e.source = self.node[s]
             e.destination = self.node[d]
+
+        self.creationdate = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        self.modifieddate = strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
     @classmethod
     def from_graph(cls, graph):
@@ -167,6 +170,12 @@ class CandidateGraph(nx.Graph):
                 input_adjacency[k] = [os.path.join(basepath, i) for i in v]
                 input_adjacency[os.path.join(basepath, k)] = input_adjacency.pop(k)
         return cls(input_adjacency)
+
+    def _update_date(self):
+        """
+        Update the last modified date attribute.
+        """
+        self.modifieddate = strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
     def get_name(self, node_index):
         """

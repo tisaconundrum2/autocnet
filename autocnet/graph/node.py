@@ -68,8 +68,8 @@ class Node(dict, MutableMapping):
 
     @property
     def nkeypoints(self):
-        if hasattr(self, '_nkeypoints'):
-            return self._nkeypoints
+        if hasattr(self, '_keypoints'):
+            return len(self._keypoints)
         else:
             return 0
 

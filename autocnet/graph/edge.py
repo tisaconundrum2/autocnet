@@ -183,7 +183,6 @@ class Edge(dict, MutableMapping):
         # Set the initial state of the fundamental mask in the masks
         self.masks = ('fundamental', mask)
 
-
     def add_putative_matches(self):
         if not hasattr(self, 'fundamental_matrix'):
             raise(ValueError, 'Fundamental matric has not been computed')
@@ -452,14 +451,11 @@ class Edge(dict, MutableMapping):
                A boolean series to inflate back to the full match set
         """
         if clean_keys:
-            panel = self.masks
-            mask = panel[clean_keys].all(axis=1)
-            matches = self.matches[mask]
+            mask = self.masks[clean_keys].all(axis=1)
         else:
-            matches = self.matches
             mask = pd.Series(True, self.matches.index)
 
-        return matches, mask
+        return self.matches[mask], mask
 
     def overlap(self):
         """
