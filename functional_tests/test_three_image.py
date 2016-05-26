@@ -62,7 +62,10 @@ class TestThreeImageMatching(unittest.TestCase):
         filelist = cg.to_filelist()
         write_filelist(filelist, 'TestThreeImageMatching_fromlist.lis')
 
-        to_isis('TestThreeImageMatching.net', cg.cn, mode='wb',
+        # Step: Create a correspondence network
+        cg.generate_cnet(clean_keys=['symmetry', 'ratio', 'ransac'])
+
+        to_isis('TestThreeImageMatching.net', cg, mode='wb',
                 networkid='TestThreeImageMatching', targetname='Moon')
 
     def tearDown(self):

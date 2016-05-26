@@ -2,7 +2,6 @@ from collections import deque
 import math
 import warnings
 
-import cv2
 import numpy as np
 import pandas as pd
 
@@ -84,7 +83,6 @@ class DistanceRatio(Observable):
                 res[0] = True
             return res
 
-        self.single = single
         if mask is not None:
             self.mask = mask.copy()
             mask_s = self.matches[mask].groupby('source_idx')['distance'].transform(func).astype('bool')
@@ -92,9 +90,9 @@ class DistanceRatio(Observable):
             self.mask[mask] = mask_s & mask_d
         else:
             mask_s = self.matches.groupby('source_idx')['distance'].transform(func).astype('bool')
-            mask_d = self.matches.groupby('destination_idx')['distance'].transformat(func).astype('bool')
+            mask_d = self.matches.groupby('destination_idx')['distance'].transform(func).astype('bool')
 
-            self.mask = (mask_s & mask_d)
+            self.mask = mask_s & mask_d
 
         state_package = {'ratio': ratio,
                          'mask': self.mask.copy(),
@@ -320,113 +318,3 @@ def mirroring_test(matches):
     duplicate_mask = matches.duplicated(subset=['source_idx', 'destination_idx', 'distance'], keep='last')
     return duplicate_mask
 
-
-def compute_fundamental_matrix(kp1, kp2, method='ransac', reproj_threshold=5.0, confidence=0.99):
-    """
-    Given two arrays of keypoints compute the fundamental matrix
-
-    Parameters
-    ----------
-    kp1 : ndarray
-          (n, 2) of coordinates from the source image
-
-    kp2 : ndarray
-          (n, 2) of coordinates from the destination image
-
-    outlier_algorithm : {'ransac', 'lmeds', 'normal'}
-                        The openCV algorithm to use for outlier detection
-
-    reproj_threshold : float
-                       The maximum distances in pixels a reprojected points
-                       can be from the epipolar line to be considered an inlier
-
-    confidence : float
-                 [0, 1] that the estimated matrix is correct
-
-    Returns
-    -------
-    transformation_matrix : ndarray
-                            The 3x3 transformation matrix
-
-    mask : ndarray
-           Boolean array of the outliers
-
-    Notes
-    -----
-    While the method is user definable, if the number of input points
-    is < 7, normal outlier detection is automatically used, if 7 > n > 15,
-    least medians is used, and if 7 > 15, ransac can be used.
-    """
-    if method == 'ransac':
-        method_ = cv2.FM_RANSAC
-    elif method == 'lmeds':
-        method_ = cv2.FM_LMEDS
-    elif method == 'normal':
-        method_ = cv2.FM_7POINT
-    elif method == '8point':
-        method_ = cv2.FM_8POINT
-    else:
-        raise ValueError("Unknown outlier detection method.  Choices are: 'ransac', 'lmeds', or 'normal'.")
-
-    transformation_matrix, mask = cv2.findFundamentalMat(kp1,
-                                                         kp2,
-                                                         method_,
-                                                         reproj_threshold,
-                                                         confidence)
-    try:
-        mask = mask.astype(bool)
-    except:
-        pass  # pragma: no cover
-
-    return transformation_matrix, mask
-
-
-def compute_homography(kp1, kp2, method='ransac', **kwargs):
-    """
-    Given two arrays of keypoints compute the homography
-
-    Parameters
-    ----------
-    kp1 : ndarray
-          (n, 2) of coordinates from the source image
-
-    kp2 : ndarray
-          (n, 2) of coordinates from the destination image
-
-    method : {'ransac', 'lmeds', 'normal'}
-             The openCV algorithm to use for outlier detection
-
-    ransacReprojThreshold : float
-                            The maximum distances in pixels a reprojected points
-                            can be from the epipolar line to be considered an inlier
-
-    Returns
-    -------
-    transformation_matrix : ndarray
-                            The 3x3 perspective transformation matrix
-
-    mask : ndarray
-           Boolean array of the outliers
-
-    Notes
-    -----
-    While the method is user definable, if the number of input points
-    is < 7, normal outlier detection is automatically used, if 7 > n > 15,
-    least medians is used, and if 7 > 15, ransac can be used.
-    """
-
-    if method == 'ransac':
-        method_ = cv2.RANSAC
-    elif method == 'lmeds':
-        method_ = cv2.LMEDS
-    elif method == 'normal':
-        method_ = 0  # Normal method
-    else:
-        raise ValueError("Unknown outlier detection method.  Choices are: 'ransac', 'lmeds', or 'normal'.")
-    transformation_matrix, mask = cv2.findHomography(kp1,
-                                                     kp2,
-                                                     method_,
-                                                     **kwargs)
-    if mask is not None:
-        mask = mask.astype(bool)
-    return transformation_matrix, mask

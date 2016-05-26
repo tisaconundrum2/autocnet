@@ -22,21 +22,31 @@ from autocnet.utils import utils
 
 class Node(dict, MutableMapping):
     """
+    This class represents a node in a graph and is synonymous with an
+    image.  The node (image) stores PATH information, an accessor to the
+    on-disk data set, and correspondences information that references the image.
+
+
     Attributes
     ----------
-
     image_name : str
                  Name of the image, with extension
+
     image_path : str
                  Relative or absolute PATH to the image
+
     geodata : object
              File handle to the object
+
     keypoints : dataframe
                 With columns, x, y, and response
+
     nkeypoints : int
                  The number of keypoints found for this image
+
     descriptors : ndarray
                   32-bit array of feature descriptors returned by OpenCV
+
     masks : set
             A list of the available masking arrays
 
@@ -51,6 +61,7 @@ class Node(dict, MutableMapping):
         self.node_id = node_id
         self._mask_arrays = {}
         self.point_to_correspondence = defaultdict(set)
+        self.nkeypoints = 0
 
     def __repr__(self):
         return """
@@ -68,17 +79,6 @@ class Node(dict, MutableMapping):
         if not getattr(self, '_geodata', None):
             self._geodata = GeoDataset(self.image_path)
         return self._geodata
-
-    @property
-    def nkeypoints(self):
-        if hasattr(self, '_keypoints'):
-            return len(self._keypoints)
-        else:
-            return 0
-
-    @nkeypoints.setter
-    def nkeypoints(self, v):
-        self._nkeypoints = v
 
     @property
     def masks(self):
@@ -231,7 +231,7 @@ class Node(dict, MutableMapping):
             keypoints[i] = kpt.pt[0], kpt.pt[1], kpt.response, kpt.size, kpt.angle, octave, layer  # y, x
         self._keypoints = pd.DataFrame(keypoints, columns=['x', 'y', 'response', 'size',
                                                            'angle', 'octave', 'layer'])
-        self._nkeypoints = len(self._keypoints)
+        self.nkeypoints = len(self._keypoints)
         self.descriptors = descriptors.astype(np.float32)
 
     def load_features(self, in_path):

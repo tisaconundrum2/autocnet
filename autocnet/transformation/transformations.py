@@ -9,7 +9,6 @@ import pandas as pd
 import pysal as ps
 from scipy import optimize
 
-from autocnet.matcher.outlier_detector import compute_fundamental_matrix
 from autocnet.utils.utils import make_homogeneous, normalize_vector, crossform
 from autocnet.camera import camera
 
@@ -26,6 +25,7 @@ class TransformationMatrix(np.ndarray):
 
         obj = np.asarray(ndarray).view(cls)
         obj.index = index
+        obj.mask = pd.Series(True, index=index)
         obj._action_stack = deque(maxlen=10)
         obj._current_action_stack = 0
         obj._observers = set()
@@ -257,22 +257,18 @@ class FundamentalMatrix(TransformationMatrix):
         # Perform the data classification
         if values is None:
             values = self.error
-        fj = method(values.ravel(), **kwargs)
-        # Mask the data that falls outside the provided bins
-        mask = values <= fj.yb[bin_id]
-        new_x1 = self.x1.iloc[mask[mask == True].index]
-        new_x2 = self.x2.iloc[mask[mask == True].index]
-        fmatrix, new_mask = compute_fundamental_matrix(new_x1.values, new_x2.values)
-        mask[mask == True] = new_mask
 
-        # Update the current state
-        self[:] = fmatrix
-        self.mask = mask
-
-        # Update the action stack
         try:
-            state_package = {'arr': fmatrix.copy(),
+            state_package = {'arr': self[:].copy(),
                              'mask': self.mask.copy()}
+
+            # Perform the computation
+            fj = method(values.ravel(), **kwargs)
+            # Mask the data that falls outside the provided bins
+            mask = values <= fj.yb[bin_id]
+            new_x1 = self.x1.iloc[mask[mask].index]
+            new_x2 = self.x2.iloc[mask[mask].index]
+            self.compute(new_x1.values, new_x2.values)
 
             self._action_stack.append(state_package)
             self._current_action_stack = len(self._action_stack) - 1  # 0 based vs. 1 based
@@ -304,6 +300,7 @@ class FundamentalMatrix(TransformationMatrix):
         --------
         compute_error : The method called to compute element-wise error.
         """
+
         x = self.x1[self.mask]
         x1 = self.x2[self.mask]
         return self.compute_error(self.x1, self.x2)
@@ -379,7 +376,7 @@ class FundamentalMatrix(TransformationMatrix):
 
         Parameters
         ----------
-        kp1 : ndarray
+        kp1 : arraylike
               (n, 2) of coordinates from the source image
 
         kp2 : ndarray
@@ -412,15 +409,11 @@ class FundamentalMatrix(TransformationMatrix):
         else:
             raise ValueError("Unknown outlier detection method. Choices are: 'ransac', 'lmeds', '8point', or 'normal'.")
 
-        #x1_norm = self._normalize(kp1)
-        #x2_norm = self._normalize(kp2)
+        kp1 = np.asarray(kp1)
+        kp2 = np.asarray(kp2)
 
-        #kp1_norm = kp1.values.dot(x1_norm)
-        #kp2_norm = kp2.values.dot(x2_norm)
-
-
-        F, mask = cv2.findFundamentalMat(kp1.values,
-                                         kp2.values,
+        F, mask = cv2.findFundamentalMat(kp1,
+                                         kp2,
                                          method_,
                                          param1=reproj_threshold,
                                          param2=confidence)
@@ -428,7 +421,7 @@ class FundamentalMatrix(TransformationMatrix):
         try:
             mask = mask.astype(bool).ravel()  # Enforce dimensionality
         except:
-            pass  # pragma: no cover
+            return  # pragma: no cover
 
         # Ensure that the singularity constraint is met
         self._enforce_singularity_constraint()
@@ -438,11 +431,7 @@ class FundamentalMatrix(TransformationMatrix):
         self.x2 = kp2
         self.mask = pd.Series(mask, index=self.index)
 
-        # Denormalize F_Prime to F and set
-        #f = x2_norm.T.dot(transformation_matrix).dot(x1_norm)
         self[:] = F
-
-
 
     def _enforce_singularity_constraint(self):
         """
@@ -482,6 +471,10 @@ class Homography(TransformationMatrix):
             compute this homography
     """
 
+    @property
+    def error(self):
+        return self.compute_error(self.x1, self.x2)
+
     def compute_error(self, a, b, mask=None):
         """
         Give this homography, compute the planar reprojection error
@@ -512,11 +505,10 @@ class Homography(TransformationMatrix):
         if mask is not None:
             mask = mask
         else:
-            mask = self.mask
-        index = mask[mask == True].index
+            mask = pd.Series(True, index=self.index)
 
-        a = a.iloc[index].values
-        b = b.iloc[index].values
+        a = a[mask].values
+        b = b[mask].values
 
         if a.shape[1] == 2:
             a = make_homogeneous(a)
@@ -544,13 +536,52 @@ class Homography(TransformationMatrix):
                                    'y_residuals',
                                    'rmse',
                                    'error_contribution'],
-                          index=index)
+                          index=self.index)
 
         df.total_rms = total_rms
         df.x_rms = x_rms
         df.y_rms = y_rms
-
         return df
+
+    def compute(self, kp1, kp2, method='ransac', reproj_threshold=2.0):
+        """
+        Compute a planar homography given two sets of keypoints
+
+
+        Parameters
+        ----------
+        kp1 : ndarray
+              (n, 2) of coordinates from the source image
+
+        kp2 : ndarray
+              (n, 2) of coordinates from the destination image
+
+        method : {'ransac', 'lmeds', 'normal'}
+                 The openCV algorithm to use for outlier detection
+
+        reproj_threshold : float
+                           The maximum distances in pixels a reprojected points
+                           can be from the epipolar line to be considered an inlier
+        """
+        self.x1 = kp1
+        self.x2 = kp2
+
+        if method == 'ransac':
+            method_ = cv2.RANSAC
+        elif method == 'lmeds':
+            method_ = cv2.LMEDS
+        elif method == 'normal':
+            method_ = 0  # Normal method
+        else:
+            raise ValueError("Unknown outlier detection method.  Choices are: 'ransac', 'lmeds', or 'normal'.")
+        transformation_matrix, mask = cv2.findHomography(kp1,
+                                                         kp2,
+                                                         method_,
+                                                         reproj_threshold)
+        if mask is not None:
+            mask = mask.astype(bool)
+        self.mask = mask
+        self[:] = transformation_matrix
 
     def recompute_matrix(self):
         raise NotImplementedError

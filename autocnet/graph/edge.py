@@ -68,7 +68,7 @@ class Edge(dict, MutableMapping):
         mask_lookup = {'fundamental': 'fundamental_matrix',
                        'ratio': 'distance_ratio'}
         if not hasattr(self, '_masks'):
-            if hasattr(self, 'matches'):
+            if self.matches is not None:
                 self._masks = pd.DataFrame(True, columns=['symmetry'],
                                            index=self.matches.index)
             else:
@@ -93,7 +93,21 @@ class Edge(dict, MutableMapping):
         return self._health.health
 
     def match(self, k=2):
+        """
+        Given two sets of descriptors, utilize a FLANN (Approximate Nearest
+        Neighbor KDTree) matcher to find the k nearest matches.  Nearness is
+        the euclidean distance between descriptors.
 
+        The matches are then added as an attribute to the edge object.
+        Parameters
+        ----------
+        k : int
+            The number of neighbors to find
+
+        Returns
+        -------
+
+        """
         def mono_matches(a, b):
             fl.add(a.descriptors, a.node_id)
             fl.train()
@@ -105,6 +119,15 @@ class Edge(dict, MutableMapping):
         mono_matches(self.destination, self.source)
 
     def _add_matches(self, matches):
+        """
+        Given a dataframe of matches, either append to an existing
+        matches edge attribute or initially populate said attribute.
+
+        Parameters
+        ----------
+        matches : dataframe
+                  A dataframe of matches
+        """
         if self.matches is None:
             self.matches = matches
         else:
@@ -160,6 +183,7 @@ class Edge(dict, MutableMapping):
             return
         matches, mask = self._clean(clean_keys)
 
+        # TODO: Homogeneous is horribly inefficient here, use Numpy array notation
         s_keypoints = self.source.get_keypoint_coordinates(index=matches['source_idx'],
                                                                  homogeneous=True)
         d_keypoints = self.destination.get_keypoint_coordinates(index=matches['destination_idx'],
@@ -219,17 +243,13 @@ class Edge(dict, MutableMapping):
         s_keypoints = self.source.get_keypoint_coordinates(index=matches['source_idx'])
         d_keypoints = self.destination.get_keypoint_coordinates(index=matches['destination_idx'])
 
-        transformation_matrix, ransac_mask = od.compute_homography(s_keypoints.values,
-                                                                   d_keypoints.values,
-                                                                   **kwargs)
+        self.homography = Homography(np.zeros((3,3)), index=self.masks.index)
+        self.homography.compute(s_keypoints.values,
+                                d_keypoints.values)
 
         # Convert the truncated RANSAC mask back into a full length mask
-        mask[mask] = ransac_mask.ravel()
+        mask[mask] = self.homography.mask.ravel()
         self.masks = ('ransac', mask)
-        self.homography = Homography(transformation_matrix,
-                                     s_keypoints[ransac_mask],
-                                     d_keypoints[ransac_mask],
-                                     mask=mask[mask].index)
 
         # Finalize the array to get custom attrs to propagate
         self.homography.__array_finalize__(self.homography)

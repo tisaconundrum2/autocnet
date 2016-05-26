@@ -13,7 +13,6 @@ from autocnet.fileio.io_gdal import GeoDataset
 from autocnet.graph import markov_cluster
 from autocnet.graph.edge import Edge
 from autocnet.graph.node import Node
-from autocnet.matcher.add_depth import deepen_correspondences
 from autocnet.vis.graph_view import plot_graph
 
 
@@ -661,7 +660,7 @@ class CandidateGraph(nx.Graph):
         # get all edges that have matches
         matches = [(u, v) for u, v, edge in self.edges_iter(data=True)
                    if hasattr(edge, 'matches') and
-                   not edge.matches.empty]
+                   not edge.matches is None]
 
         return self.create_edge_subgraph(matches)
 
