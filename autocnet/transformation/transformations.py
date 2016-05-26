@@ -410,7 +410,10 @@ class FundamentalMatrix(TransformationMatrix):
         self.x2 = kp2
         self.mask = pd.Series(mask, index=self.index)
 
-        self[:] = F
+        try:
+            self[:] = F
+        except:
+            warnings.warn('F computation fell back to 7-point algorithm and returned 3 F matrices.')
 
     def _enforce_singularity_constraint(self):
         """

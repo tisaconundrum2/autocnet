@@ -86,10 +86,12 @@ class DistanceRatio(Observable):
         if mask is not None:
             self.mask = mask.copy()
             mask_s = self.matches[mask].groupby('source_idx')['distance'].transform(func).astype('bool')
+            single = True
             mask_d = self.matches[mask].groupby('destination_idx')['distance'].transform(func).astype('bool')
             self.mask[mask] = mask_s & mask_d
         else:
             mask_s = self.matches.groupby('source_idx')['distance'].transform(func).astype('bool')
+            single = True
             mask_d = self.matches.groupby('destination_idx')['distance'].transform(func).astype('bool')
 
             self.mask = mask_s & mask_d
