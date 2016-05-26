@@ -1,4 +1,4 @@
-from collections import MutableMapping
+from collections import defaultdict, MutableMapping
 import os
 import warnings
 
@@ -7,8 +7,10 @@ import pandas as pd
 from scipy.misc import bytescale
 
 from autocnet.cg import cg
+from autocnet.control.control import Correspondence, Point
 from autocnet.fileio.io_gdal import GeoDataset
 from autocnet.fileio import io_hdf
+from autocnet.matcher.add_depth import deepen_correspondences
 from autocnet.matcher import feature_extractor as fe
 from autocnet.matcher import outlier_detector as od
 from autocnet.matcher import suppression_funcs as spf
@@ -48,6 +50,7 @@ class Node(dict, MutableMapping):
         self.image_path = image_path
         self.node_id = node_id
         self._mask_arrays = {}
+        self.point_to_correspondence = defaultdict(set)
 
     def __repr__(self):
         return """
@@ -301,6 +304,93 @@ class Node(dict, MutableMapping):
         # object close the file
         if isinstance(out_path, str):
             hdf = None
+
+    def group_correspondences(self, cg, *args, clean_keys=['fundamental'], deepen=False, **kwargs):
+        """
+
+        Parameters
+        ----------
+        cg : object
+             The graph object this node is a member of
+
+        deepen : bool
+                 If True, attempt to punch matches through to all incident edges.  Default: False
+        """
+        node = self.node_id
+        # Get the edges incident to the current node
+        incident_edges = set(cg.edges(node)).intersection(set(cg.edges()))
+
+        # If this node is free floating, ignore it.
+        if not incident_edges:
+             # TODO: Add dangling correspondences to control network anyway.  Subgraphs handle this segmentation if req.
+            return
+
+        # Grab all the incident edge matches and concatenate into a group match set.
+        # All share the same source node
+        edge_matches = []
+        for e in incident_edges:
+            edge = cg[e[0]][e[1]]
+            matches, mask = edge._clean(clean_keys=clean_keys)
+            # Add a depth mask that initially mirrors the fundamental mask
+            edge_matches.append(matches)
+        d = pd.concat(edge_matches)
+
+        # Counter for point identifiers
+        pid = 0
+
+        # Iterate through all of the correspondences and attempt to add additional correspondences using
+        # the epipolar constraint
+        for idx, g in d.groupby('source_idx'):
+            # Pull the source index to be used as the search
+            source_idx = g['source_idx'].values[0]
+
+            # Add the point object onto the node
+            point = Point(pid)
+
+            covered_edges = list(map(tuple, g[['source_image', 'destination_image']].values))
+            # The reference edge that we are deepening with
+            ab = cg.edge[covered_edges[0][0]][covered_edges[0][1]]
+
+            # Get the coordinates of the search correspondence
+            ab_keypoints = ab.source.get_keypoint_coordinates(index=g['source_idx'])
+            ab_x = None
+
+            for j, (r_idx, r) in enumerate(g.iterrows()):
+                kp = ab_keypoints.iloc[j].values
+
+                # Homogenize the coord used for epipolar projection
+                if ab_x is None:
+                    ab_x = np.array([kp[0], kp[1], 1.])
+
+                kpd = ab.destination.get_keypoint_coordinates(index=g['destination_idx']).values[0]
+
+                # Add the existing source and destination correspondences
+                self.point_to_correspondence[point].add((r['source_image'],
+                                                                  Correspondence(r['source_idx'],
+                                                                                 kp[0],
+                                                                                 kp[1],
+                                                                                 serial=self.isis_serial)))
+                self.point_to_correspondence[point].add((r['destination_image'],
+                                                                  Correspondence(r['destination_idx'],
+                                                                                 kpd[0],
+                                                                                 kpd[1],
+                                                                                 serial=cg.node[r['destination_image']].isis_serial)))
+
+            # If the user wants to punch correspondences through
+            if deepen:
+                search_edges = incident_edges.difference(set(covered_edges))
+                for search_edge in search_edges:
+                    bc = cg.edge[search_edge[0]][search_edge[1]]
+                    coords, idx = deepen_correspondences(ab_x, bc, source_idx)
+
+                    if coords is not None:
+                        cg.node[node].point_to_correspondence[point].add((search_edge[1],
+                                                                          Correspondence(idx,
+                                                                                         coords[0],
+                                                                                         coords[1],
+                                                                                         serial=cg.node[search_edge[1]].isis_serial)))
+
+            pid += 1
 
     def suppress(self, func=spf.response, **kwargs):
         if not hasattr(self, '_keypoints'):

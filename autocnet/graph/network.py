@@ -13,6 +13,7 @@ from autocnet.fileio.io_gdal import GeoDataset
 from autocnet.graph import markov_cluster
 from autocnet.graph.edge import Edge
 from autocnet.graph.node import Node
+from autocnet.matcher.add_depth import deepen_correspondences
 from autocnet.vis.graph_view import plot_graph
 
 
@@ -460,28 +461,22 @@ class CandidateGraph(nx.Graph):
             filelist.append(node.image_path)
         return filelist
 
-    def generate_cnet(self, clean_keys=[]):
+    def generate_cnet(self, *args, deepen=False, **kwargs):
         """
         Compute (or re-compute) a CorrespondenceNetwork attribute
 
         Parameters
         ----------
-        clean_keys : list
-                     of string clean keys to mask correspondences
+        deepen : bool
+                 Whether or not to attempt to punch through correspondences.  Default: False
 
         See Also
         --------
-        autocnet.control.control.CorrespondenceNetwork
+        autocnet.graph.node.Node
 
         """
-        self.cn = CorrespondenceNetwork()
-
-        for s, d, edge in self.edges_iter(data=True):
-            if clean_keys:
-                matches, _ = edge._clean(clean_keys)
-            else:
-                matches = edge.matches
-            self.cn.add_correspondences(edge, matches)
+        for i, n in self.nodes_iter(data=True):
+            n.group_correspondences(self, *args, deepen=deepen, **kwargs)
 
     def to_json_file(self, outputfile):
         """
