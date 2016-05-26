@@ -17,6 +17,7 @@ def pls_cv(Train,Test=None,nc=20,nfolds=5,ycol='SiO2',doplot=True,outpath='.',pl
     #create empty arrays for the RMSE values    
     pls_rmsecv=np.empty(nc)
     pls_rmsec=np.empty(nc)
+    #If there is a test set provided, create the RMSEP array to hold test set errors
     if Test is not None:
         pls_rmsep=np.empty(nc)
         
@@ -74,4 +75,8 @@ def pls_cv(Train,Test=None,nc=20,nfolds=5,ycol='SiO2',doplot=True,outpath='.',pl
             plot.plot(range(1,nc+1),pls_rmsep,label='RMSEP',color='g')
         plot.legend(loc=0,fontsize=6)    
         plot.savefig(outpath+'/'+plotfile,dpi=600)
- 
+        
+    rmses={'RMSEC':pls_rmsec,'RMSECV':pls_rmsecv}
+    if Test is not None:
+        rmses['RMSEP']=pls_rmsep
+    return rmses
