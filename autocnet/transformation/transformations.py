@@ -148,15 +148,15 @@ class TransformationMatrix(np.ndarray):
 
     @abc.abstractmethod
     def compute_error(self, x1, x2, index=None):
-        pass
+        raise NotImplementedError
 
     @abc.abstractmethod
     def recompute_matrix(self):
-        pass
+        raise NotImplementedError
 
     @abc.abstractmethod
     def refine(self):
-        pass
+        raise NotImplementedError
 
 
 class FundamentalMatrix(TransformationMatrix):
@@ -196,7 +196,14 @@ class FundamentalMatrix(TransformationMatrix):
         ----------
         .. [Hartley2003]
         """
-
+        raise NotImplementedError
+        """
+        '''
+        This still requires additional work.
+         - The optimization is exceptionally slow.
+         - Iteration is required to add newly discovered correspondences, re-estimate F using MLE,
+            and continuing until the number of correspondences stabilizes.
+        '''
         p = camera.idealized_camera()
         p1 = camera.estimated_camera_from_f(self)
 
@@ -224,6 +231,7 @@ class FundamentalMatrix(TransformationMatrix):
         t = pgs[:, 3]
         M = pgs[:, 0:3]
         self[:] = crossform(t).dot(M)
+        """
 
     def refine(self, method=ps.esda.mapclassify.Fisher_Jenks, values=None, bin_id=0, **kwargs):
         """
@@ -340,35 +348,6 @@ class FundamentalMatrix(TransformationMatrix):
         F_error = np.abs(np.sum(l_norms * x1, axis=1))
 
         return F_error
-
-    def _normalize(self, a):
-        """
-        Normalize a set of coordinates such that the origin is
-        translated to the center and then scaled isotropically such
-        that the average distance from the origin is $\sqrt{2}$.
-
-        Parameters
-        ----------
-        a : DataFrame
-            (n,3) of homogeneous coordinates
-
-        Returns
-        -------
-        normalized : ndarray
-                     (3,3) tranformation matrix
-        """
-
-        # Compute the normalization matrix
-        centroid = a[['x', 'y']].mean()
-        dist = np.sqrt(np.sum(((a[['x', 'y']] - centroid)**2).values, axis=1))
-        mean_dist = np.mean(dist)
-        sq2 = math.sqrt(2)
-
-        normalizer = np.array([[sq2 / mean_dist, 0, -sq2 / mean_dist * centroid[0]],
-                       [0, sq2 / mean_dist,  -sq2 / mean_dist * centroid[1]],
-                       [0, 0, 1]])
-
-        return normalizer
 
     def compute(self, kp1, kp2, method='ransac', reproj_threshold=2.0, confidence=0.99):
         """

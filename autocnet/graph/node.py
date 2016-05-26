@@ -179,8 +179,6 @@ class Node(dict, MutableMapping):
                 return self._keypoints.loc[index]
             else:
                 return self._keypoints
-        else:
-            return None
 
     def get_keypoint_coordinates(self, index=None, homogeneous=False):
         """
@@ -425,11 +423,8 @@ class Node(dict, MutableMapping):
         if not hasattr(self, '_keypoints'):
             raise AttributeError('Keypoints must be extracted already, they have not been.')
 
-        if clean_keys:
-            mask = np.prod([self._mask_arrays[i] for i in clean_keys], axis=0, dtype=np.bool)
-            keypoints = self._keypoints[mask]
-
-        keypoints = self._keypoints[['x', 'y']].values
+        matches, mask = self._clean(clean_keys)
+        keypoints = self._keypoints[mask][['x', 'y']].values
 
         ratio = convex_hull_ratio(keypoints, ideal_area)
         return ratio
