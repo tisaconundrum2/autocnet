@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy.misc import bytescale
 
+from autocnet.cg import cg
 from autocnet.fileio.io_gdal import GeoDataset
 from autocnet.fileio import io_hdf
 from autocnet.matcher import feature_extractor as fe
@@ -113,6 +114,33 @@ class Node(dict, MutableMapping):
             except:
                 self._isis_serial = None
         return self._isis_serial
+
+    def coverage(self):
+        """
+        Determines the area of keypoint coverage
+        using the unprojected image, resulting
+        in a rough estimation of the percentage area
+        being covered.
+
+        Returns
+        -------
+        coverage_area :  float
+                        Area covered by the generated
+                        keypoints
+        """
+
+        points = self.get_keypoint_coordinates()
+        hull = cg.convex_hull(points)
+        hull_area = hull.volume
+
+        max_x = self.geodata.raster_size[0]
+        max_y = self.geodata.raster_size[1]
+
+        total_area = max_x * max_y
+
+        self.coverage_area = (hull_area/total_area)*100
+
+        return self.coverage_area
 
     def get_array(self, band=1):
         """
@@ -343,3 +371,4 @@ class Node(dict, MutableMapping):
         mask = panel[clean_keys].all(axis=1)
         matches = self._keypoints[mask]
         return matches, mask
+

@@ -4,8 +4,6 @@ import warnings
 
 import dill as pickle
 import networkx as nx
-import numpy as np
-import pandas as pd
 
 from autocnet.control.control import CorrespondenceNetwork
 from autocnet.fileio import io_hdf
@@ -165,10 +163,10 @@ class CandidateGraph(nx.Graph):
         """
         if not isinstance(input_adjacency, dict):
             input_adjacency = io_json.read_json(input_adjacency)
-            if basepath is not None:
-                for k, v in input_adjacency.items():
-                    input_adjacency[k] = [os.path.join(basepath, i) for i in v]
-                    input_adjacency[os.path.join(basepath, k)] = input_adjacency.pop(k)
+        if basepath is not None:
+            for k, v in input_adjacency.items():
+                input_adjacency[k] = [os.path.join(basepath, i) for i in v]
+                input_adjacency[os.path.join(basepath, k)] = input_adjacency.pop(k)
         return cls(input_adjacency)
 
     def get_name(self, node_index):
@@ -475,6 +473,16 @@ class CandidateGraph(nx.Graph):
         autocnet.matcher.outlier_detector.SpatialSuppression
         '''
         self.apply_func_to_edges('suppress', *args, **kwargs)
+
+    def overlap(self):
+        '''
+        Compute the percentage and area coverage of two images
+
+        See Also
+        --------
+        autocnet.cg.cg.two_image_overlap
+        '''
+        self.apply_func_to_edges('overlap')
 
     def minimum_spanning_tree(self):
         """
