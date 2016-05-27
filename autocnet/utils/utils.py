@@ -1,6 +1,7 @@
 from functools import reduce
 import numpy as np
 import pandas as pd
+import math
 
 
 def normalize_vector(line):
@@ -218,3 +219,192 @@ def remove_field_name(a, name):
         names.remove(name)
     b = a[names]
     return b
+
+
+def cartesian_product(arrays, out=None):
+    """
+    Generate a cartesian product of input arrays.
+
+    parameters
+    ----------
+    arrays : list of array-like
+        1-D arrays to form the cartesian product of.
+    out : ndarray
+        Array to place the cartesian product in.
+
+    returns
+    -------
+    out : ndarray
+        2-D array of shape (M, len(arrays)) containing cartesian products
+        formed of input arrays.
+    """
+
+    arrays = [np.asarray(x) for x in arrays]
+    dtype = arrays[0].dtype
+
+    n = np.prod([x.size for x in arrays])
+    if out is None:
+        out = np.zeros([n, len(arrays)], dtype=dtype)
+
+    m = n / arrays[0].size
+    out[:,0] = np.repeat(arrays[0], m)
+    if arrays[1:]:
+        cartesian_product(arrays[1:], out=out[0:m,1:])
+        for j in range(1, arrays[0].size):
+            out[j*m:(j+1)*m,1:] = out[0:m,1:]
+    return out
+
+def corr_normed(template, search):
+    """
+    Numpy implementation of normalized cross-correlation
+
+    parameters
+    ----------
+    template : ndarray
+               template to use for correlation
+
+    search : ndarray
+             model to correlate the template to
+
+    returns
+    -------
+
+    result : float
+             correlation strength
+    """
+
+    if(len(template) < len(search)):
+        search = search[:len(template)]
+    elif(len(template) > len(search)):
+        template = template[:len(search)]
+
+    # get averages
+    template_avg = np.average(template)
+    search_avg = np.average(search)
+
+    # compute mean-corrected vetcors
+    mc_template = [x-template_avg for x in template]
+    mc_search = [x-search_avg for x in search]
+
+    # Perform element-wise multiplication
+    arr1xarr2 = np.multiply(mc_template, mc_search)
+
+    # element-wise divide by the mangitude1 x magnitude2
+    # and return the result
+    std1xstd2 = np.std(template) * np.std(search)
+
+    coeffs = [(x/std1xstd2) for x in arr1xarr2]
+    return np.average(coeffs)
+
+
+def to_polar_coord(shape, center):
+    """
+    Generate a polar coordinate grid from a shape given
+    a center.
+
+    parameters
+    ----------
+    shape : tuple
+            tuple decribing the desired shape in
+            (y,x)
+
+    center : tuple
+             tuple describing the desired center
+             for the grid
+
+    returns
+    -------
+    r2 : ndarray
+         grid of radii from the center
+
+    theta : ndarray
+            grid of angles from the center
+    """
+
+    y,x = np.ogrid[:shape[0],:shape[1]]
+    cy,cx = center
+    tmin,tmax = (0,2*math.pi)
+
+    # ensure stop angle > start angle
+    if tmax < tmin:
+        tmax += 2*np.pi
+
+    # convert cartesian --> polar coordinates
+    r2 = (x-cx)*(x-cx) + (y-cy)*(y-cy)
+    theta = np.arctan2(x-cx,y-cy) - tmin
+
+    # wrap angles between 0 and 2*pi
+    theta %= (2*np.pi)
+
+    return r2, theta
+
+
+def circ_mask(shape,center,radius):
+    """
+    Generates a circular mask
+
+    parameters
+    ----------
+    shape : tuple
+            tuple decribing the desired mask shape in
+            (y,x)
+
+    center : tuple
+             tuple describing the desired center
+             for the circle
+
+    radius : float
+             radius of circlular mask
+
+    returns
+    -------
+
+    mask : ndarray
+           circular mask of bools
+    """
+
+    r, theta = to_polar_coord(shape, center)
+
+    circmask = r == radius*radius
+    anglemask = theta <= 2*math.pi
+
+    return circmask*anglemask
+
+
+def radial_line_mask(shape, center, radius, alpha=0.19460421, atol=.01):
+    """
+    Generates a linear mask from center at angle alpha.
+
+    parameters
+    ----------
+    shape : tuple
+            tuple decribing the desired mask shape in
+            (y,x)
+
+    center : tuple
+             tuple describing the desired center
+             for the circle
+
+    radius : float
+             radius of the line mask
+
+    alpha : float
+            angle for the line mask
+
+    atol : float
+           absolute tolerance for alpha, the higher
+           the tolerance, the wider the angle bandwidth
+
+    returns
+    -------
+
+    mask : ndarray
+           linear mask of bools
+    """
+
+    r, theta = to_polar_coord(shape, center)
+
+    line_mask = r <= radius**2
+    anglemask = np.isclose(theta, alpha, atol=atol)
+
+    return line_mask*anglemask
