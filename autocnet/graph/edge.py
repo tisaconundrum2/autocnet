@@ -207,12 +207,6 @@ class Edge(dict, MutableMapping):
         # Set the initial state of the fundamental mask in the masks
         self.masks = ('fundamental', mask)
 
-    def add_putative_matches(self):
-        if not hasattr(self, 'fundamental_matrix'):
-            raise(ValueError, 'Fundamental matric has not been computed')
-
-        F = self.fundamental_matrix
-
     def compute_homography(self, method='ransac', clean_keys=[], pid=None, **kwargs):
         """
         For each edge in the (sub) graph, compute the homography
@@ -248,7 +242,7 @@ class Edge(dict, MutableMapping):
                                 d_keypoints.values)
 
         # Convert the truncated RANSAC mask back into a full length mask
-        mask[mask] = self.homography.mask.ravel()
+        mask[mask] = self.homography.mask
         self.masks = ('ransac', mask)
 
         # Finalize the array to get custom attrs to propagate

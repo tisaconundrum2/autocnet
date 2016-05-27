@@ -1,6 +1,4 @@
 import numpy as np
-import pandas as pd
-
 import cv2
 
 
@@ -96,10 +94,8 @@ def triangulate(pt, pt1, p, p1):
              (4, n) projection matrix
 
     """
-    if isinstance(pt, pd.DataFrame):
-        pt = pt.values
-    if isinstance(pt1, pd.DataFrame):
-        pt1 = pt.values
+    pt = np.asarray(pt)
+    pt1 = np.asarray(pt1)
 
     # Transpose for the openCV call if needed
     if pt.shape[0] != 3:
