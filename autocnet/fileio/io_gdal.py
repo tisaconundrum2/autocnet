@@ -220,7 +220,6 @@ class GeoDataset(object):
             else:
                 xy_corners = self.xy_corners
                 self._latlon_extent = []
-                self.coordinate_transformation
                 for x, y in xy_corners:
                     x, y = self.pixel_to_latlon(x,y)
                     self._latlon_extent.append((x,y))
@@ -400,10 +399,10 @@ class GeoDataset(object):
         
         """
         try:
-            #geotransform = self.geotransform
-            #x = geotransform[0] + (x * geotransform[1]) + (y * geotransform[2])
-            #y = geotransform[3] + (x * geotransform[4]) + (y * geotransform[5])
-            lon, lat, _ = self.coordinate_transformation.TransformPoint(x, y)
+            geotransform = self.geotransform
+            x = geotransform[0] + (x * geotransform[1]) + (y * geotransform[2])
+            y = geotransform[3] + (x * geotransform[4]) + (y * geotransform[5])
+            lat, lon, _ = self.coordinate_transformation.TransformPoint(x, y)
         except:
             lat = lon = None
             warnings.warn('Unable to compute pixel to geographic conversion without '
