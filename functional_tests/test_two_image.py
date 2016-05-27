@@ -79,10 +79,6 @@ class TestTwoImageMatching(unittest.TestCase):
         # Step: Compute the homographies and apply RANSAC
         cg.compute_homographies(clean_keys=['symmetry', 'ratio'])
 
-        # Step: Compute the overlap ratio and coverage ratio
-        for s, d, edge in cg.edges_iter(data=True):
-            edge.coverage_ratio(clean_keys=['symmetry', 'ratio'])
-
         # Apply AMNS
         cg.suppress(k=30, suppression_func=error)
 
