@@ -28,8 +28,8 @@ class TestMercator(unittest.TestCase):
         self.assertEqual(self.dataset.no_data_value, 0.0)
 
     def test_pixel_to_latlon(self):
-        lat, lon = self.dataset.pixel_to_latlon(0,0)
-        self.assertAlmostEqual(lat, 55.3322890518, 6)
+        lat, lon = self.dataset.pixel_to_latlon(0, 0)
+        self.assertAlmostEqual(lat, 0.0, 6)
         self.assertAlmostEqual(lon, 0.0, 6)
 
     def test_scale(self):
@@ -39,8 +39,16 @@ class TestMercator(unittest.TestCase):
         xy_extent = self.dataset.xy_extent
         self.assertEqual(xy_extent, [(0.0, 3921610.0), (10667520.0, -3921610.0)])
 
+    def test_xy_corners(self):
+        xy_corners = self.dataset.xy_corners
+        self.assertEqual(xy_corners, [(0.0, 3921610.0), (0.0, -3921610.0),
+                                      (10667520.0, -3921610.0), (10667520.0, 3921610.0)])
+
     def test_latlon_extent(self):
-        self.assertEqual(self.dataset.latlon_extent, [(-90, -150.4067721290261), (90.0, 0.0)])
+        self.assertEqual(self.dataset.latlon_extent, [(55.33228905180849, 0.0),
+                                                      (-55.3322890518085, 0.0),
+                                                      (-55.3322890518085, 179.96751473604124),
+                                                      (55.33228905180849, 179.96751473604124)])
 
     def test_spheroid(self):
         sphere = self.dataset.spheroid
@@ -85,6 +93,7 @@ class TestMercator(unittest.TestCase):
         self.assertEqual(arr.dtype, np.int8)
         self.assertAlmostEqual(np.mean(arr), 10.10353227, 6)
 
+
 class TestLambert(unittest.TestCase):
     def setUp(self):
         self.dataset = io_gdal.GeoDataset(get_path('Lunar_LRO_LOLA_Shade_MAP2_90.0N20.0_LAMB.tif'))
@@ -104,8 +113,8 @@ class TestLambert(unittest.TestCase):
 
     def test_pixel_to_latlon(self):
         lat, lon = self.dataset.pixel_to_latlon(0,0)
-        self.assertAlmostEqual(lat, 69.90349154912009, 6)
-        self.assertAlmostEqual(lon, -29.72166902463681, 6)
+        self.assertAlmostEqual(lat, 90.0, 6)
+        self.assertAlmostEqual(lon, 20.0, 6)
 
     def test_latlon_to_pixel(self):
         lat, lon = 69.90349154912009, -29.72166902463681
@@ -141,8 +150,8 @@ class TestPolar(unittest.TestCase):
 
     def test_pixel_to_latlon(self):
         lat, lon = self.dataset.pixel_to_latlon(0,0)
-        self.assertAlmostEqual(lat, 42.2574735013, 6)
-        self.assertAlmostEqual(lon, -135.0, 6)
+        self.assertAlmostEqual(lat, 90, 6)
+        self.assertAlmostEqual(lon, 0.0, 6)
 
     def test_latlon_to_pixel(self):
         lat, lon = 42.2574735013, -135.0

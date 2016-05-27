@@ -1,4 +1,3 @@
-import json
 import warnings
 
 import pvl
@@ -94,6 +93,10 @@ class GeoDataset(object):
                 The first value is the upper left corner of the upper left pixel and 
                 the second value is the lower right corner of the lower right pixel. 
                 This list is in the form [(minx, miny), (maxx, maxy)].
+
+    xy_corners : list
+                 of tuple corner coordinates in the form:
+                 [upper left, lower left, lower right, upper right]
 
     y_rotation : float
                  The geotransform coefficient that represents the rotation about the y-axis.
@@ -206,15 +209,21 @@ class GeoDataset(object):
     @property
     def latlon_extent(self):
         if not getattr(self, '_latlon_extent', None):
-            try:
+            if self.footprint:
                 fp = self.footprint
-                # If we have a footprint, no need to compute pixel to latlon
+                # If we have a footprint, do not worry about computing a lat/lon transform
                 lowerlat, upperlat, lowerlon, upperlon = fp.GetEnvelope()
-            except:
-                xy_extent = self.xy_extent
-                lowerlat, lowerlon = self.pixel_to_latlon(xy_extent[0][0], xy_extent[0][1])
-                upperlat, upperlon = self.pixel_to_latlon(xy_extent[1][0], xy_extent[1][1])
-            self._latlon_extent = [(lowerlat, lowerlon), (upperlat, upperlon)]
+                self._footprint = [(upperlat, lowerlon),
+                                   (lowerlat, lowerlon),
+                                   (lowerlat, upperlon),
+                                   (upperlat, upperlon)]
+            else:
+                xy_corners = self.xy_corners
+                self._latlon_extent = []
+                self.coordinate_transformation
+                for x, y in xy_corners:
+                    x, y = self.pixel_to_latlon(x,y)
+                    self._latlon_extent.append((x,y))
         return self._latlon_extent
 
     @property
@@ -241,19 +250,26 @@ class GeoDataset(object):
                     stream = str(f.read(num_polygon_bytes))
                     self._footprint = ogr.CreateGeometryFromWkt(stream)
             except:
-                # I dislike that this is copied from latlonext, but am unsure
-                # how to avoid the cyclical footprint to latlon_extent property hits.
-                xy_extent = self.xy_extent
-                lowerlat, lowerlon = self.pixel_to_latlon(xy_extent[0][0], xy_extent[0][1])
-                upperlat, upperlon = self.pixel_to_latlon(xy_extent[1][0], xy_extent[1][1])
-                geom = {"type": "Polygon", "coordinates": [[[lowerlat, lowerlon],
-                                                           [lowerlat, upperlon],
-                                                           [upperlat, upperlon],
-                                                           [upperlat, lowerlon],
-                                                           [lowerlat, lowerlon]]]}
-                self._footprint = ogr.CreateGeometryFromJson(json.dumps(geom))
+                self._footprint = None
 
         return self._footprint
+
+    @property
+    def xy_corners(self):
+        if not getattr(self, '_xy_corners', None):
+            self._xy_corners = []
+
+            gt = self.geotransform
+            x = [0, self.dataset.RasterXSize]
+            y = [0, self.dataset.RasterYSize]
+
+            for px in x:
+                for py in y:
+                    xc = gt[0] + (px * gt[1]) + (py * gt[2])
+                    yc = gt[3] + (px * gt[4]) + (py * gt[5])
+                    self._xy_corners.append((xc, yc))
+                y.reverse()
+        return self._xy_corners
 
     @property
     def xy_extent(self):
@@ -384,9 +400,9 @@ class GeoDataset(object):
         
         """
         try:
-            geotransform = self.geotransform
-            x = geotransform[0] + (x * geotransform[1]) + (y * geotransform[2])
-            y = geotransform[3] + (x * geotransform[4]) + (y * geotransform[5])
+            #geotransform = self.geotransform
+            #x = geotransform[0] + (x * geotransform[1]) + (y * geotransform[2])
+            #y = geotransform[3] + (x * geotransform[4]) + (y * geotransform[5])
             lon, lat, _ = self.coordinate_transformation.TransformPoint(x, y)
         except:
             lat = lon = None
