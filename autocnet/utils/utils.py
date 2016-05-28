@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import math
 
+import warnings
 
 def normalize_vector(line):
     """
@@ -254,6 +255,7 @@ def cartesian_product(arrays, out=None):
             out[j*m:(j+1)*m,1:] = out[0:m,1:]
     return out
 
+
 def corr_normed(template, search):
     """
     Numpy implementation of normalized cross-correlation
@@ -273,10 +275,13 @@ def corr_normed(template, search):
              correlation strength
     """
 
-    if(len(template) < len(search)):
-        search = search[:len(template)]
-    elif(len(template) > len(search)):
-        template = template[:len(search)]
+    if template.shape != search.shape:
+        warnings.warn('Input image are not of the same size, truncating to common values.'
+                      'for template size: {} and search size {}'.format(template.shape, search.shape))
+        if len(template) < len(search):
+            search = search[:len(template)]
+        elif len(template) > len(search):
+            template = template[:len(search)]
 
     # get averages
     template_avg = np.average(template)
@@ -321,9 +326,9 @@ def to_polar_coord(shape, center):
             grid of angles from the center
     """
 
-    y,x = np.ogrid[:shape[0],:shape[1]]
-    cy,cx = center
-    tmin,tmax = (0,2*math.pi)
+    y, x = np.ogrid[:shape[0], :shape[1]]
+    cy, cx = center
+    tmin, tmax = (0, 2*math.pi)
 
     # ensure stop angle > start angle
     if tmax < tmin:
@@ -339,7 +344,7 @@ def to_polar_coord(shape, center):
     return r2, theta
 
 
-def circ_mask(shape,center,radius):
+def circ_mask(shape, center, radius):
     """
     Generates a circular mask
 
@@ -365,10 +370,10 @@ def circ_mask(shape,center,radius):
 
     r, theta = to_polar_coord(shape, center)
 
-    circmask = r == radius*radius
-    anglemask = theta <= 2*math.pi
+    circle_mask = r == radius*radius
+    angle_mask = theta <= 2*math.pi
 
-    return circmask*anglemask
+    return circle_mask*angle_mask
 
 
 def radial_line_mask(shape, center, radius, alpha=0.19460421, atol=.01):
