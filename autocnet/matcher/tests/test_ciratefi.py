@@ -1,48 +1,48 @@
+import math
 import unittest
 import warnings
-import math
 
-import cv2
 import numpy as np
-
+from scipy.misc import imread
+from scipy.misc import imresize
 from scipy.ndimage.interpolation import rotate
 
-from .. import ciratefi
 from autocnet.examples import get_path
 from autocnet.matcher import subpixel as sp
-from scipy.ndimage.interpolation import rotate
-from scipy.misc import imresize
-from scipy.misc import imread
+from .. import ciratefi
+
 
 class TestCiratefi(unittest.TestCase):
-    '''
-    ciratefi(s_template, d_search, upsampling=10., alpha=math.pi/8,
-                     cifi_thresh=80, rafi_thresh=50, tefi_thresh=100,
-                     use_percentile=True, radii=list(range(1,3)))
-    '''
 
     @classmethod
     def setUpClass(cls):
-        im1 = imread(get_path('AS15-M-0298_SML.png'), flatten=True)
-        im2 = imread(get_path('AS15-M-0297_SML.png'), flatten=True)
+        img = imread(get_path('AS15-M-0298_SML.png'), flatten=True)
+        img_coord = (482.09783936, 652.40679932)
 
-        im1_coord = (482.09783936, 652.40679932)
-        im2_coord = (262.19442749, 652.44750977)
-
-        cls.template = sp.clip_roi(im1, im1_coord, 17)
+        cls.template = sp.clip_roi(img, img_coord, 5)
         cls.template = rotate(cls.template, 90)
         cls.template = imresize(cls.template, 1.)
 
-        cls.search = sp.clip_roi(im1, im1_coord, 21)
-        cls.search = rotate(cls.search, -90)
+        cls.search = sp.clip_roi(img, img_coord, 21)
+        cls.search = rotate(cls.search, 0)
         cls.search = imresize(cls.search, 1.)
 
+        cls.offset = (1, 1)
+
+        cls.offset_template = sp.clip_roi(img, np.add(img_coord, cls.offset), 5)
+        cls.offset_template = rotate(cls.offset_template, 0)
+        cls.offset_template = imresize(cls.offset_template, 1.)
+
+        cls.search_center = [math.floor(cls.search.shape[0]/2),
+                             math.floor(cls.search.shape[1]/2)]
+
         cls.upsampling = 10
-        cls.alpha = math.pi/8
-        cls.cifi_thresh = 98
+        cls.alpha = math.pi/2
+        cls.cifi_thresh = 90
         cls.rafi_thresh = 90
         cls.tefi_thresh = 100
         cls.use_percentile = True
+        cls.radii = list(range(1, 3))
 
         cls.cifi_number_of_warnings = 2
         cls.rafi_number_of_warnings = 2
@@ -51,7 +51,7 @@ class TestCiratefi(unittest.TestCase):
             # check all warnings
             with warnings.catch_warnings(record=True) as w:
                 warnings.simplefilter("always")
-                ciratefi.cifi(self.template, self.search, .99, radii=[100], use_percentile=False)
+                ciratefi.cifi(self.template, self.search, 1.0, radii=[100], use_percentile=False)
                 self.assertEqual(len(w), self.cifi_number_of_warnings)
 
             # Threshold out of bounds error
@@ -64,10 +64,10 @@ class TestCiratefi(unittest.TestCase):
             self.assertRaises(ValueError, ciratefi.cifi, self.search, self.template, -1.1, use_percentile=False)
 
             with warnings.catch_warnings(record=True) as w:
-                pixels, scales = ciratefi.cifi(self.template, self.search, thresh=self.cifi_thresh,
-                                               radii=range(1, 8), use_percentile=True)
-
                 warnings.simplefilter("always")
+                pixels, scales = ciratefi.cifi(self.template, self.search, thresh=self.cifi_thresh,
+                                               radii=self.radii, use_percentile=True)
+
                 self.assertEqual(len(w), 0)
 
                 self.assertEqual(self.search.shape, scales.shape)
@@ -75,8 +75,7 @@ class TestCiratefi(unittest.TestCase):
                 self.assertTrue(pixels.size in range(0, self.search.size))
 
     def test_rafi(self):
-        rafi_pixels = [(5, 6), (5, 16), (10, 10), (11, 16), (16, 6), (16, 7),
-                       (16, 8), (16, 13), (16, 14)]
+        rafi_pixels = [(10, 10)]
 
         rafi_scales = np.ones(self.search.shape, dtype=float)
 
@@ -86,6 +85,7 @@ class TestCiratefi(unittest.TestCase):
             ciratefi.rafi(self.template, self.search, rafi_pixels,
                           rafi_scales, thresh=1, radii=[100],
                           use_percentile=False)
+
             self.assertEqual(len(w), self.rafi_number_of_warnings)
 
         # Threshold out of bounds error
@@ -105,10 +105,8 @@ class TestCiratefi(unittest.TestCase):
 
         with warnings.catch_warnings(record=True) as w:
             pixels, scales = ciratefi.rafi(self.template, self.search, rafi_pixels, rafi_scales,
-                                           thresh=self.rafi_thresh, radii=range(1, 8), use_percentile=True,
+                                           thresh=self.rafi_thresh, radii=self.radii, use_percentile=True,
                                            alpha=self.alpha)
-
-            warnings.simplefilter("always")
             self.assertEqual(len(w), 0)
 
             self.assertIn((np.floor(self.search.shape[0]/2), np.floor(self.search.shape[1]/2)), pixels)
@@ -135,15 +133,38 @@ class TestCiratefi(unittest.TestCase):
         self.assertRaises(ValueError, ciratefi.tefi, self.template, self.search, tefi_pixels, tefi_scales[:10], -1.1)
 
         with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
             pixel = ciratefi.tefi(self.template, self.search, tefi_pixels, tefi_scales, tefi_angles,
                                            thresh=self.tefi_thresh, use_percentile=True, alpha=self.alpha,
                                            upsampling=self.upsampling)
 
-            warnings.simplefilter("always")
-            self.assertEqual(len(w), 5)
+            for warn in w:
+                print(warn)
 
+            self.assertEqual(len(w), 0)
             self.assertIn((np.floor(self.search.shape[0]/2), np.floor(self.search.shape[1]/2)), pixel)
-            self.assertTrue(pixel[0][0] == 10 and pixel[0][1] == 10)
+            self.assertTrue(pixel[0][0] == self.search_center[0] and pixel[0][1] == self.search_center[1])
+
+    def test_ciratefi(self):
+        results = ciratefi.ciratefi(self.template, self.search, upsampling=10, cifi_thresh=self.cifi_thresh,
+                                    rafi_thresh=self.rafi_thresh, tefi_thresh=self.tefi_thresh,
+                                    use_percentile=self.use_percentile, alpha=self.alpha, radii=self.radii)
+
+        self.assertEqual(len(results), 1)
+        self.assertTrue(np.equal(results[0], self.search_center).all())
+
+        results = ciratefi.ciratefi(self.offset_template, self.search, upsampling=self.upsampling,
+                                    cifi_thresh=self.cifi_thresh, rafi_thresh=self.rafi_thresh,
+                                    tefi_thresh=self.tefi_thresh,
+                                    use_percentile=self.use_percentile, alpha=self.alpha, radii=self.radii)
+
+        print(results)
+        self.assertTrue(np.equal(results[0], np.add(self.search_center, list(self.offset))).all())
+
+        ciratefi.ciratefi(self.offset_template, self.search, upsampling=self.upsampling,
+                                    cifi_thresh=self.cifi_thresh, rafi_thresh=self.rafi_thresh,
+                                    tefi_thresh=self.tefi_thresh, use_percentile=self.use_percentile, alpha=self.alpha,
+                                    radii=self.radii, verbose=True)
 
     def tearDown(self):
         pass
