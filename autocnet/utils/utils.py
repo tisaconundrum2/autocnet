@@ -1,4 +1,5 @@
 from functools import reduce
+
 import numpy as np
 import pandas as pd
 
@@ -218,3 +219,37 @@ def remove_field_name(a, name):
         names.remove(name)
     b = a[names]
     return b
+
+
+def cartesian(arrays, out=None):
+    """
+    Generate a cartesian product of input arrays.
+    Parameters
+    ----------
+    arrays : list of array-like
+        1-D arrays to form the cartesian product of.
+    out : ndarray
+        Array to place the cartesian product in.
+    Returns
+    -------
+    out : ndarray
+        2-D array of shape (M, len(arrays)) containing cartesian products
+        formed of input arrays.
+
+    from scikit-learn
+    https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/utils/extmath.py
+    """
+    arrays = [np.asarray(x) for x in arrays]
+    shape = (len(x) for x in arrays)
+    dtype = arrays[0].dtype
+
+    ix = np.indices(shape)
+    ix = ix.reshape(len(arrays), -1).T
+
+    if out is None:
+        out = np.empty_like(ix, dtype=dtype)
+
+    for n, arr in enumerate(arrays):
+        out[:, n] = arrays[n][ix[:, n]]
+
+    return out
