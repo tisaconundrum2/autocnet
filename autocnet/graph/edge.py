@@ -1,9 +1,11 @@
 import warnings
+import json
 from collections import MutableMapping
 
 import numpy as np
 import pandas as pd
 from pysal.cg.shapes import Polygon
+from osgeo import ogr
 
 from autocnet.cg.cg import convex_hull_ratio
 from autocnet.cg.cg import overlapping_polygon_area
@@ -485,3 +487,67 @@ class Edge(dict, MutableMapping):
         self.weight['overlap_area'] = overlapinfo[1]
         self.weight['overlap_percn'] = overlapinfo[0]
 
+    def coverage(self, image='source'):
+        mask = self.masks.all(axis = 1)
+        matches = self.matches[mask]
+        df_source_array = np.array(matches['source_idx'])
+        df_destination_array = np.array(matches['destination_idx'])
+        source_array = [self.source.get_keypoint_coordinates(i) for i in df_source_array]
+        destination_array = [self.destination.get_keypoint_coordinates(i) for i in df_destination_array]
+
+        source_points = np.array(source_array)
+        destination_points = np.array(destination_array)
+
+        source_verts = self.source.geodata.latlon_corners
+        destination_verts = self.destination.geodata.latlon_corners
+
+        # Generate the latlon cords for the source node
+        source_hull = cg.convex_hull(source_verts)
+        source_poly_points = [source_hull.points[i] for i in source_hull.vertices]
+        source_coords = [[i, j] for [i, j] in source_poly_points]
+        source_coords.append((source_poly_points[0][0], source_poly_points[0][1]))
+
+        # Generate the latlon cords for the destination node
+        destination_hull = cg.convex_hull(destination_verts)
+        destination_poly_points = [destination_hull.points[i] for i in destination_hull.vertices]
+        destination_coords = [[i, j] for [i, j] in destination_poly_points]
+        destination_coords.append((destination_poly_points[0][0], destination_poly_points[0][1]))
+
+        if image == 'source':
+            image_covered = source_points
+            node = self.source
+        else:
+            image_covered = destination_points
+            node = self.destination
+
+        # Generate the pixel points for the convex hull
+        convex_hull = cg.convex_hull(image_covered)
+        convex_pixel_points = [convex_hull.points[i] for i in convex_hull.vertices]
+        convex_coordinates = [[i, j] for [i, j] in convex_pixel_points]
+        convex_coordinates.append(([convex_pixel_points[0][0], convex_pixel_points[0][1]]))
+
+        # Convert the convex hull pixel coordinates to latlon
+        # coordinates
+        convex_points = []
+        for i, j in convex_coordinates:
+            point = node.geodata.pixel_to_latlon(i, j)
+            convex_points.append(point)
+        convex_coords = [[i, j] for i, j in convex_points]
+
+        source_geom = {"type": "Polygon", "coordinates": [source_coords]}
+        destination_geom = {"type": "Polygon", "coordinates": [destination_coords]}
+        convex_geom = {"type": "Polygon", "coordinates": [convex_coords]}
+
+        source_hull_poly = ogr.CreateGeometryFromJson(json.dumps(source_geom))
+        destination_hull_poly = ogr.CreateGeometryFromJson(json.dumps(destination_geom))
+        convex_poly = ogr.CreateGeometryFromJson(json.dumps(convex_geom))
+
+        image_intersection = source_hull_poly.Intersection(destination_hull_poly)
+        image_intersection_area = image_intersection.GetArea()
+
+        hull_overlap_poly = image_intersection.Intersection(convex_poly)
+        hull_overlap_area = hull_overlap_poly.GetArea()
+
+        total_overlap_coverage = (hull_overlap_area/image_intersection_area)*100
+
+        return total_overlap_coverage
