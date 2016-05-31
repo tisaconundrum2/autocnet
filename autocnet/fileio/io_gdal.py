@@ -150,7 +150,9 @@ class GeoDataset(object):
         self.dataset = gdal.Open(file_name)
         if self.dataset is None:
           raise IOError('File not found :', file_name)
-    
+
+
+
     def __repr__(self):
         return os.path.basename(self.file_name)
 
@@ -207,25 +209,6 @@ class GeoDataset(object):
         return self._gcs
 
     @property
-    def latlon_extent(self):
-        if not getattr(self, '_latlon_extent', None):
-            if self.footprint:
-                fp = self.footprint
-                # If we have a footprint, do not worry about computing a lat/lon transform
-                lowerlat, upperlat, lowerlon, upperlon = fp.GetEnvelope()
-                self._footprint = [(upperlat, lowerlon),
-                                   (lowerlat, lowerlon),
-                                   (lowerlat, upperlon),
-                                   (upperlat, upperlon)]
-            else:
-                xy_corners = self.xy_corners
-                self._latlon_extent = []
-                for x, y in xy_corners:
-                    x, y = self.pixel_to_latlon(x,y)
-                    self._latlon_extent.append((x,y))
-        return self._latlon_extent
-
-    @property
     def metadata(self):
         if not hasattr(self, '_metadata'):
             try:
@@ -254,54 +237,58 @@ class GeoDataset(object):
         return self._footprint
 
     @property
-    def xy_corners(self):
-        if not getattr(self, '_xy_corners', None):
-            self._xy_corners = []
-
+    def latlon_corners(self):
+        if not getattr(self, '_latlon_corners', None):
+            pixel_corners = self.xy_corners
             gt = self.geotransform
-            x = [0, self.dataset.RasterXSize]
-            y = [0, self.dataset.RasterYSize]
 
-            for px in x:
-                for py in y:
-                    xc = gt[0] + (px * gt[1]) + (py * gt[2])
-                    yc = gt[3] + (px * gt[4]) + (py * gt[5])
-                    self._xy_corners.append((xc, yc))
-                y.reverse()
-        return self._xy_corners
+            self._latlon_corners = []
+
+            for x, y in pixel_corners:
+                x, y = self.pixel_to_latlon(x, y)
+                self._latlon_corners.append((x, y))
+        return self._latlon_corners
+
+    @property
+    def xy_corners(self):
+        return [(0, 0),
+                (0, self.dataset.RasterYSize),
+                (self.dataset.RasterXSize,self.dataset.RasterYSize),
+                (self.dataset.RasterXSize, 0)]
+
+    @property
+    def proj_corners(self):
+        # The corner coordinates in projected space
+        raise NotImplementedError
+
+    @property
+    def latlon_extent(self):
+        if not getattr(self, '_latlon_extent', None):
+            if self.footprint:
+                fp = self.footprint
+                # If we have a footprint, do not worry about computing a lat/lon transform
+                lowerlat, upperlat, lowerlon, upperlon = fp.GetEnvelope()
+                self._footprint = [(upperlat, lowerlon),
+                                   (lowerlat, lowerlon),
+                                   (lowerlat, upperlon),
+                                   (upperlat, upperlon)]
+            else:
+                self._latlon_extent = []
+                for x, y in self.xy_extent:
+                    x, y = self.pixel_to_latlon(x,y)
+
+                    self._latlon_extent.append((x,y))
+        return self._latlon_extent
 
     @property
     def xy_extent(self):
-        if not getattr(self, '_xy_extent', None):
-            geotransform = self.geotransform
-            minx = geotransform[0]
-            miny = geotransform[3]
-
-            maxx = minx + geotransform[1] * self.dataset.RasterXSize
-            maxy = miny + geotransform[5] * self.dataset.RasterYSize
-
-            self._xy_extent = [(minx, miny), (maxx, maxy)]
-
-        return self._xy_extent
+        return [(0, 0),
+                (self.dataset.RasterXSize, self.dataset.RasterYSize)]
 
     @property
-    def pixel_polygon(self):
-        """
-        A bounding polygon in pixel space
-
-        Returns
-        -------
-        : object
-          A PySAL Polygon object
-        """
-        if not getattr(self, '_pixel_polygon', None):
-            (minx, miny), (maxx, maxy) = self.xy_extent
-            ul = maxx, miny
-            ll = minx, miny
-            lr = minx, maxy
-            ur = maxx, maxy
-            self._pixel_polygon = Polygon([ul, ll, lr, ur, ul])
-        return self._pixel_polygon
+    def proj_extent(self):
+        # The extent in projected space
+        raise NotImplementedError
 
     @property
     def pixel_area(self):
@@ -477,8 +464,8 @@ class GeoDataset(object):
                 yextent = ymax - ystart
 
             array = band.ReadAsArray(xstart, ystart, xextent, yextent).astype(dtype)
-        return array
 
+        return array
 
 def array_to_raster(array, file_name, projection=None,
                     geotransform=None, outformat='GTiff',
