@@ -4,6 +4,8 @@ import ogr
 from unittest.mock import Mock
 
 from autocnet.fileio import io_gdal
+from autocnet.examples import get_path
+from autocnet.graph.network import CandidateGraph
 import pandas as pd
 
 from .. import edge
@@ -72,3 +74,26 @@ class TestEdge(unittest.TestCase):
         e.overlap()
         self.assertEqual(e.weight['overlap_area'], 400)
         self.assertAlmostEqual(e.weight['overlap_percn'], 14.285714285)
+
+    def test_coverage(self):
+        adjacency = get_path('geo_adjacancey.json')
+        basepath = get_path('Apollo15')
+        cg = CandidateGraph.from_adjacency(adjacency, basepath=basepath)
+
+        #Apply SIFT to extract features
+        cg.extract_features(method='sift', extractor_parameters={'nfeatures':500})
+
+        #Match
+        cg.match_features()
+
+        #Apply outlier detection
+        cg.apply_func_to_edges('symmetry_check')
+        cg.apply_func_to_edges('ratio_check')
+
+        #Compute a homography and apply RANSAC
+        cg.apply_func_to_edges("compute_fundamental_matrix", clean_keys=['ratio', 'symmetry'])
+
+        source_coverage = cg.edge[0][1].coverage(image = 'source')
+        destination_coverage = cg.edge[0][1].coverage(image = 'destination')
+        print()
+        self.assertTrue()
