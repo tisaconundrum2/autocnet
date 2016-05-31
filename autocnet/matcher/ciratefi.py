@@ -171,7 +171,7 @@ def cifi(template, search_image, thresh=90, use_percentile=True,
 
 
 def rafi(template, search_image, candidate_pixels, best_scales, thresh=95,
-         use_percentile=True, alpha=math.pi/8, radii=list(range(1, 12)), verbose=False ):
+         use_percentile=True, alpha=math.pi/8, radii=list(range(1, 12)), verbose=False):
     """
     The seconds filter in Ciratefi, the Radial Sampling Filter (Rafi), uses
     projections of the template image and the search image on a set of radial

@@ -95,7 +95,7 @@ class TestCiratefi(unittest.TestCase):
         # Radii list is empty.None error
         self.assertRaises(ValueError, ciratefi.rafi, self.search, self.template, rafi_pixels, -1.1, radii=None)
         # candidate pixel list empty/none error
-        self.assertRaises(ValueError, ciratefi.rafi, self.template, self.search, None, rafi_scales)
+        self.assertRaises(ValueError, ciratefi.rafi, self.template, self.search, [], rafi_scales)
         # scales list empty/none error
         self.assertRaises(ValueError, ciratefi.rafi, self.template, self.search, rafi_pixels, None)
         # template is bigger than search error
@@ -160,11 +160,6 @@ class TestCiratefi(unittest.TestCase):
 
         print(results)
         self.assertTrue(np.equal(results[0], np.add(self.search_center, list(self.offset))).all())
-
-        ciratefi.ciratefi(self.offset_template, self.search, upsampling=self.upsampling,
-                                    cifi_thresh=self.cifi_thresh, rafi_thresh=self.rafi_thresh,
-                                    tefi_thresh=self.tefi_thresh, use_percentile=self.use_percentile, alpha=self.alpha,
-                                    radii=self.radii, verbose=True)
 
     def tearDown(self):
         pass
