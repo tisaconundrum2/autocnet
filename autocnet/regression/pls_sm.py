@@ -34,10 +34,9 @@ class pls_sm:
                 E=x_centered-np.dot(pls.x_scores_,pls.x_loadings_.transpose())
                 Q_res=np.dot(E,E.transpose()).diagonal()
                 T=pls.x_scores_
-                #There's probably a more efficient way to calculate T2...
-                leverage=np.zeros_like(Q_res)
-                for k in range(len(Q_res)):
-                    leverage[k]=np.dot(T[k],np.dot(np.linalg.inv(np.dot(T.transpose(),T)),T[k]))
+                
+                leverage=np.diag(T@np.linalg.inv(T.transpose()@T)@T.transpose())
+                
                 plot.figure()
                 plot.scatter(leverage,Q_res,color='r',edgecolor='k')
                 plot.title(ycol+' ('+str(rangei[0])+'-'+str(rangei[1])+')')
@@ -53,40 +52,52 @@ class pls_sm:
     def do_blend(self,predictions,truevals=None):
         
         
-        #get the ranges that are not the reference model (assumed to be the last model)
-        ranges_sub=self.ranges[:-1]
-        blendranges=np.array(ranges_sub).flatten() #squash them to be a 1d array
-        blendranges.sort()  #sort the entries 
-         
+ 
         #create the array indicating which models to blend for each blend range
+        #For three models, this creates an array like: [[0,0],[0,1],[1,1],[1,2],[2,2]]
+        #Which indicates that in the first range, just use model 0
+        #In the second range, blend models 0 and 1
+        #in the third range, use model 1
+        #in the fourth range, blend models 1 and 2
+        #in the fifth range, use model 2
+        
         self.toblend=[]
         for i in range(len(predictions)-1):
             self.toblend.append([i,i])
             if i<len(predictions)-2:
                 self.toblend.append([i,i+1])
             
-        
+        #If the true compositions are provided, then optimize the ranges over which the results are blended to minimize the RMSEC
         if truevals is not None:
             print('Optimizing blending ranges')
+            #get the ranges that are not the reference model (assumed to be the last model)
+            ranges_sub=self.ranges[:-1]
+            blendranges=np.array(ranges_sub).flatten() #squash them to be a 1d array
+            blendranges.sort()  #sort the entries. These will be used by submodels_blend to decide how to combine the predictions
+         
             result=opt.minimize(self.get_rmse,blendranges,(predictions,truevals))
             self.blendranges=result.x
-        else:
-            self.blendranges=blendranges
+
             
-        blended=self.submodels_blend(predictions,result.x,overwrite=False,noneg=False)
+        #calculate the blended results
+        blended=self.submodels_blend(predictions,self.blendranges,overwrite=False,noneg=False)
         return blended
         
     def get_rmse(self,blendranges,predictions,truevals):
-        print(blendranges)
+        blendranges  #show the blendranges being used for the current calculation
         blended=self.submodels_blend(predictions,blendranges,overwrite=False,noneg=False)
-        RMSE=np.sqrt(np.mean((blended-truevals)**2))
+        RMSE=np.sqrt(np.mean((blended-truevals)**2))  #calculate the RMSE
         return RMSE
         
-    def submodels_blend(self,predictions,blendranges,overwrite=False,noneg=True):
+    def submodels_blend(self,predictions,blendranges,overwrite=False,noneg=False):
         blended=np.squeeze(np.zeros_like(predictions[0]))
+        
+        #format the blending ranges
         blendranges=np.hstack((blendranges,blendranges[1:-1])) #duplicate the middle entries
         blendranges.sort() #re-sort them
-        blendranges=np.reshape(blendranges,(len(blendranges)/2,2))  #turn the vector into a 2d array
+        blendranges=np.reshape(blendranges,(len(blendranges)/2,2))  #turn the vector into a 2d array (one pair of values for each submodel)
+        
+        
         for i in range(len(blendranges)): #loop over each composition range
             for j in range(len(predictions[0])): #loop over each spectrum
                 ref_tmp=predictions[-1][j]   #get the reference model predicted value
