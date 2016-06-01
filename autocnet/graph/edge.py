@@ -487,6 +487,13 @@ class Edge(dict, MutableMapping):
         self.weight['overlap_area'] = overlapinfo[1]
         self.weight['overlap_percn'] = overlapinfo[0]
 
+    def _construct_json_serial(self, coords):
+        hull = cg.convex_hull(coords)
+        poly_points = [hull.points[i] for i in hull.vertices]
+        coordinates = [[i, j] for [i, j] in poly_points]
+        coordinates.append((poly_points[0][0], poly_points[0][1]))
+        return coordinates
+
     def coverage(self, image='source'):
         mask = self.masks.all(axis = 1)
         matches = self.matches[mask]
@@ -495,23 +502,14 @@ class Edge(dict, MutableMapping):
         source_array = [self.source.get_keypoint_coordinates(i) for i in df_source_array]
         destination_array = [self.destination.get_keypoint_coordinates(i) for i in df_destination_array]
 
-        source_points = np.array(source_array)
         destination_points = np.array(destination_array)
 
         source_verts = self.source.geodata.latlon_corners
         destination_verts = self.destination.geodata.latlon_corners
 
-        # Generate the latlon cords for the source node
-        source_hull = cg.convex_hull(source_verts)
-        source_poly_points = [source_hull.points[i] for i in source_hull.vertices]
-        source_coords = [[i, j] for [i, j] in source_poly_points]
-        source_coords.append((source_poly_points[0][0], source_poly_points[0][1]))
+        source_coordinates = self._construct_json_serial(source_verts)
 
-        # Generate the latlon cords for the destination node
-        destination_hull = cg.convex_hull(destination_verts)
-        destination_poly_points = [destination_hull.points[i] for i in destination_hull.vertices]
-        destination_coords = [[i, j] for [i, j] in destination_poly_points]
-        destination_coords.append((destination_poly_points[0][0], destination_poly_points[0][1]))
+        destination_coordinates = self._construct_json_serial(destination_verts)
 
         if image == 'source':
             image_covered = source_points
@@ -520,11 +518,7 @@ class Edge(dict, MutableMapping):
             image_covered = destination_points
             node = self.destination
 
-        # Generate the pixel points for the convex hull
-        convex_hull = cg.convex_hull(image_covered)
-        convex_pixel_points = [convex_hull.points[i] for i in convex_hull.vertices]
-        convex_coordinates = [[i, j] for [i, j] in convex_pixel_points]
-        convex_coordinates.append(([convex_pixel_points[0][0], convex_pixel_points[0][1]]))
+        convex_coordinates = self._construct_json_serial(image_covered)
 
         # Convert the convex hull pixel coordinates to latlon
         # coordinates
@@ -534,8 +528,8 @@ class Edge(dict, MutableMapping):
             convex_points.append(point)
         convex_coords = [[i, j] for i, j in convex_points]
 
-        source_geom = {"type": "Polygon", "coordinates": [source_coords]}
-        destination_geom = {"type": "Polygon", "coordinates": [destination_coords]}
+        source_geom = {"type": "Polygon", "coordinates": [source_coordinates]}
+        destination_geom = {"type": "Polygon", "coordinates": [destination_coordinates]}
         convex_geom = {"type": "Polygon", "coordinates": [convex_coords]}
 
         source_hull_poly = ogr.CreateGeometryFromJson(json.dumps(source_geom))

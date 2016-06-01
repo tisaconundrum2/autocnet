@@ -2,6 +2,7 @@ import unittest
 import ogr
 
 from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 from autocnet.fileio import io_gdal
 from autocnet.examples import get_path
@@ -76,24 +77,26 @@ class TestEdge(unittest.TestCase):
         self.assertAlmostEqual(e.weight['overlap_percn'], 14.285714285)
 
     def test_coverage(self):
-        adjacency = get_path('geo_adjacancey.json')
-        basepath = get_path('Apollo15')
-        cg = CandidateGraph.from_adjacency(adjacency, basepath=basepath)
+        df1 = pd.DataFrame({'x': (15, 18, 18, 12, 12), 'y': (5, 10, 15, 15, 10)})
+        array1 = [True, True, True, True, True]
+        array2 = [[0, 0, 1, 0],
+                  [0, 1, 1, 1],
+                  [0, 2, 1, 2],
+                  [0, 3, 1, 3],
+                  [0, 4, 1, 4]]
+        df2 = pd.DataFrame(data = array1, columns = ['symmetry'], dtype = bool)
+        df3 = pd.DataFrame(data = array2, columns = ['source_image', 'source_idx', 'destination_image', 'destination_idx'] )
+        e = Mock(spec = edge.Edge())
+        source_node = node.Node()
+        destination_node = node.Node()
 
-        #Apply SIFT to extract features
-        cg.extract_features(method='sift', extractor_parameters={'nfeatures':500})
+        source_node.get_keypoint_coordinates = MagicMock(return_value=df1)
+        destination_node.get_keypoint_coordinates = MagicMock(return_value=df1)
 
-        #Match
-        cg.match_features()
+        e.source = source_node
+        e.destination = destination_node
 
-        #Apply outlier detection
-        cg.apply_func_to_edges('symmetry_check')
-        cg.apply_func_to_edges('ratio_check')
+        e.matches = df3
+        # e.masks = df2
 
-        #Compute a homography and apply RANSAC
-        cg.apply_func_to_edges("compute_fundamental_matrix", clean_keys=['ratio', 'symmetry'])
-
-        source_coverage = cg.edge[0][1].coverage(image = 'source')
-        destination_coverage = cg.edge[0][1].coverage(image = 'destination')
-        print()
-        self.assertTrue()
+        e.coverage(image = 'source')
