@@ -4,7 +4,6 @@ from autocnet.examples import get_path
 from autocnet.fileio.io_controlnetwork import to_isis
 from autocnet.fileio.io_controlnetwork import write_filelist
 from autocnet.graph.network import CandidateGraph
-from autocnet.matcher.matcher import FlannMatcher
 
 
 class TestThreeImageMatching(unittest.TestCase):
@@ -54,6 +53,7 @@ class TestThreeImageMatching(unittest.TestCase):
             edge.ratio_check(clean_keys=['symmetry'], ratio=0.99)
 
         cg.apply_func_to_edges("compute_homography", clean_keys=['symmetry', 'ratio'])
+        cg.compute_fundamental_matrices(clean_keys=['symmetry', 'ratio'])
 
         # Step: And create a C object
         cg.generate_cnet(clean_keys=['symmetry', 'ratio', 'ransac'])
@@ -62,7 +62,10 @@ class TestThreeImageMatching(unittest.TestCase):
         filelist = cg.to_filelist()
         write_filelist(filelist, 'TestThreeImageMatching_fromlist.lis')
 
-        to_isis('TestThreeImageMatching.net', cg.cn, mode='wb',
+        # Step: Create a correspondence network
+        cg.generate_cnet(clean_keys=['symmetry', 'ratio', 'ransac'], deepen=True)
+
+        to_isis('TestThreeImageMatching.net', cg, mode='wb',
                 networkid='TestThreeImageMatching', targetname='Moon')
 
     def tearDown(self):

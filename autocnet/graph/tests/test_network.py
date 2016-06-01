@@ -153,7 +153,7 @@ class TestCandidateGraph(unittest.TestCase):
 
     def test_filter(self):
         def edge_func(edge):
-            return hasattr(edge, 'matches') and not edge.matches.empty
+            return edge.matches is not None and hasattr(edge, 'matches')
 
         graph = self.graph.copy()
         test_sub_graph = graph.create_node_subgraph([0, 1])

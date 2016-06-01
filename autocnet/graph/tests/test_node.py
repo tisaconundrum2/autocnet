@@ -38,10 +38,6 @@ class TestNode(unittest.TestCase):
         self.assertIsInstance(self.node.descriptors[0], np.ndarray)
         self.assertEqual(10, self.node.nkeypoints)
 
-        # Test the setter
-        self.node.nkeypoints = 11
-        self.assertEqual(11, self.node.nkeypoints)
-
     def test_masks(self):
         # Assert a warning raise here
         with warnings.catch_warnings(record=True) as w:

@@ -1,5 +1,12 @@
 import cv2
 
+try:
+    import cyvlfeat as vl
+    vlfeat = True
+except:
+    vlfeat = False
+    pass
+
 
 def extract_features(array, method='orb', extractor_parameters=None):
     """
@@ -28,6 +35,11 @@ def extract_features(array, method='orb', extractor_parameters=None):
                  'sift': cv2.xfeatures2d.SIFT_create,
                  'surf': cv2.xfeatures2d.SURF_create,
                  'orb': cv2.ORB_create}
+    if vlfeat:
+        detectors['vl_sift'] = vl.sift.sift
 
-    detector = detectors[method](**extractor_parameters)
-    return detector.detectAndCompute(array, None)
+    if 'vl_' in method:
+        return detectors[method](array, compute_descriptor=True, float_descriptors=True, **extractor_parameters)
+    else:
+        detector = detectors[method](**extractor_parameters)
+        return detector.detectAndCompute(array, None)
