@@ -3,9 +3,7 @@ from collections import MutableMapping
 
 import numpy as np
 import pandas as pd
-from pysal.cg.shapes import Polygon
 
-from autocnet.cg.cg import convex_hull_ratio
 from autocnet.cg import cg
 from autocnet.matcher import health
 from autocnet.matcher import outlier_detector as od

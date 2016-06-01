@@ -3,7 +3,6 @@ import warnings
 import pvl
 import os
 
-from pysal.cg.shapes import Polygon
 from autocnet.utils.utils import find_in_dict
 from osgeo import ogr
 import numpy as np
