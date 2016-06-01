@@ -32,3 +32,4 @@ class TestArea(unittest.TestCase):
 
         self.assertEqual(info[1], 400)
         self.assertAlmostEqual(info[0], 14.285714285)
+

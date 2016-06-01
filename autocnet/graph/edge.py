@@ -4,11 +4,8 @@ from collections import MutableMapping
 
 import numpy as np
 import pandas as pd
-from pysal.cg.shapes import Polygon
 from osgeo import ogr
 
-from autocnet.cg.cg import convex_hull_ratio
-from autocnet.cg.cg import overlapping_polygon_area
 from autocnet.matcher import health
 from autocnet.matcher import outlier_detector as od
 from autocnet.matcher import suppression_funcs as spf
@@ -383,65 +380,6 @@ class Edge(dict, MutableMapping):
         mask[mask] = self.suppression.mask
         self.masks = ('suppression', mask)
 
-    def coverage_ratio(self, clean_keys=[]):
-        """
-        Compute the ratio $area_{convexhull} / area_{imageoverlap}$.
-
-        Returns
-        -------
-        ratio : float
-                The ratio $area_{convexhull} / area_{imageoverlap}$
-        """
-        if self.homography is None:
-            raise AttributeError('A homography has not been computed. Unable to determine image overlap.')
-
-        matches = self.matches
-        # Build up a composite mask from all of the user specified masks
-        matches, _ = self._clean(clean_keys)
-
-        d_idx = matches['destination_idx'].values
-        keypoints = self.destination.get_keypoint_coordinates(d_idx)
-        if len(keypoints) < 3:
-            raise ValueError('Convex hull computation requires at least 3 measures.')
-
-        source_geom, proj_geom, ideal_area = self.compute_homography_overlap()
-
-        ratio = convex_hull_ratio(keypoints, ideal_area)
-        return ratio
-
-    def compute_homography_overlap(self):
-        """
-        Using the homography, estimate the overlapping area
-        between images on the edge
-
-        Returns
-        -------
-        source_geom : object
-                      PySAL Polygon object of the source pixel bounding box
-
-        projected_geom : object
-                         PySAL Polygon object of the destination geom projected
-                         into the source reference system using the current
-                         homography
-
-        area : float
-               The estimated area
-        """
-
-        source_geom = self.source.geodata.pixel_polygon
-        destination_geom = self.destination.geodata.pixel_polygon
-
-        # Project using the homography
-        vertices_to_project = destination_geom.vertices
-        for i, v in enumerate(vertices_to_project):
-            vertices_to_project[i] = tuple(np.array([v[0], v[1], 1]).dot(self.homography)[:2])
-        projected_geom = Polygon(vertices_to_project)
-
-        # Estimate the overlapping area
-        area = overlapping_polygon_area([source_geom, projected_geom])
-
-        return source_geom, projected_geom, area
-
     def plot(self, ax=None, clean_keys=[], **kwargs):
         return plot_edge(self, ax=ax, clean_keys=clean_keys, **kwargs)
 
@@ -512,10 +450,10 @@ class Edge(dict, MutableMapping):
         destination_coordinates = self._construct_json_serial(destination_verts)
 
         if image == 'source':
-            image_covered = source_points
+            image_covered = source_verts
             node = self.source
         else:
-            image_covered = destination_points
+            image_covered = destination_verts
             node = self.destination
 
         convex_coordinates = self._construct_json_serial(image_covered)

@@ -2,8 +2,12 @@ import warnings
 
 import cv2
 import pandas as pd
+import numpy as np
+import math
 
+from scipy.misc import imresize
 from scipy.ndimage.interpolation import zoom
+
 
 FLANN_INDEX_KDTREE = 1  # Algorithm to set centers,
 DEFAULT_FLANN_PARAMETERS = dict(algorithm=FLANN_INDEX_KDTREE,
@@ -178,3 +182,4 @@ class FlannMatcher(object):
         return pd.DataFrame(matched, columns=['source_image', 'source_idx',
                                               'destination_image', 'destination_idx',
                                               'distance'])
+
