@@ -435,11 +435,10 @@ class Edge(dict, MutableMapping):
     def coverage(self, image='source'):
         mask = self.masks.all(axis = 1)
         matches = self.matches[mask]
-        df_source_array = np.array(matches['source_idx'])
-        df_destination_array = np.array(matches['destination_idx'])
-        source_array = [self.source.get_keypoint_coordinates(i) for i in df_source_array]
-        destination_array = [self.destination.get_keypoint_coordinates(i) for i in df_destination_array]
+        source_array = self.source.get_keypoint_coordinates(index=matches['source_idx'])
+        destination_array = self.destination.get_keypoint_coordinates(index=matches['source_idx'])
 
+        source_points = np.array(source_array)
         destination_points = np.array(destination_array)
 
         source_verts = self.source.geodata.latlon_corners
@@ -450,10 +449,10 @@ class Edge(dict, MutableMapping):
         destination_coordinates = self._construct_json_serial(destination_verts)
 
         if image == 'source':
-            image_covered = source_verts
+            image_covered = source_points
             node = self.source
         else:
-            image_covered = destination_verts
+            image_covered = destination_points
             node = self.destination
 
         convex_coordinates = self._construct_json_serial(image_covered)
