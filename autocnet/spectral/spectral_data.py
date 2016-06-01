@@ -26,6 +26,7 @@ def norm_total(df):
 class spectral_data(object):
     def __init__(self,df):
         self.df=df
+
     
     def interp(self,xnew):
         xnew=np.array(xnew,dtype='float')
@@ -199,7 +200,12 @@ class spectral_data(object):
         self.df_baseline['wvl']=br.baseline
         self.df['wvl']=br.fit_transform(wvls,spectra)
        
-        
+    def meancenter(self,set_mean_vect=False):
+        if set_mean_vect is True:
+            self.mean_vect=self.df['wvl'].mean(axis=0)    
+        self.df['wvl']=self.df['wvl'].sub(self.mean_vect,axis=1)
+                
+               
          
         
 
