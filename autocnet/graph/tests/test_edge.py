@@ -77,26 +77,50 @@ class TestEdge(unittest.TestCase):
         self.assertAlmostEqual(e.weight['overlap_percn'], 14.285714285)
 
     def test_coverage(self):
-        df1 = pd.DataFrame({'x': (15, 18, 18, 12, 12), 'y': (5, 10, 15, 15, 10)})
-        array1 = [True, True, True, True, True]
-        array2 = [[0, 0, 1, 0],
-                  [0, 1, 1, 1],
-                  [0, 2, 1, 2],
-                  [0, 3, 1, 3],
-                  [0, 4, 1, 4]]
-        df2 = pd.DataFrame(data = array1, columns = ['symmetry'], dtype = bool)
-        df3 = pd.DataFrame(data = array2, columns = ['source_image', 'source_idx', 'destination_image', 'destination_idx'] )
-        e = Mock(spec = edge.Edge())
-        source_node = node.Node()
-        destination_node = node.Node()
+        keypoint_df = pd.DataFrame({'x': (15, 18, 18, 12, 12), 'y': (5, 10, 15, 15, 10)})
+        keypoint_matches = [[0, 0, 1, 0],
+                            [0, 1, 1, 1],
+                            [0, 2, 1, 2],
+                            [0, 3, 1, 3],
+                            [0, 4, 1, 4]]
 
-        source_node.get_keypoint_coordinates = MagicMock(return_value=df1)
-        destination_node.get_keypoint_coordinates = MagicMock(return_value=df1)
+        matches_df = pd.DataFrame(data = keypoint_matches, columns = ['source_image', 'source_idx', 'destination_image', 'destination_idx'])
+        e = edge.Edge()
+        source_node = MagicMock(spec = node.Node())
+        destination_node = MagicMock(spec = node.Node())
+
+        source_node.get_keypoint_coordinates = MagicMock(return_value=keypoint_df)
+        destination_node.get_keypoint_coordinates = MagicMock(return_value=keypoint_df)
 
         e.source = source_node
         e.destination = destination_node
 
-        e.matches = df3
-        # e.masks = df2
+        source_geodata = Mock(spec = io_gdal.GeoDataset)
+        destination_geodata = Mock(spec = io_gdal.GeoDataset)
 
-        e.coverage(image = 'source')
+        e.source.geodata = source_geodata
+        e.destination.geodata = destination_geodata
+
+        source_corners = [(0, 0),
+                          (20, 0),
+                          (20, 20),
+                          (0, 20)]
+
+        destination_corners = [(10, 5),
+                               (30, 5),
+                               (30, 25),
+                               (10, 25)]
+
+        e.source.geodata.latlon_corners = source_corners
+        e.destination.geodata.latlon_corners = destination_corners
+
+        vals = {(15, 5):(15, 5), (18, 10):(18, 10), (18, 15):(18, 15), (12, 15):(12, 15), (12, 10):(12, 10)}
+
+        def pixel_to_latlon(i, j):
+            return vals[(i, j)]
+
+        e.source.geodata.pixel_to_latlon = MagicMock(side_effect = pixel_to_latlon)
+        e.destination.geodata.pixel_to_latlon = MagicMock(side_effect = pixel_to_latlon)
+
+        e.matches = matches_df
+        self.assertEqual(e.coverage(image='source'), 30)
