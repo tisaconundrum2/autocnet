@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from osgeo import ogr
 
+from autocnet.utils import utils
 from autocnet.matcher import health
 from autocnet.matcher import outlier_detector as od
 from autocnet.matcher import suppression_funcs as spf
@@ -425,28 +426,36 @@ class Edge(dict, MutableMapping):
         self.weight['overlap_area'] = overlapinfo[1]
         self.weight['overlap_percn'] = overlapinfo[0]
 
-    def _construct_json_serial(self, coords):
-        hull = cg.convex_hull(coords)
-        poly_points = [hull.points[i] for i in hull.vertices]
-        coordinates = [[i, j] for [i, j] in poly_points]
-        coordinates.append((poly_points[0][0], poly_points[0][1]))
-        return coordinates
-
     def coverage(self, image='source'):
+        """
+        Acts on the edge given either the source node
+        or the destination node and returns the percentage
+        of overlap covered by the keypoints
+
+        Parameters
+        ----------
+        image : string
+                Parameter to determine which node on the edge
+                to look at
+        Returns
+        -------
+        total_overlap_percentage : float
+                                   returns the overlap area
+                                   covered by the keypoints
+        """
+        if self.matches is None:
+            raise AttributeError('Edge needs to have features extracted and matched')
+            return
         mask = self.masks.all(axis = 1)
         matches = self.matches[mask]
         source_array = self.source.get_keypoint_coordinates(index=matches['source_idx'])
-        destination_array = self.destination.get_keypoint_coordinates(index=matches['source_idx'])
+        destination_array = self.destination.get_keypoint_coordinates(index=matches['destination_idx'])
 
         source_points = np.array(source_array)
         destination_points = np.array(destination_array)
 
-        source_verts = self.source.geodata.latlon_corners
-        destination_verts = self.destination.geodata.latlon_corners
-
-        source_coordinates = self._construct_json_serial(source_verts)
-
-        destination_coordinates = self._construct_json_serial(destination_verts)
+        source_coords = self.source.geodata.latlon_corners
+        destination_coords = self.destination.geodata.latlon_corners
 
         if image == 'source':
             image_covered = source_points
@@ -455,30 +464,28 @@ class Edge(dict, MutableMapping):
             image_covered = destination_points
             node = self.destination
 
-        convex_coordinates = self._construct_json_serial(image_covered)
+        # pixel space
+        convex_hull = cg.convex_hull(image_covered)
+
+        convex_points = [node.geodata.pixel_to_latlon(row[0], row[1]) for row in convex_hull.points[convex_hull.vertices]]
+        convex_coords = [(i, j) for i, j in convex_points]
 
         # Convert the convex hull pixel coordinates to latlon
         # coordinates
-        convex_points = []
-        for i, j in convex_coordinates:
-            point = node.geodata.pixel_to_latlon(i, j)
-            convex_points.append(point)
-        convex_coords = [[i, j] for i, j in convex_points]
+        source_geom = utils.array_to_geom(destination_coords)
+        destination_geom = utils.array_to_geom(source_coords)
+        convex_geom = utils.array_to_geom(convex_coords)
 
-        source_geom = {"type": "Polygon", "coordinates": [source_coordinates]}
-        destination_geom = {"type": "Polygon", "coordinates": [destination_coordinates]}
-        convex_geom = {"type": "Polygon", "coordinates": [convex_coords]}
-
-        source_hull_poly = ogr.CreateGeometryFromJson(json.dumps(source_geom))
-        destination_hull_poly = ogr.CreateGeometryFromJson(json.dumps(destination_geom))
+        source_poly = ogr.CreateGeometryFromJson(json.dumps(source_geom))
+        destination_poly = ogr.CreateGeometryFromJson(json.dumps(destination_geom))
         convex_poly = ogr.CreateGeometryFromJson(json.dumps(convex_geom))
 
-        image_intersection = source_hull_poly.Intersection(destination_hull_poly)
+        image_intersection = source_poly.Intersection(destination_poly)
         image_intersection_area = image_intersection.GetArea()
 
         hull_overlap_poly = image_intersection.Intersection(convex_poly)
         hull_overlap_area = hull_overlap_poly.GetArea()
 
-        total_overlap_coverage = (hull_overlap_area/image_intersection_area)*100
+        total_overlap_coverage = (hull_overlap_area/image_intersection_area)
 
         return total_overlap_coverage
