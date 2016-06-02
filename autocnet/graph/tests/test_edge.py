@@ -5,8 +5,6 @@ from unittest.mock import Mock
 from unittest.mock import MagicMock
 
 from autocnet.fileio import io_gdal
-from autocnet.examples import get_path
-from autocnet.graph.network import CandidateGraph
 import pandas as pd
 
 from .. import edge
