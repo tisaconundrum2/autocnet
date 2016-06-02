@@ -200,20 +200,16 @@ class spectral_data(object):
         self.df_baseline['wvl']=br.baseline
         self.df['wvl']=br.fit_transform(wvls,spectra)
        
-    def meancenter(self,set_mean_vect=False):
-        if set_mean_vect is True:
-            self.mean_vect=self.df['wvl'].mean(axis=0)    
-        self.df['wvl']=self.df['wvl'].sub(self.mean_vect,axis=1)
-                
-               
-         
-        
+    
 
-    def choose_rows(self,column_name,isin_array,invert=False):
+    def rows_match(self,column_name,isin_array,invert=False):
         if invert:
             new_df=self.df.loc[-self.df[column_name].isin(isin_array)]              
         else:
             new_df=self.df.loc[self.df[column_name].isin(isin_array)]              
         return spectral_data(new_df)
         
+    def col_within_range(self,rangevals,col):
+        mask=(self.df[('meta',col)]>rangevals[0])&(self.df[('meta',col)]<rangevals[1])
+        return self.df.loc[mask]
         
