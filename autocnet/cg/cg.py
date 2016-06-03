@@ -1,5 +1,9 @@
-import pandas as pd
+import json
 
+import pandas as pd
+from osgeo import ogr
+
+from autocnet.utils import utils
 from scipy.spatial import ConvexHull
 
 
@@ -77,3 +81,26 @@ def two_poly_overlap(poly1, poly2):
     overlap_area = a_o
     overlap_percn = (a_o / (area1 + area2 - a_o)) * 100
     return overlap_percn, overlap_area
+
+
+def get_area(poly1, poly2):
+    """
+
+    Parameters
+    ----------
+    poly1 : ogr polygon
+            General ogr polygon
+
+    poly2 : ogr polygon
+            General ogr polygon
+
+    Returns
+    -------
+    intersection_area : float
+                        returns the intersection area
+                        of two polygons
+
+    """
+    intersection = poly1.Intersection(poly2)
+    intersection_area = intersection.GetArea()
+    return intersection_area
