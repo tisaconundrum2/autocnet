@@ -128,5 +128,4 @@ class TestEdge(unittest.TestCase):
         e.matches = matches_df
 
         self.assertRaises(AttributeError, cg.edge[0][1].coverage)
-        self.assertEqual(e.coverage(image='destination'), 0.3)
-        self.assertEqual(e.coverage(image='source'), 0.3)
+        self.assertEqual(e.coverage(), 0.3)

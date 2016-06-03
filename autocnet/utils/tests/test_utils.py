@@ -135,7 +135,7 @@ class TestUtils(unittest.TestCase):
         array2 = np.array([[1, 2, 3],
                            [4, 5, 6],
                            [7, 8, 9]])
-        geom1 = utils.array_to_geom(array1)
+        geom1 = utils.array_to_poly(array1)
 
         self.assertIsInstance(geom1, dict)
-        self.assertRaises(ValueError, utils.array_to_geom, array2)
+        self.assertRaises(ValueError, utils.array_to_poly, array2)
