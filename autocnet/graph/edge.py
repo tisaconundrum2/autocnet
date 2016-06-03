@@ -4,12 +4,11 @@ from collections import MutableMapping
 import numpy as np
 import pandas as pd
 
-from autocnet.cg import cg
 from autocnet.matcher import health
 from autocnet.matcher import outlier_detector as od
 from autocnet.matcher import suppression_funcs as spf
 from autocnet.matcher import subpixel as sp
-from autocnet.matcher.matcher import FlannMatcher
+from autocnet.matcher.feature import FlannMatcher
 from autocnet.transformation.transformations import FundamentalMatrix, Homography
 from autocnet.vis.graph_view import plot_edge
 from autocnet.cg import cg
