@@ -430,13 +430,11 @@ class Edge(dict, MutableMapping):
         """
         Acts on the edge given either the source node
         or the destination node and returns the percentage
-        of overlap covered by the keypoints
+        of overlap covered by the keypoints. Data for the
+        overlap is gathered from the source node of the edge
+        resulting in a maximum area difference of 2% when compared
+        to the destination.
 
-        Parameters
-        ----------
-        image : string
-                Parameter to determine which node on the edge
-                to look at
         Returns
         -------
         total_overlap_percentage : float
@@ -453,14 +451,11 @@ class Edge(dict, MutableMapping):
         source_coords = self.source.geodata.latlon_corners
         destination_coords = self.destination.geodata.latlon_corners
 
-        # pixel space
         convex_hull = cg.convex_hull(source_array)
 
         convex_points = [self.source.geodata.pixel_to_latlon(row[0], row[1]) for row in convex_hull.points[convex_hull.vertices]]
         convex_coords = [(i, j) for i, j in convex_points]
 
-        # Convert the convex hull pixel coordinates to latlon
-        # coordinates
         source_poly = utils.array_to_poly(source_coords)
         destination_poly = utils.array_to_poly(destination_coords)
         convex_poly = utils.array_to_poly(convex_coords)

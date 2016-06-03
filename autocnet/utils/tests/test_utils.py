@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
+from osgeo import ogr
 from .. import utils
 
 
@@ -137,5 +138,5 @@ class TestUtils(unittest.TestCase):
                            [7, 8, 9]])
         geom1 = utils.array_to_poly(array1)
 
-        self.assertIsInstance(geom1, dict)
+        self.assertIsInstance(geom1, ogr.Geometry)
         self.assertRaises(ValueError, utils.array_to_poly, array2)
