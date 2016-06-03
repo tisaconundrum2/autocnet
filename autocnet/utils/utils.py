@@ -329,9 +329,8 @@ def array_to_poly(array):
     if size[1] != 2:
         raise ValueError('Array is not the proper size.')
         return
-    geom_array = np.append(array, [array[0]], axis = 0)
-    geom_list = np.array(geom_array).tolist()
-    geom = {"type": "Polygon", "coordinates": [geom_list]}
+    geom_array = np.append(array, [array[0]], axis = 0).tolist()
+    geom = {"type": "Polygon", "coordinates": [geom_array]}
     poly = ogr.CreateGeometryFromJson(json.dumps(geom))
     return poly
 

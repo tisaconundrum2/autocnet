@@ -129,7 +129,7 @@ class TestUtils(unittest.TestCase):
         slope = utils.calculate_slope(x1, x2)
         self.assertEqual(slope[0], 2)
 
-    def test_array_to_geom(self):
+    def test_array_to_poly(self):
         array1 = np.array([[1, 2],
                            [3, 4],
                            [5, 6]])

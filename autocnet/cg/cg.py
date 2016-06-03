@@ -97,6 +97,5 @@ def get_area(poly1, poly2):
                         of two polygons
 
     """
-    intersection = poly1.Intersection(poly2)
-    intersection_area = intersection.GetArea()
+    intersection_area = poly1.Intersection(poly2).GetArea()
     return intersection_area

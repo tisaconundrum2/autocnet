@@ -382,7 +382,7 @@ class Edge(dict, MutableMapping):
     def plot(self, ax=None, clean_keys=[], **kwargs):
         return plot_edge(self, ax=ax, clean_keys=clean_keys, **kwargs)
 
-    def _clean(self, clean_keys=[], pid=None):
+    def _clean(self, clean_keys, pid=None):
         """
         Given a list of clean keys and a provenance id compute the
         mask of valid matches
@@ -424,7 +424,7 @@ class Edge(dict, MutableMapping):
         self.weight['overlap_area'] = overlapinfo[1]
         self.weight['overlap_percn'] = overlapinfo[0]
 
-    def coverage(self):
+    def coverage(self, clean_keys = []):
         """
         Acts on the edge given either the source node
         or the destination node and returns the percentage
@@ -442,8 +442,7 @@ class Edge(dict, MutableMapping):
         if self.matches is None:
             raise AttributeError('Edge needs to have features extracted and matched')
             return
-        mask = self.masks.all(axis=1)
-        matches = self.matches[mask]
+        matches, mask = self._clean(clean_keys)
         source_array = self.source.get_keypoint_coordinates(index=matches['source_idx']).values
 
         source_coords = self.source.geodata.latlon_corners
@@ -452,7 +451,7 @@ class Edge(dict, MutableMapping):
         convex_hull = cg.convex_hull(source_array)
 
         convex_points = [self.source.geodata.pixel_to_latlon(row[0], row[1]) for row in convex_hull.points[convex_hull.vertices]]
-        convex_coords = [(i, j) for i, j in convex_points]
+        convex_coords = [(x, y) for x, y in convex_points]
 
         source_poly = utils.array_to_poly(source_coords)
         destination_poly = utils.array_to_poly(destination_coords)
