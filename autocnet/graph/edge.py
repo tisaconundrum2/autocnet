@@ -1,10 +1,8 @@
 import warnings
-import json
 from collections import MutableMapping
 
 import numpy as np
 import pandas as pd
-from osgeo import ogr
 
 from autocnet.utils import utils
 from autocnet.matcher import health

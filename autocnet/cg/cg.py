@@ -1,9 +1,5 @@
-import json
-
 import pandas as pd
-from osgeo import ogr
 
-from autocnet.utils import utils
 from scipy.spatial import ConvexHull
 
 
