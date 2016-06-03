@@ -127,3 +127,15 @@ class TestUtils(unittest.TestCase):
 
         slope = utils.calculate_slope(x1, x2)
         self.assertEqual(slope[0], 2)
+
+    def test_array_to_geom(self):
+        array1 = np.array([[1, 2],
+                           [3, 4],
+                           [5, 6]])
+        array2 = np.array([[1, 2, 3],
+                           [4, 5, 6],
+                           [7, 8, 9]])
+        geom1 = utils.array_to_geom(array1)
+
+        self.assertIsInstance(geom1, dict)
+        self.assertRaises(ValueError, utils.array_to_geom, array2)

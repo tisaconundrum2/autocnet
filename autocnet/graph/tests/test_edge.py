@@ -4,6 +4,8 @@ import ogr
 from unittest.mock import Mock
 from unittest.mock import MagicMock
 
+from autocnet.examples import get_path
+from autocnet.graph.network import CandidateGraph
 from autocnet.fileio import io_gdal
 import pandas as pd
 
@@ -75,6 +77,9 @@ class TestEdge(unittest.TestCase):
         self.assertAlmostEqual(e.weight['overlap_percn'], 14.285714285)
 
     def test_coverage(self):
+        adjacency = get_path('two_image_adjacency.json')
+        basepath = get_path('Apollo15')
+        cg = CandidateGraph.from_adjacency(adjacency, basepath=basepath)
         keypoint_df = pd.DataFrame({'x': (15, 18, 18, 12, 12), 'y': (5, 10, 15, 15, 10)})
         keypoint_matches = [[0, 0, 1, 0],
                             [0, 1, 1, 1],
@@ -121,4 +126,7 @@ class TestEdge(unittest.TestCase):
         e.destination.geodata.pixel_to_latlon = MagicMock(side_effect = pixel_to_latlon)
 
         e.matches = matches_df
+
+        self.assertRaises(AttributeError, cg.edge[0][1].coverage)
+        self.assertEqual(e.coverage(image='destination'), 0.3)
         self.assertEqual(e.coverage(image='source'), 0.3)
