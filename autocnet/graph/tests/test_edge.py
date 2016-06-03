@@ -121,4 +121,4 @@ class TestEdge(unittest.TestCase):
         e.destination.geodata.pixel_to_latlon = MagicMock(side_effect = pixel_to_latlon)
 
         e.matches = matches_df
-        self.assertEqual(e.coverage(image='source'), 30)
+        self.assertEqual(e.coverage(image='source'), 0.3)
