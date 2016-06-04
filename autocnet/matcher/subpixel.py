@@ -1,6 +1,6 @@
 import numpy as np
 
-from autocnet.matcher import matcher
+from autocnet.matcher import naive_template
 
 # TODO: look into KeyPoint.size and perhaps use to determine an appropriately-sized search/template.
 
@@ -29,7 +29,7 @@ def clip_roi(img, center, img_size):
                   The clipped image
     """
     if img_size % 2 == 0:
-            raise ValueError('Image size must be odd.')
+        raise ValueError('Image size must be odd.')
 
     i = int((img_size - 1) / 2)
 
@@ -74,7 +74,7 @@ def subpixel_offset(template, search, **kwargs):
                Strength of the correspondence in the range [-1, 1]
     """
 
-    x_offset, y_offset, strength = matcher.pattern_match(template, search, **kwargs)
+    x_offset, y_offset, strength = naive_template.pattern_match(template, search, **kwargs)
     return x_offset, y_offset, strength
 
 '''

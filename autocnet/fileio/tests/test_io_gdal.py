@@ -22,14 +22,14 @@ class TestMercator(unittest.TestCase):
         self.assertEqual(self.dataset.unit_type, '')
 
     def test_get_xy_extent(self):
-        self.assertEqual(self.dataset.xy_extent, [(0.0, 3921610.0), (10667520.0, -3921610.0)])
+        self.assertEqual(self.dataset.xy_extent, [(0, 0), (2304, 1694)])
 
     def test_get_no_data_value(self):
         self.assertEqual(self.dataset.no_data_value, 0.0)
 
     def test_pixel_to_latlon(self):
-        lat, lon = self.dataset.pixel_to_latlon(0,0)
-        self.assertAlmostEqual(lat, 55.3322890518, 6)
+        lat, lon = self.dataset.pixel_to_latlon(0, 0)
+        self.assertAlmostEqual(lat, 55.3322890, 6)
         self.assertAlmostEqual(lon, 0.0, 6)
 
     def test_scale(self):
@@ -37,10 +37,15 @@ class TestMercator(unittest.TestCase):
 
     def test_xy_extent(self):
         xy_extent = self.dataset.xy_extent
-        self.assertEqual(xy_extent, [(0.0, 3921610.0), (10667520.0, -3921610.0)])
+        self.assertEqual(xy_extent, [(0, 0), (2304, 1694)])
+
+    def test_xy_corners(self):
+        xy_corners = self.dataset.xy_corners
+        self.assertEqual(xy_corners, [(0, 0), (0, 1694), (2304, 1694), (2304, 0)])
 
     def test_latlon_extent(self):
-        self.assertEqual(self.dataset.latlon_extent, [(-90, -150.4067721290261), (90.0, 0.0)])
+        self.assertEqual(self.dataset.latlon_extent, [(55.33228905180849, 0.0),
+                                                      (-55.3322890518085, 179.96751473604124)])
 
     def test_spheroid(self):
         sphere = self.dataset.spheroid
@@ -85,6 +90,7 @@ class TestMercator(unittest.TestCase):
         self.assertEqual(arr.dtype, np.int8)
         self.assertAlmostEqual(np.mean(arr), 10.10353227, 6)
 
+
 class TestLambert(unittest.TestCase):
     def setUp(self):
         self.dataset = io_gdal.GeoDataset(get_path('Lunar_LRO_LOLA_Shade_MAP2_90.0N20.0_LAMB.tif'))
@@ -97,15 +103,15 @@ class TestLambert(unittest.TestCase):
         self.assertEqual(self.dataset.unit_type, '')
 
     def test_get_xy_extent(self):
-        self.assertEqual(self.dataset.xy_extent, [(-464400.0, -506970.0), (460530.0, -1571220.0)])
+        self.assertEqual(self.dataset.xy_extent, [(0, 0), (239, 275)])
 
     def test_get_no_data_value(self):
         self.assertEqual(self.dataset.no_data_value, 0.0)
 
     def test_pixel_to_latlon(self):
         lat, lon = self.dataset.pixel_to_latlon(0,0)
-        self.assertAlmostEqual(lat, 69.90349154912009, 6)
-        self.assertAlmostEqual(lon, -29.72166902463681, 6)
+        self.assertAlmostEqual(lat, 69.9034915, 6)
+        self.assertAlmostEqual(lon, -29.72166902, 6)
 
     def test_latlon_to_pixel(self):
         lat, lon = 69.90349154912009, -29.72166902463681
@@ -116,10 +122,6 @@ class TestLambert(unittest.TestCase):
     def test_standard_parallels(self):
         sp = self.dataset.standard_parallels
         self.assertEqual(sp, [73.0, 42.0])
-
-    def test_xy_extent(self):
-        xy_extent = self.dataset.xy_extent
-        self.assertEqual(xy_extent, [(-464400.0, -506970.0), (460530.0, -1571220.0)])
 
 
 class TestPolar(unittest.TestCase):
@@ -134,14 +136,14 @@ class TestPolar(unittest.TestCase):
         self.assertEqual(self.dataset.unit_type, '')
 
     def test_get_xy_extent(self):
-        self.assertEqual(self.dataset.xy_extent, [(-2129800.0, 2129800.0), (2129800.0, -2129800.0)])
+        self.assertEqual(self.dataset.xy_extent, [(0, 0), (920, 920)])
 
     def test_get_no_data_value(self):
         self.assertEqual(self.dataset.no_data_value, 0.0)
 
     def test_pixel_to_latlon(self):
         lat, lon = self.dataset.pixel_to_latlon(0,0)
-        self.assertAlmostEqual(lat, 42.2574735013, 6)
+        self.assertAlmostEqual(lat, 42.2574735, 6)
         self.assertAlmostEqual(lon, -135.0, 6)
 
     def test_latlon_to_pixel(self):
@@ -149,10 +151,6 @@ class TestPolar(unittest.TestCase):
         pixel = self.dataset.latlon_to_pixel(lat, lon)
         self.assertAlmostEqual(pixel[0], 0.0, 6)
         self.assertAlmostEqual(pixel[1], 0.0, 6)
-
-    def test_xy_extent(self):
-        xy_extent = self.dataset.xy_extent
-        self.assertEqual(xy_extent, [(-2129800.0, 2129800.0), (2129800.0, -2129800.0)])
 
 class TestWriter(unittest.TestCase):
     def setUp(self):

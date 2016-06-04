@@ -1,6 +1,5 @@
 import os
 import sys
-sys.path.insert(0, os.path.abspath('..'))
 
 import unittest
 import warnings
@@ -10,9 +9,10 @@ import pandas as pd
 
 from autocnet.examples import get_path
 from autocnet.fileio.io_gdal import GeoDataset
-from autocnet.utils.utils import find_in_dict
 
 from .. import node
+
+sys.path.insert(0, os.path.abspath('..'))
 
 
 class TestNode(unittest.TestCase):
@@ -20,7 +20,7 @@ class TestNode(unittest.TestCase):
     def setUp(self):
         img = get_path('AS15-M-0295_SML.png')
         self.node = node.Node(image_name='AS15-M-0295_SML',
-                             image_path=img)
+                              image_path=img)
 
     def test_get_handle(self):
         self.assertIsInstance(self.node.geodata, GeoDataset)
@@ -32,15 +32,11 @@ class TestNode(unittest.TestCase):
 
     def test_extract_features(self):
         image = self.node.get_array()
-        self.node.extract_features(image, extractor_parameters={'nfeatures':10})
+        self.node.extract_features(image, extractor_parameters={'nfeatures': 10})
         self.assertEquals(len(self.node.get_keypoints()), 10)
         self.assertEquals(len(self.node.descriptors), 10)
         self.assertIsInstance(self.node.descriptors[0], np.ndarray)
         self.assertEqual(10, self.node.nkeypoints)
-
-        # Test the setter
-        self.node.nkeypoints = 11
-        self.assertEqual(11, self.node.nkeypoints)
 
     def test_masks(self):
         # Assert a warning raise here
@@ -50,10 +46,10 @@ class TestNode(unittest.TestCase):
             self.assertEqual(w[0].category, UserWarning)
 
         image = self.node.get_array()
-        self.node.extract_features(image, extractor_parameters={'nfeatures':5})
+        self.node.extract_features(image, extractor_parameters={'nfeatures': 5})
         self.assertIsInstance(self.node.masks, pd.DataFrame)
         # Create an artificial mask
-        self.node.masks = ('foo', np.array([0,0,1,1,1], dtype=np.bool))
+        self.node.masks = ('foo', np.array([0, 0, 1, 1, 1], dtype=np.bool))
         self.assertEqual(self.node.masks['foo'].sum(), 3)
 
     def test_convex_hull_ratio_fail(self):
@@ -66,7 +62,7 @@ class TestNode(unittest.TestCase):
 
     def test_save_load(self):
         image = self.node.get_array()
-        self.node.extract_features(image, method='sift', extractor_parameters={'nfeatures':10})
+        self.node.extract_features(image, method='sift', extractor_parameters={'nfeatures': 10})
         self.node.save_features('node_test.hdf')
         kps = self.node.get_keypoints().copy()
         descriptors = self.node.descriptors.copy()
@@ -75,3 +71,11 @@ class TestNode(unittest.TestCase):
         self.assertTrue((kps.sort(axis=0) == self.node.get_keypoints().sort(axis=0)).all().all())
 
         os.remove('node_test.hdf')
+
+    def test_coverage(self):
+        image = self.node.get_array()
+        self.node.extract_features(image, method='sift', extractor_parameters={'nfeatures': 10})
+
+        coverage_percn = self.node.coverage()
+
+        self.assertAlmostEqual(coverage_percn, 38.06139557)

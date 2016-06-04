@@ -24,5 +24,3 @@ class TestMarkovCluster(unittest.TestCase):
         flow, clusters = markov_cluster.mcl(arr)
         self.assertIsInstance(clusters, dict)
         self.assertEqual(len(clusters), 3)
-
-
