@@ -188,7 +188,7 @@ class IsisStore(object):
                 point_messages.append(point_message)
 
                 self.pointid += 1
-            return point_messages, point_sizes
+        return point_messages, point_sizes
 
     def create_buffer_header(self, cnet, networkid, targetname,
                              description, username, point_sizes):
