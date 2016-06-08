@@ -61,7 +61,6 @@ class Node(dict, MutableMapping):
         self.node_id = node_id
         self._mask_arrays = {}
         self.point_to_correspondence = defaultdict(set)
-        self.nkeypoints = 0
 
     def __repr__(self):
         return """
@@ -117,6 +116,13 @@ class Node(dict, MutableMapping):
             except:
                 self._isis_serial = None
         return self._isis_serial
+
+    @property
+    def nkeypoints(self):
+        if hasattr(self, '_keypoints'):
+            return len(self._keypoints)
+        else:
+            return 0
 
     def coverage(self):
         """
@@ -234,7 +240,6 @@ class Node(dict, MutableMapping):
                 keypoints[i] = kpt.pt[0], kpt.pt[1], kpt.response, kpt.size, kpt.angle, octave, layer  # y, x
             self._keypoints = pd.DataFrame(keypoints, columns=['x', 'y', 'response', 'size',
                                                                'angle', 'octave', 'layer'])
-            self.nkeypoints = len(self._keypoints)
 
         # VLFeat returned keypoint objects
         elif isinstance(keypoint_objs, np.ndarray):
