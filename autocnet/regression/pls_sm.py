@@ -10,7 +10,7 @@ from sklearn.cross_decomposition.pls_ import PLSRegression
 from autocnet.spectral.meancenter import meancenter
 from matplotlib import pyplot as plot
 import scipy.optimize as opt
-    
+   
 class pls_sm:
     def __init__(self):
         pass
