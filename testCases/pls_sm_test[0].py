@@ -52,20 +52,32 @@ u_spec_db.mask(mask_file)
 
 ###################################################
 # Normalizing Data and getting Ranges
+# range3: equivalent to norm3
+# range1: equivalent to norm1
 ###################################################
 
-def get_range3(r0=0, r1=100, r2=300, r3=1000):
+def get_range3(r0, r1, r2, r3):
     return [(r0, r1), (r1, r2), (r2, r3)]
 
 range3 = get_range_3(0, 350, 470, 1000)
 range1 = [(0, 1000)]
 
 ###################################################
+# Norm3 and Norm1 data
+# Known norm 3 data
+# Unknown norm 3 data
+###################################################
+
+n_norm_3_data = k_spec_db
+n_norm_3_data.norm(range3)
+u_norm_1_data = u_spec_db
+u_norm_1_data.norm(range1)
+
+###################################################
 # nfolds: the number of folds to divide data into to extract an overall test set
 # testfold: which fold to use as the overall test set
 # nfoldsCV: Number of folds for CV
 # testfoldCV: Which fold to use as the test set for cross validation
-#
 # Cross Validation
 ###################################################
 
@@ -78,5 +90,10 @@ test_fold_cv = 3
 ###################################################
 # Composition Ranges
 # These are the composition ranges for the submodels
+# num_components: max number of components
+# out_path: Output path
 ###################################################
 
+composition_ranges = [[-20, 50], [30, 70], [60, 100], [0, 120]]
+num_components = 20
+out_path = os.path.expanduser("~\\LIBS PDART\\Output")
