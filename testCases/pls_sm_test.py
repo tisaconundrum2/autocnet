@@ -47,8 +47,36 @@ maskfile=r"C:\Users\rbanderson\Documents\Projects\LIBS PDART\Input\mask_minors_n
 data.mask(maskfile)
 unknown_data.mask(maskfile)
 
+
+# TODO Create a saving feature for the user
+# TODO creaCreate slidings bars, with numbers adjustable numbers
+# TODO Create submodel sliding bars, with adjustable numbers for Submodel
+# TODO reate a way to make steps customizable. Ordering of functions
+# TODO first task, understand the code :D
+
+
+# int range = a certain number
+# list [] = use sliding bar for this.
+# range_of_two_values = low, high;
+# range 3
+# <-------------------|---------------------|--------------------->
+# 0                   400                   500                  1000
+# <-----------|-----------------------------|--------------------->
+# []          250                            500                  []
+# [] = numbers that users can add themselves
+
+
+# range of 3, create 3 sliding bars
+# |-------|--------|
+# 0      250      400
+# |-------|--------|
+# 250
+# |-------|--------|
+
+
 #Normalize spectra by specifying the wavelength ranges over which to normalize
 ranges3=[(0,350),(350,470),(470,1000)] #this is equivalent to "norm3"
+#create a field for the user to work with, make sliding bars move according to what the user enters
 ranges1=[(0,1000)] #this is equivalent to "norm1"
 
 #Norm3 data
