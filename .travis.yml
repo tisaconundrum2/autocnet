@@ -31,7 +31,7 @@ install:
   - conda install -c jlaura plio opencv3
   - conda install -c conda-forge vlfeat
   - conda install -c menpo cyvlfeat
-  - pip install pillow
+  - pip install pillow pysal
   - conda install scipy networkx numexpr dill cython pyyaml matplotlib runipy
 
   # Development installation
