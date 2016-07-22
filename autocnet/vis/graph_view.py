@@ -179,7 +179,7 @@ def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
     # Plot the source
     source_idx = matches['source_idx'].values
     s_kps = source_keypoints.loc[source_idx]
-    ax.scatter(s_kps['x'], s_kps['y'], **scatter_kwargs)
+    ax.scatter(s_kps['x'], s_kps['y'], **scatter_kwargs, cmap='gray')
 
     # Plot the destination
     destination_idx = matches['destination_idx'].values

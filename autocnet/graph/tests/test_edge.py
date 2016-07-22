@@ -1,13 +1,13 @@
 import unittest
-import ogr
-
 from unittest.mock import Mock
 from unittest.mock import MagicMock
 
+import ogr
+import pandas as pd
+from plio.io import io_gdal
+
 from autocnet.examples import get_path
 from autocnet.graph.network import CandidateGraph
-from autocnet.fileio import io_gdal
-import pandas as pd
 
 from .. import edge
 from .. import node

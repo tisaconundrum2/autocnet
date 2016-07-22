@@ -7,7 +7,7 @@ import cv2
 import sys
 
 from .. import feature_extractor
-from autocnet.fileio import io_gdal
+from plio.io import io_gdal
 
 sys.path.insert(0, os.path.abspath('..'))
 

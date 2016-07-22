@@ -38,16 +38,28 @@ install:
   - conda install runipy
   - conda install -c https://conda.anaconda.org/conda-forge gdal h5py
   - pip install -r requirements.txt
+
   # Development installation
-  - conda install nose coverage
+  - conda install nose coverage sh anaconda-client
   - pip install coveralls
   - python runipynbs.py
 
 script:
   - nosetests --with-coverage --cover-package=autocnet
 
+
 after_success:
   - coveralls
+
+    # Straight from the menpo team
+  - if [["$TRAVIS_OS_NAME" == "osx"]]; then
+      curl -o condaci.py https://raw.githubusercontent.com/menpo/condaci/v0.4.8/condaci.py;
+    else
+      wget https://raw.githubusercontent.com/menpo/condaci/v0.4.8/condaci.py -O condaci.py;
+    fi
+    # Build autocnet and push to anaconda cloud
+  - python condaci.py setup
+  - ~/miniconda/bin/python condaci.py build ./conda
 
 notifications:
   webhooks:
