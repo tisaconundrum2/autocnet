@@ -5,8 +5,11 @@ branches:
 only:
   - master
 
-python:
-  - "3.5"
+env:
+  global:
+    - BINSTAR_USER: jlaura
+  matrix:
+    - PYTHON_VERSION: 3.5
 
 before_install:
 
@@ -39,13 +42,6 @@ install:
   - pip install coveralls
   - python runipynbs.py
 
-script:
-  - nosetests --with-coverage --cover-package=autocnet
-
-
-after_success:
-  - coveralls
-
     # Straight from the menpo team
   - if [["$TRAVIS_OS_NAME" == "osx"]]; then
       curl -o condaci.py https://raw.githubusercontent.com/menpo/condaci/v0.4.8/condaci.py;
@@ -54,7 +50,13 @@ after_success:
     fi
     # Build autocnet and push to anaconda cloud
   - python condaci.py setup
+
+script:
+  - nosetests --with-coverage --cover-package=autocnet
   - ~/miniconda/bin/python condaci.py build ./conda
+
+after_success:
+  - coveralls
 
 notifications:
   webhooks:
