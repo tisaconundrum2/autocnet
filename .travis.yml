@@ -55,6 +55,7 @@ install:
   - pip install coveralls
   - python runipynbs.py
 
+
     # Straight from the menpo team
   - if [["$TRAVIS_OS_NAME" == "osx"]]; then
       curl -o condaci.py https://raw.githubusercontent.com/menpo/condaci/v0.4.8/condaci.py;
@@ -66,15 +67,16 @@ install:
 
 script:
   - nosetests --with-coverage --cover-package=autocnet
-  - ~/miniconda/bin/python condaci.py build ./conda
 
 after_success:
+  # Upload to anaconda and push to coveralls
+  - ~/miniconda/bin/python condaci.py build ./conda
   - coveralls
 
 notifications:
   webhooks:
     urls:
- #     - https://webhooks.gitter.im/e/6cbe4b65fff6764ed80f
+      - https://webhooks.gitter.im/e/6cbe4b65fff6764ed80f
     on_success: always  
     on_failure: always  
     on_start: never     
