@@ -79,13 +79,3 @@ notifications:
       - https://webhooks.gitter.im/e/6cbe4b65fff6764ed80f
     on_success: always  
     on_failure: always  
-    on_start: never     
-  email:
-      recipients:
-#          - kberry@usgs.gov
-#          - dmlytle@usgs.gov
-#          - jwbacker@usgs.gov
-#          - krodriguez@usgs.gov
-      on_success: always
-      on_failure: always
-      
