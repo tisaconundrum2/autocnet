@@ -21,6 +21,7 @@ requirements:
     - dill
     - cython
     - pyyaml
+    - lapack  # [linux]
   run:
     - python
     - plio
@@ -36,6 +37,7 @@ requirements:
     - dill
     - cython
     - pyyaml
+    - lapack  # [linux]
 
 test:
   imports:
