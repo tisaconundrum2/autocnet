@@ -44,6 +44,7 @@ install:
   - conda config --add channels conda-forge
   - conda config --add channels jlaura
   - conda config --add channels menpo
+  - conda install -c conda-forge numpy
   - conda install -c jlaura plio opencv3
   - conda install -c conda-forge vlfeat
   - conda install -c menpo cyvlfeat
