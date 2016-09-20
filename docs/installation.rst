@@ -7,13 +7,15 @@ installation via the standard setup.py script.
 Via Conda
 ---------
 
-1. Download and install the Python 3.x Miniconda installer.  Respond ``Yes`` when
-   prompeted to add conda to your BASH profile.
-2. Bring up a command line and add the ``conda-forge`` channel to your channel
-   list: ``conda config --add channels conda-forge``.  This adds an entry to your
-   ``~/.condarc`` file.
-3. Install plio: ``conda install -c jlaura autocnet``
-4. To update plio: ``conda update -c jlaura autocnet``
+1. [Download](https://www.continuum.io/downloads) and install the Python 3.x Miniconda installer.  Respond ``Yes`` when
+   prompted to add conda to your BASH profile.
+1. (Optional) We like to sequester applications in their own environments to avoid any dependency conflicts.  To do this:
+  * ``conda create -n <your_environment_name> python=3 && source activate <your_environment_name>``
+1. Bring up a command line and add three channels to your conda config (``~/condarc``):
+  * ``conda config --add channels conda-forge``
+  * ``conda condig --add channels jlaura``
+  * ``conda config --add channels menpo``
+1. Finally, install autocnet: ``conda install -c jlaura autocnet-dev``
 
 Via setup.py
 ------------
@@ -41,5 +43,3 @@ support automated testing, documentation builds, etc.
 2. Install coveralls: ``pip install coveralls``
 3. Install the nbsphinx plugin: ``pip install nbshpinx``
 4. Install Jupyter for notebook support: ``conda install jupyter``
-
-
