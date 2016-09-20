@@ -43,9 +43,9 @@ install:
   # Install dependencies
   - conda config --add channels conda-forge
   - conda config --add channels jlaura
-  - conda config --add channels menpo
-  - conda install -c jlaura plio opencv3
-  - conda install -c conda-forge vlfeat
+  - conda install -c conda-forge numpy
+  - conda install -c jlaura plio
+  - conda install -c conda-forge vlfeat opencv3
   - conda install -c menpo cyvlfeat
   - pip install pillow pysal
   - conda install scipy networkx numexpr dill cython pyyaml matplotlib runipy
@@ -77,15 +77,5 @@ notifications:
   webhooks:
     urls:
       - https://webhooks.gitter.im/e/6cbe4b65fff6764ed80f
-    on_success: always  
-    on_failure: always  
-    on_start: never     
-  email:
-      recipients:
-#          - kberry@usgs.gov
-#          - dmlytle@usgs.gov
-#          - jwbacker@usgs.gov
-#          - krodriguez@usgs.gov
-      on_success: always
-      on_failure: always
-      
+    on_success: always
+    on_failure: always
