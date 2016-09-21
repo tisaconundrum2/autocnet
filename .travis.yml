@@ -43,10 +43,10 @@ install:
   # Install dependencies
   - conda config --add channels conda-forge
   - conda config --add channels jlaura
-  - conda config --add channels menpo
   - conda install -c conda-forge numpy
   - conda install -c jlaura plio
   - conda install -c conda-forge vlfeat opencv3=3.1.0
+  - conda config --add channels menpo
   - conda install -c menpo cyvlfeat
   - pip install pillow pysal
   - conda install scipy networkx numexpr dill cython pyyaml matplotlib runipy
