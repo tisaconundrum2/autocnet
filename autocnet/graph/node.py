@@ -226,29 +226,7 @@ class Node(dict, MutableMapping):
                  kwargs passed to autocnet.feature_extractor.extract_features
 
         """
-        keypoint_objs, self.descriptors = fe.extract_features(array, **kwargs)
-        if self.descriptors.dtype != np.float32:
-            self.descriptors = self.descriptors.astype(np.float32)
-
-        # OpenCV returned keypoint objects
-        if isinstance(keypoint_objs, list):
-            keypoints = np.empty((len(keypoint_objs), 7), dtype=np.float32)
-            for i, kpt in enumerate(keypoint_objs):
-                octave = kpt.octave & 8
-                layer = (kpt.octave >> 8) & 255
-                if octave < 128:
-                    octave = octave
-                else:
-                    octave = (-128 | octave)
-                keypoints[i] = kpt.pt[0], kpt.pt[1], kpt.response, kpt.size, kpt.angle, octave, layer  # y, x
-            self._keypoints = pd.DataFrame(keypoints, columns=['x', 'y', 'response', 'size',
-                                                               'angle', 'octave', 'layer'])
-
-        # VLFeat returned keypoint objects
-        elif isinstance(keypoint_objs, np.ndarray):
-            # Swap columns for value style access, vl_feat returns y, x
-            keypoint_objs[:, 0], keypoint_objs[:, 1] = keypoint_objs[:, 1], keypoint_objs[:, 0].copy()
-            self._keypoints = pd.DataFrame(keypoint_objs, columns=['x', 'y', 'size', 'angle'])
+        self._keypoints, self.descriptors = fe.extract_features(array, **kwargs)
 
     def load_features(self, in_path):
         """
