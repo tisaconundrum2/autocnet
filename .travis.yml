@@ -46,8 +46,7 @@ install:
   - conda config --add channels menpo
   - conda install -c conda-forge numpy
   - conda install -c jlaura plio
-  - conda install -c conda-forge vlfeat opencv3
-  - conda install -c menpo cyvlfeat
+  - conda install -c conda-forge vlfeat opencv3=3.1.0
   - pip install pillow pysal
   - conda install scipy networkx numexpr dill cython pyyaml matplotlib runipy
 
