@@ -43,6 +43,7 @@ install:
   # Install dependencies
   - conda config --add channels conda-forge
   - conda config --add channels jlaura
+  - conda config --add channels menpo
   - conda install -c conda-forge numpy
   - conda install -c jlaura plio
   - conda install -c conda-forge vlfeat opencv3
