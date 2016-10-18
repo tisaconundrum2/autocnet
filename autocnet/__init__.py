@@ -30,13 +30,16 @@ def cuda(enable=False, gpu=0):
             cs.PyInitCuda(gpu)
 
             # Here is where the GPU methods get patched into the class
-            from autocnet.matcher.cuda_extractor import extract_features 
+            from autocnet.matcher.cuda_extractor import extract_features
             Node._extract_features = staticmethod(extract_features)
 
             from autocnet.matcher.cuda_matcher import match
             Edge.match = match
+
+            from autocnet.matcher.cuda_decompose import decompose_and_match
+            Edge.decompose_and_match = decompose_and_match
         except Exception:
-            print('Failed to enable cuda')
+            print('Failed to enable Cuda')
         return
 
     print('CUDA Disabled')
@@ -46,4 +49,7 @@ def cuda(enable=False, gpu=0):
 
     from autocnet.matcher.feature_matcher import match
     Edge.match = match
+
+    from autocnet.matcher.cpu_decompose import decompose_and_match
+    Edge.decompose_and_match = decompose_and_match
 cuda()

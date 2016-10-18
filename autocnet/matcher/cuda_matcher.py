@@ -3,7 +3,7 @@ import warnings
 import cudasift as cs
 import numpy as np
 import pandas as pd
-
+ 
 def match(self, ratio=0.8, **kwargs):
     """
     Apply a composite CUDA matcher and ratio check.  If this method is used,
@@ -33,4 +33,4 @@ def match(self, ratio=0.8, **kwargs):
 
     # Set the matches and set the 'ratio' (ambiguity) mask
     self.matches = df
-    self.masks = ('ratio', df['ambiguity'] <= ratio)  
+    self.masks = ('ratio', df['ambiguity'] <= ratio)

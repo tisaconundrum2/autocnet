@@ -181,6 +181,7 @@ def plot_edge_decomposition(edge, ax=None, clean_keys=[], image_space=100,
         ax.plot((l[0][0], l[1][0]), (l[0][1], l[1][1]), color=color, **line_kwargs)
 
     return ax
+
 def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
               scatter_kwargs={}, line_kwargs={}, image_kwargs={}):
     """
