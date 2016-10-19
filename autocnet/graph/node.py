@@ -251,8 +251,10 @@ class Node(dict, MutableMapping):
 
         allkps = pd.DataFrame(data=clean_kps, columns=columns, index=index)
 
-        self._keypoints = allkps.sort_values(by='response', ascending=False)
-
+        if 'response' in allkps.columns:
+            self._keypoints = allkps.sort_values(by='response', ascending=False)
+        elif 'size' in allkps.columns:
+            self._keypoints = allkps.sort_values(by='size', ascending=False)
         if isinstance(in_path, str):
             hdf = None
 
@@ -299,7 +301,7 @@ class Node(dict, MutableMapping):
         if isinstance(out_path, str):
             hdf = None
 
-    def group_correspondences(self, cg, *args, clean_keys=['fundamental'], deepen=False, **kwargs):
+    def group_correspondences(self, cg, *args, deepen=False, **kwargs):
         """
 
         Parameters
@@ -318,6 +320,11 @@ class Node(dict, MutableMapping):
         if not incident_edges:
              # TODO: Add dangling correspondences to control network anyway.  Subgraphs handle this segmentation if req.
             return
+
+        try:
+            clean_keys = kwargs['clean_keys']
+        except:
+            clean_keys = []
 
         # Grab all the incident edge matches and concatenate into a group match set.
         # All share the same source node
@@ -460,4 +467,3 @@ class Node(dict, MutableMapping):
         mask = panel[clean_keys].all(axis=1)
         matches = self._keypoints[mask]
         return matches, mask
-
