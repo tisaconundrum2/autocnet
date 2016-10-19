@@ -1,8 +1,11 @@
+import json
+
 from functools import reduce
 
 import numpy as np
 import pandas as pd
 
+from osgeo import ogr
 
 def crossform(a):
     """
@@ -305,3 +308,29 @@ def cartesian(arrays, out=None):
         out[:, n] = arrays[n][ix[:, n]]
 
     return out
+
+
+def array_to_poly(array):
+    """
+    Generate a geojson geom
+    Parameters
+    ----------
+    array : array-like
+            2-D array of size (n, 2) of x, y coordinates
+
+    Returns
+    -------
+    geom : GeoJson
+           geojson containing the necessary data to construct
+           a poly gon
+    """
+    array = np.asarray(array)
+    size = np.shape(array)
+    if size[1] != 2:
+        raise ValueError('Array is not the proper size.')
+        return
+    geom_array = np.append(array, [array[0]], axis = 0).tolist()
+    geom = {"type": "Polygon", "coordinates": [geom_array]}
+    poly = ogr.CreateGeometryFromJson(json.dumps(geom))
+    return poly
+

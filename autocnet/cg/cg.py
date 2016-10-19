@@ -77,3 +77,25 @@ def two_poly_overlap(poly1, poly2):
     overlap_area = a_o
     overlap_percn = (a_o / (area1 + area2 - a_o)) * 100
     return overlap_percn, overlap_area
+
+
+def get_area(poly1, poly2):
+    """
+
+    Parameters
+    ----------
+    poly1 : ogr polygon
+            General ogr polygon
+
+    poly2 : ogr polygon
+            General ogr polygon
+
+    Returns
+    -------
+    intersection_area : float
+                        returns the intersection area
+                        of two polygons
+
+    """
+    intersection_area = poly1.Intersection(poly2).GetArea()
+    return intersection_area

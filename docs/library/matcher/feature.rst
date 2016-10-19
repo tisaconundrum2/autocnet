@@ -1,4 +1,4 @@
-:mod:`matcher.feature` --- RST-BC Invariant template match algorithm
+:mod:`matcher.feature` --- Feature based matching
 ====================================================================
 
 The :mod:`matcher.feature` module

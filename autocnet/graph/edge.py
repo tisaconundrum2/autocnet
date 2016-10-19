@@ -4,6 +4,7 @@ from collections import MutableMapping
 import numpy as np
 import pandas as pd
 
+from autocnet.utils import utils
 from autocnet.matcher import health
 from autocnet.matcher import outlier_detector as od
 from autocnet.matcher import suppression_funcs as spf
@@ -423,3 +424,41 @@ class Edge(dict, MutableMapping):
         self.weight['overlap_area'] = overlapinfo[1]
         self.weight['overlap_percn'] = overlapinfo[0]
 
+    def coverage(self, clean_keys = []):
+        """
+        Acts on the edge given either the source node
+        or the destination node and returns the percentage
+        of overlap covered by the keypoints. Data for the
+        overlap is gathered from the source node of the edge
+        resulting in a maximum area difference of 2% when compared
+        to the destination.
+
+        Returns
+        -------
+        total_overlap_percentage : float
+                                   returns the overlap area
+                                   covered by the keypoints
+        """
+        if self.matches is None:
+            raise AttributeError('Edge needs to have features extracted and matched')
+            return
+        matches, mask = self._clean(clean_keys)
+        source_array = self.source.get_keypoint_coordinates(index=matches['source_idx']).values
+
+        source_coords = self.source.geodata.latlon_corners
+        destination_coords = self.destination.geodata.latlon_corners
+
+        convex_hull = cg.convex_hull(source_array)
+
+        convex_points = [self.source.geodata.pixel_to_latlon(row[0], row[1]) for row in convex_hull.points[convex_hull.vertices]]
+        convex_coords = [(x, y) for x, y in convex_points]
+
+        source_poly = utils.array_to_poly(source_coords)
+        destination_poly = utils.array_to_poly(destination_coords)
+        convex_poly = utils.array_to_poly(convex_coords)
+
+        intersection_area = cg.get_area(source_poly, destination_poly)
+
+        total_overlap_coverage = (convex_poly.GetArea()/intersection_area)
+
+        return total_overlap_coverage

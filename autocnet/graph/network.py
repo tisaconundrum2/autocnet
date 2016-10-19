@@ -5,11 +5,12 @@ import warnings
 
 import dill as pickle
 import networkx as nx
+import pandas as pd
 
-from autocnet.fileio import io_hdf
-from autocnet.fileio import io_json
-from autocnet.fileio import io_utils
-from autocnet.fileio.io_gdal import GeoDataset
+from plio.io import io_hdf
+from plio.io import io_json
+from plio.utils import utils as io_utils
+from plio.io.io_gdal import GeoDataset
 from autocnet.graph import markov_cluster
 from autocnet.graph.edge import Edge
 from autocnet.graph.node import Node
@@ -476,6 +477,8 @@ class CandidateGraph(nx.Graph):
         """
         for i, n in self.nodes_iter(data=True):
             n.group_correspondences(self, *args, deepen=deepen, **kwargs)
+        self.cn = [n.point_to_correspondence_df for i, n in self.nodes_iter(data=True) if
+                   isinstance(n.point_to_correspondence_df, pd.DataFrame)]
 
     def to_json_file(self, outputfile):
         """

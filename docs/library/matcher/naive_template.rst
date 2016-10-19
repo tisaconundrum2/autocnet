@@ -1,4 +1,4 @@
-:mod:`matcher.naive_template` --- RST-BC Invariant template match algorithm
+:mod:`matcher.naive_template` --- Simple template matching
 ====================================================================
 
 The :mod:`matcher.naive_template` module
