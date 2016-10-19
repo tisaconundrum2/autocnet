@@ -185,7 +185,9 @@ class SpatialSuppression(Observable):
             self.k = len(self.df)
             result = self.df.index
             process = False
-        search_space = np.linspace(self.min_radius, self.max_radius, 1000)
+        nsteps = max(self.domain)
+        print(nsteps)
+        search_space = np.linspace(self.min_radius, self.max_radius, nsteps)
         cell_sizes = search_space / math.sqrt(2)
         min_idx = 0
         max_idx = len(search_space) - 1
