@@ -185,8 +185,7 @@ class SpatialSuppression(Observable):
             self.k = len(self.df)
             result = self.df.index
             process = False
-        nsteps = max(self.domain)
-        print(nsteps)
+        nsteps = max(self.domain) * 0.95
         search_space = np.linspace(self.min_radius, self.max_radius, nsteps)
         cell_sizes = search_space / math.sqrt(2)
         min_idx = 0
@@ -196,6 +195,9 @@ class SpatialSuppression(Observable):
         prev_max = None
 
         while process:
+            # Setup to store results
+            result = []
+
             mid_idx = int((min_idx + max_idx) / 2)
 
             if min_idx == mid_idx or mid_idx == max_idx:
@@ -206,9 +208,6 @@ class SpatialSuppression(Observable):
             n_x_cells = int(self.domain[0] / cell_size)
             n_y_cells = int(self.domain[1] / cell_size)
             grid = np.zeros((n_x_cells, n_y_cells), dtype=np.bool)
-
-            # Setup to store results
-            result = []
 
             # Assign all points to bins
             x_edges = np.linspace(0, self.domain[0], n_x_cells)
