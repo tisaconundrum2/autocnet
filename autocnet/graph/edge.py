@@ -442,7 +442,7 @@ class Edge(dict, MutableMapping):
         if self.matches is None:
             raise AttributeError('Edge needs to have features extracted and matched')
             return
-        matches, mask = self._clean(clean_keys)
+        matches, mask = self.clean(clean_keys)
         source_array = self.source.get_keypoint_coordinates(index=matches['source_idx']).values
 
         source_coords = self.source.geodata.latlon_corners
