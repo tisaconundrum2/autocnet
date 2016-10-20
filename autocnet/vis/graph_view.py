@@ -90,7 +90,7 @@ def plot_node(node, ax=None, clean_keys=[], **kwargs):
 
     keypoints = node.get_keypoints()
     if clean_keys:
-        matches, mask = node._clean(clean_keys)
+        matches, mask = node.clean(clean_keys)
         keypoints = node.get_keypoints()[mask]
 
     marker = '.'
@@ -171,7 +171,7 @@ def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
 
     ax.imshow(composite, cmap=cmap)
 
-    matches, mask = edge._clean(clean_keys)
+    matches, mask = edge.clean(clean_keys)
 
     source_keypoints = edge.source.get_keypoints(index=matches['source_idx'])
     destination_keypoints = edge.destination.get_keypoints(index=matches['destination_idx'])
