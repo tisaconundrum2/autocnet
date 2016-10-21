@@ -144,7 +144,7 @@ class Edge(dict, MutableMapping):
     def ratio_check(self, clean_keys=[], **kwargs):
         if hasattr(self, 'matches'):
 
-            matches, mask = self._clean(clean_keys)
+            matches, mask = self.clean(clean_keys)
 
             self.distance_ratio = od.DistanceRatio(matches)
             self.distance_ratio.compute(mask=mask, **kwargs)
@@ -179,7 +179,7 @@ class Edge(dict, MutableMapping):
         if not hasattr(self, 'matches'):
             raise AttributeError('Matches have not been computed for this edge')
             return
-        matches, mask = self._clean(clean_keys)
+        matches, mask = self.clean(clean_keys)
 
         # TODO: Homogeneous is horribly inefficient here, use Numpy array notation
         s_keypoints = self.source.get_keypoint_coordinates(index=matches['source_idx'],
@@ -230,7 +230,7 @@ class Edge(dict, MutableMapping):
         else:
             raise AttributeError('Matches have not been computed for this edge')
 
-        matches, mask = self._clean(clean_keys)
+        matches, mask = self.clean(clean_keys)
 
         s_keypoints = self.source.get_keypoint_coordinates(index=matches['source_idx'])
         d_keypoints = self.destination.get_keypoint_coordinates(index=matches['destination_idx'])
@@ -288,7 +288,7 @@ class Edge(dict, MutableMapping):
                 self.matches[column] = default
 
         # Build up a composite mask from all of the user specified masks
-        matches, mask = self._clean(clean_keys)
+        matches, mask = self.clean(clean_keys)
 
         # Grab the full images, or handles
         if tiled is True:
@@ -358,7 +358,7 @@ class Edge(dict, MutableMapping):
         if not hasattr(self, 'matches'):
             raise AttributeError('This edge does not yet have any matches computed.')
 
-        matches, mask = self._clean(clean_keys)
+        matches, mask = self.clean(clean_keys)
         domain = self.source.geodata.raster_size
 
         # Massage the dataframe into the correct structure
@@ -382,7 +382,7 @@ class Edge(dict, MutableMapping):
     def plot(self, ax=None, clean_keys=[], **kwargs):
         return plot_edge(self, ax=ax, clean_keys=clean_keys, **kwargs)
 
-    def _clean(self, clean_keys, pid=None):
+    def clean(self, clean_keys, pid=None):
         """
         Given a list of clean keys and a provenance id compute the
         mask of valid matches
@@ -442,7 +442,7 @@ class Edge(dict, MutableMapping):
         if self.matches is None:
             raise AttributeError('Edge needs to have features extracted and matched')
             return
-        matches, mask = self._clean(clean_keys)
+        matches, mask = self.clean(clean_keys)
         source_array = self.source.get_keypoint_coordinates(index=matches['source_idx']).values
 
         source_coords = self.source.geodata.latlon_corners

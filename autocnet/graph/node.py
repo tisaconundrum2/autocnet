@@ -324,7 +324,7 @@ class Node(dict, MutableMapping):
         edge_matches = []
         for e in incident_edges:
             edge = cg[e[0]][e[1]]
-            matches, mask = edge._clean(clean_keys=clean_keys)
+            matches, mask = edge.clean(clean_keys=clean_keys)
             # Add a depth mask that initially mirrors the fundamental mask
             edge_matches.append(matches)
         d = pd.concat(edge_matches)
