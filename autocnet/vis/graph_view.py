@@ -1,9 +1,6 @@
-import math
 import numpy as np
 import networkx as nx
 
-from autocnet.examples import get_path
-from autocnet.fileio.io_gdal import GeoDataset
 from matplotlib import pyplot as plt
 import matplotlib
 
