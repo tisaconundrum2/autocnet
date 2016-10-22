@@ -32,3 +32,10 @@ class TestFeatureExtractor(unittest.TestCase):
         self.assertIn(len(features[0]), range(8, 12))
         self.assertIsInstance(features[0][0], type(cv2.KeyPoint()))
         self.assertIsInstance(features[1][0], np.ndarray)
+
+    def test_extract_vlfeat(self):
+        kps, descriptors = feature_extractor.extract_features(self.data_array,
+                                                              method='vl_sift',
+                                                              extractor_parameters={})
+        self.assertIsInstance(kps, np.ndarray)
+        self.assertEqual(descriptors.dtype, np.float32)

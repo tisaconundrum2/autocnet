@@ -1,6 +1,9 @@
 import unittest
+import ogr
+
 from unittest.mock import Mock
 
+from autocnet.fileio import io_gdal
 import pandas as pd
 
 from .. import edge
@@ -44,3 +47,28 @@ class TestEdge(unittest.TestCase):
     def test_compute_fundamental_matrix(self):
         with self.assertRaises(AttributeError):
             self.edge.compute_fundamental_matrix()
+
+    def test_edge_overlap(self):
+        e = edge.Edge()
+        e.weight = {}
+        source = Mock(spec = node.Node)
+        destination = Mock(spec = node.Node)
+        e.destination = destination
+        e.source = source
+        geodata_s = Mock(spec = io_gdal.GeoDataset)
+        geodata_d = Mock(spec = io_gdal.GeoDataset)
+        source.geodata = geodata_s
+        destination.geodata = geodata_d
+
+        wkt1 = "POLYGON ((0 40, 40 40, 40 0, 0 0, 0 40))"
+        wkt2 = "POLYGON ((20 60, 60 60, 60 20, 20 20, 20 60))"
+
+        poly1 = ogr.CreateGeometryFromWkt(wkt1)
+        poly2 = ogr.CreateGeometryFromWkt(wkt2)
+
+        source.geodata.footprint = poly1
+        destination.geodata.footprint = poly2
+
+        e.overlap()
+        self.assertEqual(e.weight['overlap_area'], 400)
+        self.assertAlmostEqual(e.weight['overlap_percn'], 14.285714285)

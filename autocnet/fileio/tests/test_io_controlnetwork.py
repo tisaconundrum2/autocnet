@@ -13,6 +13,7 @@ from autocnet.utils.utils import find_in_dict
 from autocnet.control.control import CorrespondenceNetwork
 from autocnet.graph.edge import Edge
 from autocnet.graph.node import Node
+from autocnet.graph.network import CandidateGraph
 
 sys.path.insert(0, os.path.abspath('..'))
 
@@ -22,13 +23,15 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
 
+        cls.npts = 5
         serial_times = {295: '1971-07-31T01:24:11.754',
                         296: '1971-07-31T01:24:36.970'}
         cls.serials = ['APOLLO15/METRIC/{}'.format(i) for i in serial_times.values()]
+        net = CandidateGraph({'a': ['b'], 'b': ['a']})
+        for i, n in net.nodes_iter(data=True):
+            n._keypoints = pd.DataFrame(np.arange(10).reshape(cls.npts,-1), columns=['x', 'y'])
+            n._isis_serial = cls.serials[i]
 
-        # Create an edge and a set of matches
-        cls.npts = 5
-        coords = pd.DataFrame(np.arange(cls.npts * 2).reshape(-1, 2))
         source = np.zeros(cls.npts)
         destination = np.ones(cls.npts)
         pid = np.arange(cls.npts)
@@ -38,19 +41,12 @@ class TestWriteIsisControlNetwork(unittest.TestCase):
                                                                                       'destination_image',
                                                                                       'destination_idx'])
 
-        edge = Mock(spec=Edge)
-        edge.source = Mock(spec=Node)
-        edge.destination = Mock(spec=Node)
-        edge.source.isis_serial = cls.serials[0]
-        edge.destination.isis_serial = cls.serials[1]
-        edge.source.get_keypoint_coordinates = MagicMock(return_value=coords)
-        edge.destination.get_keypoint_coordinates = MagicMock(return_value=coords)
+        net.edge[0][1].matches = matches
+        net.generate_cnet(clean_keys=[])
 
-        cnet = CorrespondenceNetwork()
-        cnet.add_correspondences(edge, matches)
-        cls.creation_date = cnet.creationdate
-        cls.modified_date = cnet.modifieddate
-        io_controlnetwork.to_isis('test.net', cnet, mode='wb', targetname='Moon')
+        cls.creation_date = net.creationdate
+        cls.modified_date = net.modifieddate
+        io_controlnetwork.to_isis('test.net', net, mode='wb', targetname='Moon')
 
         cls.header_message_size = 98
         cls.point_start_byte = 65634

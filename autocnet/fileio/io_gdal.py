@@ -1,10 +1,8 @@
-import json
 import warnings
 
 import pvl
 import os
 
-from pysal.cg.shapes import Polygon
 from autocnet.utils.utils import find_in_dict
 from osgeo import ogr
 import numpy as np
@@ -95,6 +93,10 @@ class GeoDataset(object):
                 the second value is the lower right corner of the lower right pixel. 
                 This list is in the form [(minx, miny), (maxx, maxy)].
 
+    xy_corners : list
+                 of tuple corner coordinates in the form:
+                 [upper left, lower left, lower right, upper right]
+
     y_rotation : float
                  The geotransform coefficient that represents the rotation about the y-axis.
                  Note: This is the fifth value geotransform array.
@@ -147,9 +149,14 @@ class GeoDataset(object):
         self.dataset = gdal.Open(file_name)
         if self.dataset is None:
           raise IOError('File not found :', file_name)
-    
+
+
+
     def __repr__(self):
         return os.path.basename(self.file_name)
+
+    def __reduce__(self):
+        return self.__class__, (self.file_name,)
 
     @property
     def base_name(self):
@@ -201,25 +208,6 @@ class GeoDataset(object):
         return self._gcs
 
     @property
-    def latlon_extent(self):
-        if not getattr(self, '_latlon_extent', None):
-            try:
-                fp = self.footprint
-                # If we have a footprint, no need to compute pixel to latlon
-                lowerlat, upperlat, lowerlon, upperlon = fp.GetEnvelope()
-            except:
-                xy_extent = self.xy_extent
-                lowerlat, lowerlon = self.pixel_to_latlon(xy_extent[0][0], xy_extent[0][1])
-                upperlat, upperlon = self.pixel_to_latlon(xy_extent[1][0], xy_extent[1][1])
-                geom = {"type": "Polygon", "coordinates": [[[lowerlat, lowerlon],
-                                                           [lowerlat, upperlon],
-                                                           [upperlat, upperlon],
-                                                           [upperlat, lowerlon],
-                                                           [lowerlat, lowerlon]]]}
-            self._latlon_extent = [(lowerlat, lowerlon), (upperlat, upperlon)]
-        return self._latlon_extent
-
-    @property
     def metadata(self):
         if not hasattr(self, '_metadata'):
             try:
@@ -243,52 +231,63 @@ class GeoDataset(object):
                     stream = str(f.read(num_polygon_bytes))
                     self._footprint = ogr.CreateGeometryFromWkt(stream)
             except:
-                # I dislike that this is copied from latlonext, but am unsure
-                # how to avoid the cyclical footprint to latlon_extent property hits.
-                xy_extent = self.xy_extent
-                lowerlat, lowerlon = self.pixel_to_latlon(xy_extent[0][0], xy_extent[0][1])
-                upperlat, upperlon = self.pixel_to_latlon(xy_extent[1][0], xy_extent[1][1])
-                geom = {"type": "Polygon", "coordinates": [[[lowerlat, lowerlon],
-                                                           [lowerlat, upperlon],
-                                                           [upperlat, upperlon],
-                                                           [upperlat, lowerlon],
-                                                           [lowerlat, lowerlon]]]}
-                self._footprint = ogr.CreateGeometryFromJson(json.dumps(geom))
+                self._footprint = None
 
         return self._footprint
 
     @property
-    def xy_extent(self):
-        if not getattr(self, '_xy_extent', None):
-            geotransform = self.geotransform
-            minx = geotransform[0]
-            miny = geotransform[3]
+    def latlon_corners(self):
+        if not getattr(self, '_latlon_corners', None):
+            pixel_corners = self.xy_corners
+            gt = self.geotransform
 
-            maxx = minx + geotransform[1] * self.dataset.RasterXSize
-            maxy = miny + geotransform[5] * self.dataset.RasterYSize
+            self._latlon_corners = []
 
-            self._xy_extent = [(minx, miny), (maxx, maxy)]
-
-        return self._xy_extent
+            for x, y in pixel_corners:
+                x, y = self.pixel_to_latlon(x, y)
+                self._latlon_corners.append((x, y))
+        return self._latlon_corners
 
     @property
-    def pixel_polygon(self):
-        """
-        A bounding polygon in pixel space
+    def xy_corners(self):
+        return [(0, 0),
+                (0, self.dataset.RasterYSize),
+                (self.dataset.RasterXSize,self.dataset.RasterYSize),
+                (self.dataset.RasterXSize, 0)]
 
-        Returns
-        -------
-        : object
-          A PySAL Polygon object
-        """
-        if not getattr(self, '_pixel_polygon', None):
-            (minx, miny), (maxx, maxy) = self.xy_extent
-            ul = maxx, miny
-            ll = minx, miny
-            lr = minx, maxy
-            ur = maxx, maxy
-            self._pixel_polygon = Polygon([ul, ll, lr, ur, ul])
-        return self._pixel_polygon
+    @property
+    def proj_corners(self):
+        # The corner coordinates in projected space
+        raise NotImplementedError
+
+    @property
+    def latlon_extent(self):
+        if not getattr(self, '_latlon_extent', None):
+            if self.footprint:
+                fp = self.footprint
+                # If we have a footprint, do not worry about computing a lat/lon transform
+                lowerlat, upperlat, lowerlon, upperlon = fp.GetEnvelope()
+                self._footprint = [(upperlat, lowerlon),
+                                   (lowerlat, lowerlon),
+                                   (lowerlat, upperlon),
+                                   (upperlat, upperlon)]
+            else:
+                self._latlon_extent = []
+                for x, y in self.xy_extent:
+                    x, y = self.pixel_to_latlon(x,y)
+
+                    self._latlon_extent.append((x,y))
+        return self._latlon_extent
+
+    @property
+    def xy_extent(self):
+        return [(0, 0),
+                (self.dataset.RasterXSize, self.dataset.RasterYSize)]
+
+    @property
+    def proj_extent(self):
+        # The extent in projected space
+        raise NotImplementedError
 
     @property
     def pixel_area(self):
