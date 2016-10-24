@@ -1,13 +1,14 @@
 import os
-
 import unittest
 
+from plio.io.io_controlnetwork import to_isis
+from plio.io.io_controlnetwork import write_filelist
+
 from autocnet.examples import get_path
-from autocnet.fileio.io_controlnetwork import to_isis
-from autocnet.fileio.io_controlnetwork import write_filelist
 from autocnet.matcher.suppression_funcs import error
 from autocnet.graph.network import CandidateGraph
 
+import pandas as pd
 
 class TestTwoImageMatching(unittest.TestCase):
     """
@@ -75,7 +76,6 @@ class TestTwoImageMatching(unittest.TestCase):
             # Range needs to be set
             self.assertIn(edge.masks['fundamental'].sum(), range(200, 250))
 
-
         # Step: Compute the homographies and apply RANSAC
         cg.compute_homographies(clean_keys=['symmetry', 'ratio'])
 
@@ -93,9 +93,8 @@ class TestTwoImageMatching(unittest.TestCase):
         filelist = cg.to_filelist()
         write_filelist(filelist, path="fromlis.lis")
 
-
         # Step: Output a control network
-        to_isis('TestTwoImageMatching.net', cg, mode='wb',
+        to_isis('TestTwoImageMatching.net', cg.cn, mode='wb',
                 networkid='TestTwoImageMatching', targetname='Moon')
 
     def tearDown(self):
