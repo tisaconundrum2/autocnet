@@ -3,6 +3,7 @@ from collections import MutableMapping
 
 import numpy as np
 import pandas as pd
+from scipy.spatial.distance import cdist
 
 import autocnet
 from autocnet.utils import utils
@@ -98,6 +99,7 @@ class Edge(dict, MutableMapping):
         pass
 
     def match(self, k=2, **kwargs):
+
         """
         Given two sets of descriptors, utilize a FLANN (Approximate Nearest
         Neighbor KDTree) matcher to find the k nearest matches.  Nearness is
@@ -111,8 +113,6 @@ class Edge(dict, MutableMapping):
             The number of neighbors to find
         """
         pass
-
-
 
     def symmetry_check(self):
         if hasattr(self, 'matches'):
@@ -480,3 +480,25 @@ class Edge(dict, MutableMapping):
         total_overlap_coverage = (convex_poly.GetArea()/intersection_area)
 
         return total_overlap_coverage
+
+    def decompose(self, maxiterations=3):
+        """
+        Apply coupled decomposition to the images and
+        match identified sub-images
+
+        Parameters
+        ----------
+        maxiterations : int
+                        The number of iterations. Appropriate values:
+
+                        | Number of megapixels | k |
+                        |----------------------|---|
+                        | m < 10               |1-2|
+                        | 10 < m < 30          | 3 |
+                        | 30 < m < 100         | 4 |
+                        | 100 < m < 1000       | 5 |
+                        | m > 1000             | 6 |
+
+
+        """
+        pass
