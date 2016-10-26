@@ -380,17 +380,28 @@ class Edge(dict, MutableMapping):
         mask[mask] = self.suppression.mask
         self.masks = ('suppression', mask)
 
-    def plot_source(self, ax=None, clean_keys=[], **kwargs):
+    def plot_source(self, ax=None, clean_keys=[], **kwargs):  # pragma: no cover
         matches, mask = self.clean(clean_keys=clean_keys)
         indices = pd.Index(matches['source_idx'].values)
-        return plot_node(self.source, ax=ax, index_mask=indices, **kwargs)
+        return plot_node(self.source, index_mask=indices, **kwargs)
 
-    def plot_destination(self, ax=None, clean_keys=[], **kwargs):
+    def plot_destination(self, ax=None, clean_keys=[], **kwargs):  # pragma: no cover
         matches, mask = self.clean(clean_keys=clean_keys)
         indices = pd.Index(matches['destination_idx'].values)
-        return plot_node(self.destination, ax=ax, index_mask=indices, **kwargs)
+        return plot_node(self.destination, index_mask=indices, **kwargs)
 
-    def plot(self, ax=None, clean_keys=[], **kwargs):
+    def plot(self, ax=None, clean_keys=[], node=None, **kwargs):
+        dest_keys = [0, '0', 'destination', 'd', 'dest']
+        source_keys = [1, '1', 'source', 's']
+
+        # If node is not none, plot a single node
+        if node in source_keys:
+            return self.plot_source(self, clean_keys=clean_keys, **kwargs)
+
+        elif node in dest_keys:
+            return self.plot_destination(self, clean_keys=clean_keys, **kwargs)
+
+        # Else, plot the whole edge
         return plot_edge(self, ax=ax, clean_keys=clean_keys, **kwargs)
 
     def clean(self, clean_keys, pid=None):

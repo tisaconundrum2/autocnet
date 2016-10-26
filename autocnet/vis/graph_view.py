@@ -42,7 +42,7 @@ def plot_graph(graph, ax=None, cmap='Spectral', **kwargs):
     return ax
 
 
-def plot_node(node, ax=None, clean_keys=[], index_mask = None, **kwargs):
+def plot_node(node, ax=None, clean_keys=[], index_mask=None, **kwargs):
     """
     Plot the array and keypoints for a given node.
 
