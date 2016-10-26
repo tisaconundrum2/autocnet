@@ -89,7 +89,7 @@ def plot_node(node, ax=None, clean_keys=[], index_mask = None, **kwargs):
     ax.imshow(array, cmap=cmap)
 
     keypoints = node.get_keypoints(index=index_mask)
-    # Node has no clean function called cleangit p
+    # Node has no clean method
     # if clean_keys:
     #     matches, mask = node.clean(clean_keys)
     #     keypoints = keypoints[mask]
