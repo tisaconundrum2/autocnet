@@ -42,7 +42,7 @@ def plot_graph(graph, ax=None, cmap='Spectral', **kwargs):
     return ax
 
 
-def plot_node(node, ax=None, clean_keys=[], **kwargs):
+def plot_node(node, ax=None, clean_keys=[], index_mask = None, **kwargs):
     """
     Plot the array and keypoints for a given node.
 
@@ -88,10 +88,11 @@ def plot_node(node, ax=None, clean_keys=[], **kwargs):
 
     ax.imshow(array, cmap=cmap)
 
-    keypoints = node.get_keypoints()
-    if clean_keys:
-        matches, mask = node.clean(clean_keys)
-        keypoints = node.get_keypoints()[mask]
+    keypoints = node.get_keypoints(index=index_mask)
+    # Node has no clean function called cleangit p
+    # if clean_keys:
+    #     matches, mask = node.clean(clean_keys)
+    #     keypoints = keypoints[mask]
 
     marker = '.'
     if 'marker' in kwargs.keys():
@@ -169,8 +170,6 @@ def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
     else:
         cmap = 'Greys'
 
-    ax.imshow(composite, cmap=cmap)
-
     matches, mask = edge.clean(clean_keys)
 
     source_keypoints = edge.source.get_keypoints(index=matches['source_idx'])
@@ -187,6 +186,8 @@ def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
     x_offset = s_shape[1] + image_space
     newx = d_kps['x'] + x_offset
     ax.scatter(newx, d_kps['y'], **scatter_kwargs)
+
+    ax.imshow(composite, cmap=cmap)
 
     # Draw the connecting lines
     color = 'y'
