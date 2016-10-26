@@ -390,7 +390,7 @@ class Edge(dict, MutableMapping):
         indices = pd.Index(matches['destination_idx'].values)
         return plot_node(self.destination, index_mask=indices, **kwargs)
 
-    def plot(self, ax=None, clean_keys=[], node=None, **kwargs):
+    def plot(self, ax=None, clean_keys=[], node=None, **kwargs):  # pragma: no cover
         dest_keys = [0, '0', 'destination', 'd', 'dest']
         source_keys = [1, '1', 'source', 's']
 
