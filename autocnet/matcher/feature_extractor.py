@@ -1,10 +1,17 @@
 import cv2
 
+try:
+    import cyvlfeat as vl
+    vlfeat = True
+except:
+    vlfeat = False
+    pass
+
 
 def extract_features(array, method='orb', extractor_parameters=None):
     """
-    This method finds and extracts features from an image using the given dictionary of keyword arguments. 
-    The input image is represented as NumPy array and the output features are represented as keypoint IDs 
+    This method finds and extracts features from an image using the given dictionary of keyword arguments.
+    The input image is represented as NumPy array and the output features are represented as keypoint IDs
     with corresponding descriptors.
 
     Parameters
@@ -16,7 +23,7 @@ def extract_features(array, method='orb', extractor_parameters=None):
               The detector method to be used
 
     extractor_parameters : dict
-                           A dictionary containing OpenCV SIFT parameters names and values. 
+                           A dictionary containing OpenCV SIFT parameters names and values.
 
     Returns
     -------
@@ -28,7 +35,11 @@ def extract_features(array, method='orb', extractor_parameters=None):
                  'sift': cv2.xfeatures2d.SIFT_create,
                  'surf': cv2.xfeatures2d.SURF_create,
                  'orb': cv2.ORB_create}
+    if vlfeat:
+        detectors['vl_sift'] = vl.sift.sift
 
-    detector = detectors[method](**extractor_parameters)
-    return detector.detectAndCompute(array, None)
-
+    if 'vl_' in method:
+        return detectors[method](array, compute_descriptor=True, float_descriptors=True, **extractor_parameters)
+    else:
+        detector = detectors[method](**extractor_parameters)
+        return detector.detectAndCompute(array, None)

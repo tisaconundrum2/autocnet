@@ -1,9 +1,6 @@
-import math
 import numpy as np
 import networkx as nx
 
-from autocnet.examples import get_path
-from autocnet.fileio.io_gdal import GeoDataset
 from matplotlib import pyplot as plt
 import matplotlib
 
@@ -91,10 +88,10 @@ def plot_node(node, ax=None, clean_keys=[], **kwargs):
 
     ax.imshow(array, cmap=cmap)
 
-    keypoints = node.keypoints
+    keypoints = node.get_keypoints()
     if clean_keys:
         matches, mask = node._clean(clean_keys)
-        keypoints = node.keypoints[mask]
+        keypoints = node.get_keypoints()[mask]
 
     marker = '.'
     if 'marker' in kwargs.keys():
@@ -164,8 +161,8 @@ def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
     x = s_shape[1] + d_shape[1] + image_space
     composite = np.zeros((y, x))
 
-    composite[:, :s_shape[1]] = source_array
-    composite[:, s_shape[1] + image_space:] = destination_array
+    composite[0: s_shape[0], :s_shape[1]] = source_array
+    composite[0: d_shape[0], s_shape[1] + image_space:] = destination_array
 
     if 'cmap' in image_kwargs:
         cmap = image_kwargs['cmap']
@@ -174,24 +171,20 @@ def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
 
     ax.imshow(composite, cmap=cmap)
 
-    # Match point plotting
-    source_keypoints = edge.source.keypoints
-    destination_keypoints = edge.destination.keypoints
+    matches, mask = edge._clean(clean_keys)
 
-    matches = edge.matches
-
-    if clean_keys:
-        matches, mask = edge._clean(clean_keys)
+    source_keypoints = edge.source.get_keypoints(index=matches['source_idx'])
+    destination_keypoints = edge.destination.get_keypoints(index=matches['destination_idx'])
 
     # Plot the source
     source_idx = matches['source_idx'].values
-    s_kps = source_keypoints.iloc[source_idx]
+    s_kps = source_keypoints.loc[source_idx]
     ax.scatter(s_kps['x'], s_kps['y'], **scatter_kwargs)
 
     # Plot the destination
     destination_idx = matches['destination_idx'].values
-    d_kps = destination_keypoints.iloc[destination_idx]
-    x_offset = s_shape[0] + image_space
+    d_kps = destination_keypoints.loc[destination_idx]
+    x_offset = s_shape[1] + image_space
     newx = d_kps['x'] + x_offset
     ax.scatter(newx, d_kps['y'], **scatter_kwargs)
 
@@ -211,119 +204,5 @@ def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
     return ax
 
 
-def plotAdjacencyGraphFeatures(graph, pointColorAndHatch='b.', featurePointSize=7):
-    """
-    Plot each image in an adjacency graph and its found features in a single figure.
-    The user may also specify the color and style of the points to be plotted and
-    the size of the points.
-
-    Parameters
-    ----------
-    graph : object
-            A CandicateGraph object from a JSON file whose node (i.e. image)
-            keypoints have been filled using the autocnet.feature_extractor.
-
-    pointColorAndHatch : str
-                         The color and hatch (symbol) to be used to mark
-                         the found features. Defaults to 'b.', blue and
-                         square dot. See matplotlib documentation for
-                         more choices.
-
-    featurePointSize : int
-                       The size of the point marker. Defaults to 7.
-
-    """
-
-    counter = 1
-    columns = math.ceil(math.sqrt(graph.number_of_nodes()))
-    rows = columns
-    for node, attributes in graph.nodes_iter(data=True):
-        plt.subplot(rows, columns, counter)
-        plotFeatures(attributes['handle'],
-                     attributes['keypoints'],
-                     pointColorAndHatch)
-        counter = counter + 1
 
 
-# NOTE: We will probably delete this code if it is found to be un-needed,
-# However, for now we will keep in case it winds up being a more useful tool.
-def plotAdjacencyGraphMatchesSingleDisplay(imageName1,
-                                           imageName2,
-                                           graph,
-                                           featurePointSize=10,
-                                           lineWidth=3):
-    """
-    This is an earlier version of plotAdjacencyGraphMatches() where the
-    images are offset in a single display box rather than in their
-    own subplots.
-
-    Parameters
-    ----------
-    imageName : str
-                The name of the first image file (with extension, without path).
-                This will be the title of the left subplot.
-
-    imageName : str
-                The name of the second image file (with extension, without path).
-                This will be the title of the right subplot.
-
-    graph : object
-            A CandicateGraph object containing the given images (as nodes) and their
-            matches (edges). This graph is read from a JSON file, autocnet.feature_extractor
-            has been applied, and FlannMatcher has been applied.
-
-    featurePointSize : int
-                       The size of the feature point marker. Defaults to 10.
-
-    lineWidth : int
-                The width of the match lines. Defaults to 3.
-
-    Returns
-    -------
-     : AxesImage object
-       An image object that can be saved.
-    """
-
-    imgArray1 = GeoDataset(get_path(imageName1)).read_array()
-    imgArray2 = GeoDataset(get_path(imageName2)).read_array()
-
-    height1, width1 = imgArray1.shape[:2]
-    height2, width2 = imgArray2.shape[:2]
-
-    w = width1 + width2 + 50
-    h = max(height1, height2)
-
-    displayBox = np.zeros((h, w), np.uint8)
-
-    displayBox[:height1, :width1] = imgArray1
-    displayBox[:height2, width1 + 50:w] = imgArray2
-
-    for kp in graph.get_keypoints(imageName1):
-        x, y = kp.pt
-        plt.plot(x, y, 'ro', markersize=featurePointSize)
-    for kp in graph.get_keypoints(imageName2):
-        x, y = kp.pt
-        plt.plot(x + width1 + 50, y, 'ro', markersize=featurePointSize)
-
-    edge = graph[graph.node_name_map[imageName1]][graph.node_name_map[imageName2]]
-    if 'matches' in edge.keys():
-        for i, row in edge['matches'].iterrows():
-            # get matching points
-            image1ID = int(row['source_idx'])
-            image2ID = int(row['destination_idx'])
-            keypointImage1 = (graph.get_keypoints(imageName1)[image1ID].pt[0],
-                              graph.get_keypoints(imageName1)[image1ID].pt[1])
-            keypointImage2 = (graph.get_keypoints(imageName2)[image2ID].pt[0] + width1 + 50,
-                              graph.get_keypoints(imageName2)[image2ID].pt[1])
-
-            # construct a line between the matching points using the data coordinates and the
-            # transformation from data coordinates to display coordinates
-            plt.plot([keypointImage1[0], keypointImage2[0]],
-                     [keypointImage1[1], keypointImage2[1]],
-                     color='g',
-                     marker='o',
-                     markeredgecolor='g',
-                     markersize=featurePointSize,
-                     linewidth=lineWidth,
-                     alpha=0.5)
-    return plt.imshow(displayBox, cmap='Greys')

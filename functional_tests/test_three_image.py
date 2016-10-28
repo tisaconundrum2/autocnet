@@ -4,7 +4,6 @@ from autocnet.examples import get_path
 from autocnet.fileio.io_controlnetwork import to_isis
 from autocnet.fileio.io_controlnetwork import write_filelist
 from autocnet.graph.network import CandidateGraph
-from autocnet.matcher.matcher import FlannMatcher
 
 
 class TestThreeImageMatching(unittest.TestCase):
@@ -54,22 +53,19 @@ class TestThreeImageMatching(unittest.TestCase):
             edge.ratio_check(clean_keys=['symmetry'], ratio=0.99)
 
         cg.apply_func_to_edges("compute_homography", clean_keys=['symmetry', 'ratio'])
+        cg.compute_fundamental_matrices(clean_keys=['symmetry', 'ratio'])
 
         # Step: And create a C object
-        cnet = cg.to_cnet(clean_keys=['symmetry', 'ratio', 'ransac'])
+        cg.generate_cnet(clean_keys=['symmetry', 'ratio', 'ransac'])
 
         # Step: Create a fromlist to go with the cnet and write it to a file
         filelist = cg.to_filelist()
         write_filelist(filelist, 'TestThreeImageMatching_fromlist.lis')
 
-        # Step update the serial numbers
-        nid_to_serial = {}
-        for i, node in cg.nodes_iter(data=True):
-            nid_to_serial[i] = self.serial_numbers[node.image_name]
+        # Step: Create a correspondence network
+        cg.generate_cnet(clean_keys=['symmetry', 'ratio', 'ransac'], deepen=True)
 
-        cnet.replace({'nid': nid_to_serial}, inplace=True)
-        # Step: Output a control network
-        to_isis('TestThreeImageMatching.net', cnet, mode='wb',
+        to_isis('TestThreeImageMatching.net', cg, mode='wb',
                 networkid='TestThreeImageMatching', targetname='Moon')
 
     def tearDown(self):
