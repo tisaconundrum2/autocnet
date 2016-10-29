@@ -70,13 +70,13 @@ def two_poly_overlap(poly1, poly2):
                    The total area of overalap
 
     """
-    a_o = poly2.Intersection(poly1).GetArea()
+    overlap_area_polygon = poly2.Intersection(poly1)
+    overlap_area = overlap_area_polygon.GetArea()
     area1 = poly1.GetArea()
     area2 = poly2.GetArea()
 
-    overlap_area = a_o
-    overlap_percn = (a_o / (area1 + area2 - a_o)) * 100
-    return overlap_percn, overlap_area
+    overlap_percn = (overlap_area / (area1 + area2 - overlap_area)) * 100
+    return overlap_percn, overlap_area, overlap_area_polygon
 
 
 def get_area(poly1, poly2):
