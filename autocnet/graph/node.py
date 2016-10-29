@@ -4,18 +4,20 @@ import warnings
 
 import numpy as np
 import pandas as pd
+from plio.io.io_gdal import GeoDataset
+from plio.io import io_hdf
+from plio.io.isis_serial_number import generate_serial_number
 from scipy.misc import bytescale
 
 from autocnet.cg import cg
 from autocnet.control.control import Correspondence, Point
-from autocnet.fileio.io_gdal import GeoDataset
-from autocnet.fileio import io_hdf
+
 from autocnet.matcher.add_depth import deepen_correspondences
 from autocnet.matcher import feature_extractor as fe
 from autocnet.matcher import outlier_detector as od
 from autocnet.matcher import suppression_funcs as spf
 from autocnet.cg.cg import convex_hull_ratio
-from autocnet.utils.isis_serial_numbers import generate_serial_number
+
 from autocnet.vis.graph_view import plot_node
 from autocnet.utils import utils
 
@@ -61,7 +63,7 @@ class Node(dict, MutableMapping):
         self.node_id = node_id
         self._mask_arrays = {}
         self.point_to_correspondence = defaultdict(set)
-        self.nkeypoints = 0
+        self.point_to_correspondence_df = None
 
     def __repr__(self):
         return """
@@ -117,6 +119,13 @@ class Node(dict, MutableMapping):
             except:
                 self._isis_serial = None
         return self._isis_serial
+
+    @property
+    def nkeypoints(self):
+        if hasattr(self, '_keypoints'):
+            return len(self._keypoints)
+        else:
+            return 0
 
     def coverage(self):
         """
@@ -217,30 +226,7 @@ class Node(dict, MutableMapping):
                  kwargs passed to autocnet.feature_extractor.extract_features
 
         """
-        keypoint_objs, self.descriptors = fe.extract_features(array, **kwargs)
-        if self.descriptors.dtype != np.float32:
-            self.descriptors = self.descriptors.astype(np.float32)
-
-        # OpenCV returned keypoint objects
-        if isinstance(keypoint_objs, list):
-            keypoints = np.empty((len(keypoint_objs), 7), dtype=np.float32)
-            for i, kpt in enumerate(keypoint_objs):
-                octave = kpt.octave & 8
-                layer = (kpt.octave >> 8) & 255
-                if octave < 128:
-                    octave = octave
-                else:
-                    octave = (-128 | octave)
-                keypoints[i] = kpt.pt[0], kpt.pt[1], kpt.response, kpt.size, kpt.angle, octave, layer  # y, x
-            self._keypoints = pd.DataFrame(keypoints, columns=['x', 'y', 'response', 'size',
-                                                               'angle', 'octave', 'layer'])
-            self.nkeypoints = len(self._keypoints)
-
-        # VLFeat returned keypoint objects
-        elif isinstance(keypoint_objs, np.ndarray):
-            # Swap columns for value style access, vl_feat returns y, x
-            keypoint_objs[:, 0], keypoint_objs[:, 1] = keypoint_objs[:, 1], keypoint_objs[:, 0].copy()
-            self._keypoints = pd.DataFrame(keypoint_objs, columns=['x', 'y', 'size', 'angle'])
+        self._keypoints, self.descriptors = fe.extract_features(array, **kwargs)
 
     def load_features(self, in_path):
         """
@@ -338,7 +324,7 @@ class Node(dict, MutableMapping):
         edge_matches = []
         for e in incident_edges:
             edge = cg[e[0]][e[1]]
-            matches, mask = edge._clean(clean_keys=clean_keys)
+            matches, mask = edge.clean(clean_keys=clean_keys)
             # Add a depth mask that initially mirrors the fundamental mask
             edge_matches.append(matches)
         d = pd.concat(edge_matches)
@@ -371,7 +357,6 @@ class Node(dict, MutableMapping):
                     ab_x = np.array([kp[0], kp[1], 1.])
 
                 kpd = ab.destination.get_keypoint_coordinates(index=g['destination_idx']).values[0]
-
                 # Add the existing source and destination correspondences
                 self.point_to_correspondence[point].add((r['source_image'],
                                                                   Correspondence(r['source_idx'],
@@ -399,6 +384,15 @@ class Node(dict, MutableMapping):
                                                                                          serial=cg.node[search_edge[1]].isis_serial)))
 
             pid += 1
+
+        # Convert the dict to a dataframe
+        data = []
+        for k, measures in self.point_to_correspondence.items():
+            for image_id, m in measures:
+                data.append((k.point_id, k.point_type, m.serial, m.measure_type, m.x, m.y, image_id))
+
+        columns = ['point_id', 'point_type', 'serialnumber', 'measure_type', 'x', 'y', 'node_id']
+        self.point_to_correspondence_df = pd.DataFrame(data, columns=columns)
 
     def suppress(self, func=spf.response, **kwargs):
         if not hasattr(self, '_keypoints'):

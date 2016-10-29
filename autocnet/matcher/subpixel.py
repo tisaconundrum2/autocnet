@@ -1,6 +1,8 @@
 import numpy as np
 
 from autocnet.matcher import naive_template
+from autocnet.matcher import ciratefi
+
 
 # TODO: look into KeyPoint.size and perhaps use to determine an appropriately-sized search/template.
 
@@ -49,7 +51,7 @@ def clip_roi(img, center, img_size):
     return clipped_img
 
 
-def subpixel_offset(template, search, **kwargs):
+def subpixel_offset(template, search, method='naive', **kwargs):
     """
     Uses a pattern-matcher on subsets of two images determined from the passed-in keypoints and optional sizes to
     compute an x and y offset from the search keypoint to the template keypoint and an associated strength.
@@ -74,7 +76,10 @@ def subpixel_offset(template, search, **kwargs):
                Strength of the correspondence in the range [-1, 1]
     """
 
-    x_offset, y_offset, strength = naive_template.pattern_match(template, search, **kwargs)
+    functions = { 'naive' : naive_template.pattern_match,
+                  'ciratefi' : ciratefi.ciratefi}
+
+    x_offset, y_offset, strength = functions[method](template, search, **kwargs)
     return x_offset, y_offset, strength
 
 '''
