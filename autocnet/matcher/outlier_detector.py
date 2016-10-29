@@ -166,7 +166,6 @@ class SpatialSuppression(Observable):
     def nvalid(self):
         return self.mask.sum()
 
-
     @property
     def error_k(self):
         return self._error_k
@@ -186,21 +185,29 @@ class SpatialSuppression(Observable):
             self.k = len(self.df)
             result = self.df.index
             process = False
-        search_space = np.linspace(self.min_radius, self.max_radius, 100)
+        nsteps = max(self.domain) * 0.95
+        search_space = np.linspace(self.min_radius, self.max_radius, nsteps)
         cell_sizes = search_space / math.sqrt(2)
         min_idx = 0
         max_idx = len(search_space) - 1
 
+        prev_min = None
+        prev_max = None
+
         while process:
+            # Setup to store results
+            result = []
+
             mid_idx = int((min_idx + max_idx) / 2)
+
+            if min_idx == mid_idx or mid_idx == max_idx:
+                warnings.warn('Unable to optimally solve.  Returning with {} points'.format(len(result)))
+                process = False
 
             cell_size = cell_sizes[mid_idx]
             n_x_cells = int(self.domain[0] / cell_size)
             n_y_cells = int(self.domain[1] / cell_size)
             grid = np.zeros((n_x_cells, n_y_cells), dtype=np.bool)
-
-            # Setup to store results
-            result = []
 
             # Assign all points to bins
             x_edges = np.linspace(0, self.domain[0], n_x_cells)
@@ -245,11 +252,10 @@ class SpatialSuppression(Observable):
                     grid[y_min: y_max,
                          x_min: x_max] = True
 
-
             #  Check break conditions
             if self.k - self.k * self.error_k <= len(result) <= self.k + self.k * self.error_k:
                 process = False
-            elif len(result) < self.k:
+            elif len(result) < self.k - self.k * self.error_k:
                 # The radius is too large
                 max_idx = mid_idx
                 if max_idx == 0:
@@ -258,10 +264,6 @@ class SpatialSuppression(Observable):
                     process = False
                 if min_idx == max_idx:
                     process = False
-            elif min_idx == mid_idx or mid_idx == max_idx:
-                warnings.warn('Unable to optimally solve.  Returning with {} points'.format(len(result)))
-                process = False
-
         self.mask = pd.Series(False, self.df.index)
         self.mask.loc[list(result)] = True
         state_package = {'mask': self.mask,
@@ -319,4 +321,3 @@ def mirroring_test(matches):
     """
     duplicate_mask = matches.duplicated(subset=['source_idx', 'destination_idx', 'distance'], keep='last')
     return duplicate_mask
-
