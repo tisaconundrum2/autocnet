@@ -19,6 +19,10 @@ AutoCNet
     :target: http://autocnet.readthedocs.org/en/latest/
     :alt: Documentation Status
 
+.. image:: https://badge.waffle.io/USGS-Astrogeology/autocnet.png?label=ready&title=Ready 
+ :target: https://waffle.io/USGS-Astrogeology/autocnet 
+ :alt: 'Stories in Ready'
+
 Automated sparse control network generation to support photogrammetric control of planetary image data.
 
 * Documentation: https://autocnet.readthedocs.org.
