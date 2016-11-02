@@ -108,7 +108,6 @@ class CandidateGraph(nx.Graph):
         """
         if isinstance(filelist, str):
             filelist = io_utils.file_to_list(filelist)
-
         # TODO: Reject unsupported file formats + work with more file formats
         if basepath:
             datasets = [GeoDataset(os.path.join(basepath, f)) for f in filelist]

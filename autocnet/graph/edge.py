@@ -318,7 +318,6 @@ class Edge(dict, MutableMapping):
                                        'correlation', 'reference')] = [x_offset, y_offset, strength, source_image]
             except:
                 warnings.warn('Template-Search size mismatch, failing for this correspondence point.')
-                continue
 
         # Compute the mask for correlations less than the threshold
         threshold_mask = self.matches['correlation'] >= threshold
