@@ -9,6 +9,8 @@ from autocnet.matcher.suppression_funcs import error
 from autocnet.graph.network import CandidateGraph
 
 import pandas as pd
+import numpy as np
+
 
 class TestTwoImageMatching(unittest.TestCase):
     """
@@ -57,7 +59,8 @@ class TestTwoImageMatching(unittest.TestCase):
             ratio = node.coverage_ratio()
             self.assertIn(round(ratio, 8), truth_ratios)
 
-        cg.match_features(k=2)
+        cg.decompose_and_match_features(k=2, maxiteration=2)
+        self.assertTrue(isinstance(cg.edge[0][1].smembership, np.ndarray))
 
         # Perform the symmetry check
         cg.symmetry_checks()
@@ -69,9 +72,9 @@ class TestTwoImageMatching(unittest.TestCase):
         for source, destination, edge in cg.edges_iter(data=True):
 
             # Perform the symmetry check
-            self.assertIn(edge.masks['symmetry'].sum(), range(400, 600))
+            self.assertIn(edge.masks['symmetry'].sum(), range(200, 400))
             # Perform the ratio test
-            self.assertIn(edge.masks['ratio'].sum(), range(225, 275))
+            self.assertIn(edge.masks['ratio'].sum(), range(200, 300))
 
             # Range needs to be set
             self.assertIn(edge.masks['fundamental'].sum(), range(200, 250))

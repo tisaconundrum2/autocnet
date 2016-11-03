@@ -13,8 +13,7 @@ from autocnet.matcher import subpixel as sp
 from autocnet.matcher.feature import FlannMatcher
 from autocnet.transformation.decompose import coupled_decomposition
 from autocnet.transformation.transformations import FundamentalMatrix, Homography
-from autocnet.vis.graph_view import plot_edge
-from autocnet.vis.graph_view import plot_node
+from autocnet.vis.graph_view import plot_edge, plot_node, plot_edge_decomposition
 from autocnet.cg import cg
 
 
@@ -93,13 +92,16 @@ class Edge(dict, MutableMapping):
     def health(self):
         return self._health.health
 
-    def match(self, k=2, method='coupled', maxiteration=3, size=18, **kwargs):
+    def decompose_and_match(self, k=2, maxiteration=3, size=18, buf_dist=3,**kwargs):
         """
-        Given two sets of descriptors, utilize a FLANN (Approximate Nearest
-        Neighbor KDTree) matcher to find the k nearest matches.  Nearness is
-        the euclidean distance between descriptors.
+        Similar to match, this method first decomposed the image into
+        $4^{maxiteration}$ subimages and applys matching between each sub-image.
 
-        The matches are then added as an attribute to the edge object.
+        This method is potential slower than the standard match due to the
+        overhead in matching, but can be significantly more accurate.  The
+        increase in accuracy is a function of the total image size.  Suggested
+        values for maxiteration are provided below.
+
         Parameters
         ----------
         k : int
@@ -112,19 +114,28 @@ class Edge(dict, MutableMapping):
         maxiteration : int
                        When using coupled decomposition, the number of recursive
                        divisions to apply.  The total number of resultant
-                       sub-images will be 4 ** maxiteration.
+                       sub-images will be 4 ** maxiteration.  Approximate values:
+
+                        | Number of megapixels | maxiteration |
+                        |----------------------|--------------|
+                        | m < 10               |1-2|
+                        | 10 < m < 30          | 3 |
+                        | 30 < m < 100         | 4 |
+                        | 100 < m < 1000       | 5 |
+                        | m > 1000             | 6 |
 
         size : int
-               The total number of points to check in each sub-image to
-               try and find a match.  Selection of this number is a balance
-               between seeking a representative mid-point and computational
-               cost.
+               When using coupled decomposition, the total number of points
+               to check in each sub-image to try and find a match.
+               Selection of this number is a balance between seeking a
+               representative mid-point and computational cost.
 
-        Returns
-        -------
-
+        buf_dist : int
+                   When using coupled decomposition, the distance from the edge of
+                   the (sub)image a point must be in order to be used as a
+                   partioning point.  The smaller the distance, the more likely
+                   percision errors can results in erroneous partitions.
         """
-
         def mono_matches(a, b, aidx=None, bidx=None):
             """
             Apply the FLANN match_features
@@ -152,12 +163,11 @@ class Edge(dict, MutableMapping):
             if bidx is not None:
                 bd = b.descriptors[bidx]
             else:
-                bidx = b.descriptors
+                bd = b.descriptors
 
             # Load, train, and match
             fl.add(ad, a.node_id, index=aidx)
             fl.train()
-
             matches = fl.query(bd, b.node_id, k, index=bidx)
             self._add_matches(matches)
             fl.clear()
@@ -171,141 +181,32 @@ class Edge(dict, MutableMapping):
                 res[0] = True
             return res
 
-        if method == 'whole':
-            fl = FlannMatcher()
-            mono_matches(self.source, self.destination)
-            mono_matches(self.destination, self.source)
+        # Grab the original image arrays
+        sdata = self.source.get_array()
+        ddata = self.destination.get_array()
 
-        elif method == 'coupled':
-            # Grab the matches data frame and identify the source and destination images and keypoints
-            e = self
+        ssize = sdata.shape
+        dsize = ddata.shape
 
-            # Grab the original image arrays
-            sdata = e.source.get_array()
-            ddata = e.destination.get_array()
+        # Grab all the available candidate keypoints
+        skp = self.source.get_keypoints()
+        dkp = self.destination.get_keypoints()
 
-            ssize = sdata.shape
-            dsize = ddata.shape
+        # Set up the membership arrays
+        self.smembership = np.zeros(sdata.shape, dtype=np.int16)
+        self.dmembership = np.zeros(ddata.shape, dtype=np.int16)
+        self.smembership[:] = -1
+        self.dmembership[:] = -1
+        pcounter = 0
 
-            # Grab all the available candidate keypoints
-            skp = e.source.get_keypoints()
-            dkp = e.destination.get_keypoints()
+        # FLANN Matcher
+        fl= FlannMatcher()
 
-            smembership = np.zeros(sdata.shape, dtype=np.int16)
-            dmembership = np.zeros(ddata.shape, dtype=np.int16)
-            smembership[:] = -1
-            dmembership[:] = -1
-            maxiterations = 3
-            pcounter = 0
-
-            fl= FlannMatcher()
-
-            for k in range(maxiterations):
-                partitions = np.unique(smembership)
-                npartitions = len(partitions)
-                for p in partitions:
-                    sy_part, sx_part = np.where(smembership == p)
-                    dy_part, dx_part = np.where(dmembership == p)
-
-                    """
-                    Debug: Why is it that sometimes dy, dx is empty?
-                    """
-
-                    # Get the source extent
-                    minsy = np.min(sy_part)
-                    maxsy = np.max(sy_part) + 1
-                    minsx = np.min(sx_part)
-                    maxsx = np.max(sx_part) + 1
-
-                    # Get the destination extent
-                    mindy = np.min(dy_part)
-                    maxdy = np.max(dy_part) + 1
-                    mindx = np.min(dx_part)
-                    maxdx = np.max(dx_part) + 1
-
-                    # Clip the sub image from the full images
-                    asub = sdata[minsy:maxsy, minsx:maxsx]
-                    bsub = ddata[mindy:maxdy, mindx:maxdx]
-
-                    # Utilize the FLANN matcher to find a match to approximate a center
-                    fl.add(e.destination.descriptors, e.destination.node_id)
-                    fl.train()
-
-                    searching = True
-                    scounter = 0
-                    while searching:
-                        sub_skp = skp.query('x >= {} and x <= {} and y >= {} and y <= {}'.format(minsx, maxsx, minsy, maxsy))
-                        size = 18
-                        if size > len(sub_skp):
-                            size = len(sub_skp)
-                        candidate_idx = np.random.choice(sub_skp.index, size=size, replace=False)
-                        candidates = e.source.descriptors[candidate_idx]
-                        matches = fl.query(candidates, e.source.node_id, k=3, index=candidate_idx)
-
-                        # Apply Lowe's ratio test to try to find a 'good' starting point
-                        mask = matches.groupby('source_idx')['distance'].transform(func).astype('bool')
-                        candidate_matches = matches[mask]
-                        match_idx = candidate_matches['source_idx']
-
-                        # Extract those matches that pass the ratio check
-                        sub_skp = skp.iloc[match_idx]
-
-                        ### FLANN FINISHED ###
-
-                        # Locate the candidate closest to the middle of all of the matches
-                        smx, smy = sub_skp[['x', 'y']].mean()
-                        mid = np.array([[smx, smy]])
-                        dists = cdist(mid, sub_skp[['x', 'y']])
-                        try:
-                            closest = sub_skp.iloc[np.argmin(dists)]
-                        except:
-                            continue
-                        closest_idx = closest.name
-                        soriginx, soriginy = closest[['x', 'y']]
-
-                        # Grab the corresponding point in the destination
-                        dest_idx = candidate_matches[candidate_matches['source_idx'] == closest.name]['destination_idx']
-                        doriginx, doriginy = dkp.loc[dest_idx][['x', 'y']].values[0]
-
-                        if not mindy + 1 <= doriginy <= maxdy - 1 or not mindx + 1 <= doriginx <= maxdx - 1:
-                            scounter += 1
-                            if scounter >= 10:
-                                searching = False
-                        else:
-                            searching = False
-                    # Clear the Flann matcher for reuse
-                    fl.clear()
-
-                    if scounter >= 10:
-                        break
-
-                    # Apply coupled decomposition, shifting the origin to the sub-image
-                    s_submembership, d_submembership = coupled_decomposition(asub, bsub,
-                                                                             sorigin=(soriginx - minsx, soriginy - minsy),
-                                                                             dorigin=(doriginx - mindx, doriginy - mindy),
-                                                                             **kwargs)
-
-                    # Shift the returned membership counters to a set of unique numbers
-                    s_submembership += pcounter
-                    d_submembership += pcounter
-
-                    # And assign membership
-                    smembership[minsy:maxsy,
-                                minsx:maxsx] = s_submembership
-                    dmembership[mindy:maxdy,
-                                mindx:maxdx] = d_submembership
-                    pcounter += 4
-
-            smembership -= np.min(smembership)
-            dmembership -= np.min(dmembership)
-
-            if len(np.unique(smembership)) != len(np.unique(dmembership)):
-                return smembership, dmembership
-
-            # Now match the decomposed segments to one another
-            for p in np.unique(smembership):
-                sy_part, sx_part = np.where(smembership == p)
-                dy_part, dx_part = np.where(dmembership == p)
+        for k in range(maxiteration):
+            partitions = np.unique(self.smembership)
+            for p in partitions:
+                sy_part, sx_part = np.where(self.smembership == p)
+                dy_part, dx_part = np.where(self.dmembership == p)
 
                 # Get the source extent
                 minsy = np.min(sy_part)
@@ -319,13 +220,170 @@ class Edge(dict, MutableMapping):
                 mindx = np.min(dx_part)
                 maxdx = np.max(dx_part) + 1
 
-                # Get the indices of the candidate keypoints within those regions / variables are pulled before decomp.
-                sidx = skp.query('x >= {} and x <= {} and y >= {} and y <= {}'.format(minsx, maxsx, minsy, maxsy)).index
-                didx = dkp.query('x >= {} and x <= {} and y >= {} and y <= {}'.format(mindx, maxdx, mindy, maxdy)).index
-                # If the candidates < k, OpenCV throws an error
-                if len(sidx) >= k and len(didx) >=k:
-                    mono_matches(e.source, e.destination, sidx, didx)
-                    mono_matches(e.destination, e.source, didx, sidx)
+                # Clip the sub image from the full images
+                asub = sdata[minsy:maxsy, minsx:maxsx]
+                bsub = ddata[mindy:maxdy, mindx:maxdx]
+
+                # Utilize the FLANN matcher to find a match to approximate a center
+                fl.add(self.destination.descriptors, self.destination.node_id)
+                fl.train()
+
+                scounter = 0
+                decompose = False
+                while True:
+                    sub_skp = skp.query('x >= {} and x <= {} and y >= {} and y <= {}'.format(minsx, maxsx, minsy, maxsy))
+                    # Check the size to ensure a valid return
+                    if len(sub_skp) == 0:
+                        break # No valid keypoints in this (sub)image
+                    if size > len(sub_skp):
+                        size = len(sub_skp)
+                    candidate_idx = np.random.choice(sub_skp.index, size=size, replace=False)
+                    candidates = self.source.descriptors[candidate_idx]
+                    matches = fl.query(candidates, self.source.node_id, k=3, index=candidate_idx)
+
+                    # Apply Lowe's ratio test to try to find a 'good' starting point
+                    mask = matches.groupby('source_idx')['distance'].transform(func).astype('bool')
+                    candidate_matches = matches[mask]
+                    match_idx = candidate_matches['source_idx']
+
+                    # Extract those matches that pass the ratio check
+                    sub_skp = skp.iloc[match_idx]
+
+                    # Check that valid points remain
+                    if len(sub_skp) == 0:
+                        break
+
+                    # Locate the candidate closest to the middle of all of the matches
+                    smx, smy = sub_skp[['x', 'y']].mean()
+                    mid = np.array([[smx, smy]])
+                    dists = cdist(mid, sub_skp[['x', 'y']])
+                    closest = sub_skp.iloc[np.argmin(dists)]
+                    closest_idx = closest.name
+                    soriginx, soriginy = closest[['x', 'y']]
+
+                    # Grab the corresponding point in the destination
+                    q = candidate_matches.query('source_idx == {}'.format(closest.name))
+                    dest_idx = q['destination_idx'].iat[0]
+                    doriginx = dkp.at[dest_idx, 'x']
+                    doriginy = dkp.at[dest_idx, 'y']
+
+                    if mindy + buf_dist <= doriginy <= maxdy - buf_dist\
+                     and mindx + 3 <= doriginx <= maxdx - 3:
+                        # Point is good to split on
+                        decompose = True
+                        break
+                    else:
+                        scounter += 1
+                        if scounter >= maxiteration:
+                            break
+
+                # Clear the Flann matcher for reuse
+                fl.clear()
+
+                # Check that the identified match falls within the (sub)image
+                # This catches most bad matches that have passed the ratio check
+                if not (buf_dist <= doriginx - mindx <= bsub.shape[0]) or not\
+                       (buf_dist <= doriginy <= bsub.shape[0] - buf_dist):
+                       continue
+
+
+                if decompose:
+                    # Apply coupled decomposition, shifting the origin to the sub-image
+                    s_submembership, d_submembership = coupled_decomposition(asub, bsub,
+                                                                         sorigin=(soriginx - minsx, soriginy - minsy),
+                                                                         dorigin=(doriginx - mindx, doriginy - mindy),
+                                                                         **kwargs)
+
+                    # Shift the returned membership counters to a set of unique numbers
+                    s_submembership += pcounter
+                    d_submembership += pcounter
+
+                    # And assign membership
+                    self.smembership[minsy:maxsy,
+                                minsx:maxsx] = s_submembership
+                    self.dmembership[mindy:maxdy,
+                                mindx:maxdx] = d_submembership
+                    pcounter += 4
+
+        # Now match the decomposed segments to one another
+        for p in np.unique(self.smembership):
+            sy_part, sx_part = np.where(self.smembership == p)
+            dy_part, dx_part = np.where(self.dmembership == p)
+
+            # Get the source extent
+            minsy = np.min(sy_part)
+            maxsy = np.max(sy_part) + 1
+            minsx = np.min(sx_part)
+            maxsx = np.max(sx_part) + 1
+
+            # Get the destination extent
+            mindy = np.min(dy_part)
+            maxdy = np.max(dy_part) + 1
+            mindx = np.min(dx_part)
+            maxdx = np.max(dx_part) + 1
+
+            # Get the indices of the candidate keypoints within those regions / variables are pulled before decomp.
+            sidx = skp.query('x >= {} and x <= {} and y >= {} and y <= {}'.format(minsx, maxsx, minsy, maxsy)).index
+            didx = dkp.query('x >= {} and x <= {} and y >= {} and y <= {}'.format(mindx, maxdx, mindy, maxdy)).index
+            # If the candidates < k, OpenCV throws an error
+            if len(sidx) >= k and len(didx) >=k:
+                mono_matches(self.source, self.destination, sidx, didx)
+                mono_matches(self.destination, self.source, didx, sidx)
+
+    def match(self, k=2, **kwargs):
+        """
+        Given two sets of descriptors, utilize a FLANN (Approximate Nearest
+        Neighbor KDTree) matcher to find the k nearest matches.  Nearness is
+        the euclidean distance between descriptors.
+
+        The matches are then added as an attribute to the edge object.
+
+        Parameters
+        ----------
+        k : int
+            The number of neighbors to find
+        """
+        def mono_matches(a, b, aidx=None, bidx=None):
+            """
+            Apply the FLANN match_features
+
+            Parameters
+            ----------
+            a : object
+                A node object
+
+            b : object
+                A node object
+
+            aidx : iterable
+                   An index for the descriptors to subset
+
+            bidx : iterable
+                   An index for the descriptors to subset
+            """
+            # Subset if requested
+            if aidx is not None:
+                ad = a.descriptors[aidx]
+            else:
+                ad = a.descriptors
+
+            if bidx is not None:
+                bd = b.descriptors[bidx]
+            else:
+                bd = b.descriptors
+
+            # Load, train, and match
+            fl.add(ad, a.node_id, index=aidx)
+            fl.train()
+            matches = fl.query(bd, b.node_id, k, index=bidx)
+            self._add_matches(matches)
+            fl.clear()
+
+        fl = FlannMatcher()
+        mono_matches(self.source, self.destination)
+        mono_matches(self.destination, self.source)
+
+
 
     def _add_matches(self, matches):
         """
@@ -614,6 +672,9 @@ class Edge(dict, MutableMapping):
         # Else, plot the whole edge
         return plot_edge(self, ax=ax, clean_keys=clean_keys, **kwargs)
 
+    def plot_decomposition(self, *args, **kwargs): #pragma: no cover
+        return plot_edge_decomposition(self, *args, **kwargs)
+
     def clean(self, clean_keys, pid=None):
         """
         Given a list of clean keys and a provenance id compute the
@@ -694,25 +755,3 @@ class Edge(dict, MutableMapping):
         total_overlap_coverage = (convex_poly.GetArea()/intersection_area)
 
         return total_overlap_coverage
-
-    def decompose(self, maxiterations=3):
-        """
-        Apply coupled decomposition to the images and
-        match identified sub-images
-
-        Parameters
-        ----------
-        maxiterations : int
-                        The number of iterations. Appropriate values:
-
-                        | Number of megapixels | k |
-                        |----------------------|---|
-                        | m < 10               |1-2|
-                        | 10 < m < 30          | 3 |
-                        | 30 < m < 100         | 4 |
-                        | 100 < m < 1000       | 5 |
-                        | m > 1000             | 6 |
-
-
-        """
-        pass

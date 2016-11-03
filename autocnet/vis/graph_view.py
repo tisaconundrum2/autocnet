@@ -106,7 +106,75 @@ def plot_node(node, ax=None, clean_keys=[], index_mask=None, **kwargs):
 
     return ax
 
+def plot_edge_decomposition(edge, ax=None, clean_keys=[], image_space=100,
+                            scatter_kwargs={}, line_kwargs={}, image_kwargs={}):
 
+
+    if ax is None:
+        ax = plt.gca()
+
+    # Plot setup
+    ax.set_title('Matching: {} to {}'.format(edge.source.image_name,
+                                             edge.destination.image_name))
+    ax.margins(tight=True)
+    ax.axis('off')
+
+    # Image plotting
+    source_array = edge.source.get_array()
+    destination_array = edge.destination.get_array()
+
+    s_shape = source_array.shape
+    d_shape = destination_array.shape
+
+    y = max(s_shape[0], d_shape[0])
+    x = s_shape[1] + d_shape[1] + image_space
+    composite = np.zeros((y, x))
+    composite_decomp = np.zeros((y, x), dtype=np.int16)
+
+    composite[0: s_shape[0], :s_shape[1]] = source_array
+    composite[0: d_shape[0], s_shape[1] + image_space:] = destination_array
+
+    composite_decomp[0: s_shape[0], :s_shape[1]] = edge.smembership
+    composite_decomp[0: d_shape[0], s_shape[1] + image_space:] = edge.dmembership
+
+    if 'cmap' in image_kwargs:
+        cmap = image_kwargs['cmap']
+    else:
+        cmap = 'Greys'
+
+    matches, mask = edge.clean(clean_keys)
+
+    source_keypoints = edge.source.get_keypoints(index=matches['source_idx'])
+    destination_keypoints = edge.destination.get_keypoints(index=matches['destination_idx'])
+
+    # Plot the source
+    source_idx = matches['source_idx'].values
+    s_kps = source_keypoints.loc[source_idx]
+    ax.scatter(s_kps['x'], s_kps['y'], **scatter_kwargs, cmap='gray')
+
+    # Plot the destination
+    destination_idx = matches['destination_idx'].values
+    d_kps = destination_keypoints.loc[destination_idx]
+    x_offset = s_shape[1] + image_space
+    newx = d_kps['x'] + x_offset
+    ax.scatter(newx, d_kps['y'], **scatter_kwargs)
+
+    ax.imshow(composite, cmap=cmap)
+    ax.imshow(composite_decomp, cmap='spectral', alpha=0.35)
+    # Draw the connecting lines
+    color = 'y'
+    if 'color' in line_kwargs.keys():
+        color = line_kwargs['color']
+        line_kwargs.pop('color', None)
+
+    s_kps = s_kps[['x', 'y']].values
+    d_kps = d_kps[['x', 'y']].values
+    d_kps[:, 0] += x_offset
+
+    for l in zip(s_kps, d_kps):
+        ax.plot((l[0][0], l[1][0]), (l[0][1], l[1][1]), color=color, **line_kwargs)
+
+    return ax
 def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
               scatter_kwargs={}, line_kwargs={}, image_kwargs={}):
     """
@@ -203,7 +271,3 @@ def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
         ax.plot((l[0][0], l[1][0]), (l[0][1], l[1][1]), color=color, **line_kwargs)
 
     return ax
-
-
-
-
