@@ -282,10 +282,9 @@ class Edge(dict, MutableMapping):
 
                 # Check that the identified match falls within the (sub)image
                 # This catches most bad matches that have passed the ratio check
-                if not (buf_dist <= doriginx - mindx <= bsub.shape[0]) or not\
-                       (buf_dist <= doriginy <= bsub.shape[0] - buf_dist):
-                       continue
-
+                if not (buf_dist <= doriginx - mindx <= bsub.shape[1] - buf_dist) or not\
+                       (buf_dist <= doriginy - mindy <= bsub.shape[0] - buf_dist):
+                       decompose = False
 
                 if decompose:
                     # Apply coupled decomposition, shifting the origin to the sub-image
@@ -304,7 +303,7 @@ class Edge(dict, MutableMapping):
                     self.dmembership[mindy:maxdy,
                                 mindx:maxdx] = d_submembership
                     pcounter += 4
-
+        
         # Now match the decomposed segments to one another
         for p in np.unique(self.smembership):
             sy_part, sx_part = np.where(self.smembership == p)
