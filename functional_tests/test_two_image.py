@@ -77,7 +77,7 @@ class TestTwoImageMatching(unittest.TestCase):
             self.assertIn(edge.masks['ratio'].sum(), range(200, 300))
 
             # Range needs to be set
-            self.assertIn(edge.masks['fundamental'].sum(), range(200, 250))
+            self.assertIn(edge.masks['fundamental'].sum(), range(200, 300))
 
         # Step: Compute the homographies and apply RANSAC
         cg.compute_homographies(clean_keys=['symmetry', 'ratio'])
