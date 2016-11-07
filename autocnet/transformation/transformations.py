@@ -352,7 +352,7 @@ class FundamentalMatrix(TransformationMatrix):
             pt = self.x1.loc[self.mask].T
             pt1 = self.x2.loc[self.mask].T
 
-            if pt.shape[1] < 8 or pt1.shape[1] < 8:
+            if pt.shape[1] < 9 or pt1.shape[1] < 9:
                 warnings.warn("Unable to apply MLE.  Not enough correspondences.")
                 return
 
