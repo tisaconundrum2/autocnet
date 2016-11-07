@@ -175,7 +175,7 @@ class Edge(dict, MutableMapping):
         See Also
         --------
         autocnet.transformation.transformations.FundamentalMatrix
-       :
+
         """
         if not hasattr(self, 'matches'):
             raise AttributeError('Matches have not been computed for this edge')
@@ -205,6 +205,21 @@ class Edge(dict, MutableMapping):
 
         # Set the initial state of the fundamental mask in the masks
         self.masks = ('fundamental', mask)
+
+    def refine_fundamental_matrix_matches(self, **kwargs):
+        """
+        Given an estimated fundamental matrix, refine the correspondences based
+        on the reprojective error.
+
+        See Also
+        --------
+        autocnet.transformation.transformations.FundamentalMatrix.refine_matches
+        """
+        if not hasattr(self, 'fundamental_matrix'):
+            raise AttributeError('No fundamental matrix exists for this edge.')
+            return
+
+        self.fundamental_matrix.refine_matches(**kwargs)
 
     def compute_homography(self, method='ransac', clean_keys=[], pid=None, **kwargs):
         """
