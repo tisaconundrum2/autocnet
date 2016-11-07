@@ -206,7 +206,7 @@ class Edge(dict, MutableMapping):
         # Set the initial state of the fundamental mask in the masks
         self.masks = ('fundamental', mask)
 
-    def refine_fundamental_matrix_matches(self, **kwargs):
+    def refine_fundamental_matrix_matches(self, **kwargs): # pragma: no cover
         """
         Given an estimated fundamental matrix, refine the correspondences based
         on the reprojective error.

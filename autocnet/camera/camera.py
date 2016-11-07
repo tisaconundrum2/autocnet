@@ -103,10 +103,12 @@ def triangulate(pt, pt1, p, p1):
         pt = pt.T
     if pt1.shape[0] != 3:
         pt1 = pt1.T
-    if cv2:
-        X = cv2.triangulatePoints(p, p1, pt[:2], pt1[:2])
-        X /= X[3] # Homogenize
-        return X
+    #if cv2:
+    X = cv2.triangulatePoints(p, p1, pt[:2], pt1[:2])
+    X /= X[3] # Homogenize
+    return X
+    """
+    # Stubbed in for a ticket addressing making OpenCV an optional dependency
     else:
         npts = len(pt)
         a = np.zeros((4, 4))
@@ -123,7 +125,7 @@ def triangulate(pt, pt1, p, p1):
             v = vh.T
             coords[i] = v[:,3] / (v[:,3][-1])
         return coords.T
-
+    """
 def projection_error(p1, p, pt, pt1):
     """
     Based on Hartley and Zisserman p.285 this function triangulates
