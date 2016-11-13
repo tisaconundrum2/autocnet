@@ -25,10 +25,15 @@ class TestNode(unittest.TestCase):
     def test_get_handle(self):
         self.assertIsInstance(self.node.geodata, GeoDataset)
 
+    def test_get_byte_array(self):
+        image = self.node.get_byte_array()
+        self.assertEqual((1012, 1012), image.shape)
+        self.assertEqual(np.uint8, image.dtype)
+
     def test_get_array(self):
         image = self.node.get_array()
         self.assertEqual((1012, 1012), image.shape)
-        self.assertEqual(np.uint8, image.dtype)
+        self.assertEqual(np.float32, image.dtype)
 
     def test_extract_features(self):
         image = self.node.get_array()

@@ -154,7 +154,7 @@ class Node(dict, MutableMapping):
 
         return self.coverage_area
 
-    def get_array(self, band=1):
+    def get_byte_array(self, band=1):
         """
         Get a band as a 32-bit numpy array
 
@@ -166,6 +166,19 @@ class Node(dict, MutableMapping):
 
         array = self.geodata.read_array(band=band)
         return bytescale(array)
+
+    def get_array(self, band=1):
+        """
+        Get a band as a 32-bit numpy array
+
+        Parameters
+        ----------
+        band : int
+               The band to read, default 1
+        """
+
+        array = self.geodata.read_array(band=band)
+        return array
 
     def get_keypoints(self, index=None):
         """
