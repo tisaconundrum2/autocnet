@@ -11,6 +11,7 @@ from scipy import optimize
 
 from autocnet.utils.utils import make_homogeneous, normalize_vector, crossform
 from autocnet.camera import camera
+from autocnet.camera import utils as camera_utils
 
 
 class TransformationMatrix(np.ndarray):
@@ -187,104 +188,26 @@ class FundamentalMatrix(TransformationMatrix):
             compute this homography
     """
 
-    def refine_with_mle(self, **kwargs):
+    def refine_matches(self, threshold=1.0):
         """
-        Given a linear approximation of F, refine using Maximum Liklihood estimation
-        as per Hartley and Zisseman p.285, algorithm 11.3.
+        Given a Fundamental matrix, recheck all matches and update the
+        mask given a threshold.
 
-        References
-        ----------
-        .. [Hartley2003]
-        """
-        raise NotImplementedError
-        """
-        '''
-        This still requires additional work.
-         - The optimization is exceptionally slow.
-         - Iteration is required to add newly discovered correspondences, re-estimate F using MLE,
-            and continuing until the number of correspondences stabilizes.
-        '''
-        p = camera.idealized_camera()
-        p1 = camera.estimated_camera_from_f(self)
-
-        correspondences1 = self.x1[self.local_mask]
-        correspondences2 = self.x2[self.local_mask]
-
-        if 'method' in kwargs.keys():
-            method = kwargs.pop('method')
-        else:
-            method = 'trf'
-        result = optimize.least_squares(camera.projection_error, p1.ravel(), args=(p,
-                                                                             correspondences1.values,
-                                                                             correspondences2.values),
-                                        method=method,
-                                        xtol=1e-6,
-                                        ftol=1e-6,
-                                        gtol=1e-6,
-                                        **kwargs)
-
-        if result[-1] > 4:
-            warnings.warn('MLE failed to find an improved fundamental matrix.')
-
-        # Scipy solvers are 1D, reshape to the correct form
-        pgs = result[0].reshape(3,4)
-        t = pgs[:, 3]
-        M = pgs[:, 0:3]
-        self[:] = crossform(t).dot(M)
-        """
-
-    def refine(self, method=ps.esda.mapclassify.Fisher_Jenks, values=None, bin_id=0, **kwargs):
-        """
-        Refine the fundamental matrix by accepting some data classification
-        method that accepts an ndarray and returns an object with a bins
-        attribute, where bins are data breaks.  Using the bin_id, mask
-        all values greater than the selected bin.  Then compute a
-        new fundamental matrix.
-        The matrix is "refined" based on the reprojection errors for
-        each point.
         Parameters
         ----------
-        method : object
-                 A function that accepts and ndarray and returns an object
-                 with a bins attribute
-        values      : ndarray
-                      (n,1) of values to use used for classification
-        bin_id : int
-                 The index into the bins object.  Data classified > this
-                 id is masked
-        kwargs : dict
-                 Keyword args supported by the data classifier
-        Returns
-        -------
-        FundamentalMatrix : object
-                            A fundamental matrix class object
-        mask : series
-               A bool mask with index attribute identifying the valid
-               data in the new fundamental matrix.
+        threshold : float
+                    The new upper, reprojective error limit, in pixels.
         """
-        # Perform the data classification
-        if values is None:
-            values = self.error
+        state_package = {'arr': self[:].copy(),
+                         'mask': self.mask.copy()}
 
-        try:
-            state_package = {'arr': self[:].copy(),
-                             'mask': self.mask.copy()}
+        error = self.compute_error(self.x1, self.x2)
+        self.mask = error <= threshold
 
-            # Perform the computation
-            fj = method(values.ravel(), **kwargs)
-            # Mask the data that falls outside the provided bins
-            mask = values <= fj.yb[bin_id]
-            new_x1 = self.x1.iloc[mask[mask].index]
-            new_x2 = self.x2.iloc[mask[mask].index]
-            self.compute(new_x1.values, new_x2.values)
-
-            self._action_stack.append(state_package)
-            self._current_action_stack = len(self._action_stack) - 1  # 0 based vs. 1 based
-            self._clean_attrs()
-            self._notify_subscribers(self)
-        except:
-            warnings.warn('Refinement outlier detection removed all observations.',
-                          UserWarning)
+        self._action_stack.append(state_package)
+        self._current_action_stack = len(self._action_stack) - 1  # 0 based vs. 1 based
+        self._clean_attrs()
+        self._notify_subscribers(self)
 
     def _clean_attrs(self):
         for a in ['_error', '_determinant', '_condition']:
@@ -311,7 +234,7 @@ class FundamentalMatrix(TransformationMatrix):
 
         x = self.x1[self.mask]
         x1 = self.x2[self.mask]
-        return self.compute_error(self.x1, self.x2)
+        return self.compute_error(x, x1)
 
     def compute_error(self, x, x1):
         """
@@ -349,7 +272,7 @@ class FundamentalMatrix(TransformationMatrix):
 
         return F_error
 
-    def compute(self, kp1, kp2, method='ransac', reproj_threshold=2.0, confidence=0.99):
+    def compute(self, kp1, kp2, method='mle', reproj_threshold=2.0, confidence=0.99):
         """
         Given two arrays of keypoints compute the fundamental matrix
 
@@ -360,6 +283,7 @@ class FundamentalMatrix(TransformationMatrix):
 
         kp2 : ndarray
               (n, 2) of coordinates from the destination image
+
 
         method : {'ransac', 'lmeds', 'normal', '8point'}
                   The openCV algorithm to use for outlier detection
@@ -377,7 +301,10 @@ class FundamentalMatrix(TransformationMatrix):
         is < 7, normal outlier detection is automatically used, if 7 > n > 15,
         least medians is used, and if 7 > 15, ransac can be used.
         """
-        if method == 'ransac':
+        if method == 'mle':
+            # Grab an initial estimate using RANSAC, then apply MLE
+            method_ = cv2.FM_RANSAC
+        elif method == 'ransac':
             method_ = cv2.FM_RANSAC
         elif method == 'lmeds':
             method_ = cv2.FM_LMEDS
@@ -386,13 +313,11 @@ class FundamentalMatrix(TransformationMatrix):
         elif method == '8point':
             method_ = cv2.FM_8POINT
         else:
-            raise ValueError("Unknown outlier detection method. Choices are: 'ransac', 'lmeds', '8point', or 'normal'.")
+            raise ValueError("Unknown estimation method. Choices are: 'lme', 'ransac', 'lmeds', '8point', or 'normal'.")
 
-        kp1 = np.asarray(kp1)
-        kp2 = np.asarray(kp2)
-
-        F, mask = cv2.findFundamentalMat(kp1,
-                                         kp2,
+        # OpenCV wants arrays
+        F, mask = cv2.findFundamentalMat(np.asarray(kp1),
+                                         np.asarray(kp2),
                                          method_,
                                          param1=reproj_threshold,
                                          param2=confidence)
@@ -406,14 +331,43 @@ class FundamentalMatrix(TransformationMatrix):
         self._enforce_singularity_constraint()
 
         # Set instance variables to inputs
-        self.x1 = kp1
-        self.x2 = kp2
+        self.x1 = pd.DataFrame(kp1, index=self.index)
+        self.x2 = pd.DataFrame(kp2, index=self.index)
         self.mask = pd.Series(mask, index=self.index)
 
         try:
             self[:] = F
         except:
             warnings.warn('F computation fell back to 7-point algorithm and returned 3 F matrices.')
+            return
+
+        if method == 'mle':
+            # Now apply the gold standard algorithm to refine F
+
+            # Generate an idealized and to be updated camera model
+            p1 = camera.estimated_camera_from_f(F)
+            p = camera.idealized_camera()
+
+            # Grab the points used to estimate F
+            pt = self.x1.loc[self.mask].T
+            pt1 = self.x2.loc[self.mask].T
+
+            if pt.shape[1] < 9 or pt1.shape[1] < 9:
+                warnings.warn("Unable to apply MLE.  Not enough correspondences.")
+                return
+
+            # Apply Levenber-Marquardt to perform a non-linear lst. squares fit
+            #  to minimize triangulation error (this is a local bundle)
+            result = optimize.least_squares(camera.projection_error, p1.ravel(),
+                                            args=(p, pt, pt1),
+                                            method='lm')
+
+            gold_standard_p = result.x.reshape(3, 4) # SciPy Lst. Sq. requires a vector, camera is 3x4
+            optimality = result.optimality
+            gold_standard_f = camera_utils.crossform(gold_standard_p[:,3]).dot(gold_standard_p[:,:3])
+
+            self[:] = gold_standard_f
+
 
     def _enforce_singularity_constraint(self):
         """

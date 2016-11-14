@@ -413,6 +413,16 @@ class CandidateGraph(nx.Graph):
         '''
         self.apply_func_to_edges('compute_fundamental_matrix', *args, **kwargs)
 
+    def refine_fundamental_matrix_matches(self, *args, **kwargs):
+        """
+        Refine the fundamental matrix matches using reprojective error
+
+        See Also
+        --------
+        autocnet.transformation.transformations.FundamentalMatrix.refine_matches
+        """
+        self.apply_func_to_edges('refine_fundamental_matrix_matches', *args, **kwargs)
+
     def subpixel_register(self, *args, **kwargs):
         '''
         Compute subpixel offsets for all edges using identical parameters
