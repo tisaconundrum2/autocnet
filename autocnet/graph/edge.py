@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
 
+import autocnet
 from autocnet.utils import utils
 from autocnet.matcher import health
 from autocnet.matcher import outlier_detector as od
@@ -77,9 +78,13 @@ class Edge(dict, MutableMapping):
         # state, dynamically draw the mask from the object.
         for c in self._masks.columns:
             if c in mask_lookup:
-                truncated_mask = getattr(self, mask_lookup[c]).mask
-                self._masks[c] = False
-                self._masks[c].iloc[truncated_mask.index] = truncated_mask
+                try:
+                    truncated_mask = getattr(self, mask_lookup[c]).mask
+                    self._masks[c] = False
+                    self._masks[c].iloc[truncated_mask.index] = truncated_mask
+                except Exception:
+                    #TODO: Get rid of state
+                    pass
         return self._masks
 
     @masks.setter
@@ -303,7 +308,7 @@ class Edge(dict, MutableMapping):
                     self.dmembership[mindy:maxdy,
                                 mindx:maxdx] = d_submembership
                     pcounter += 4
-        
+
         # Now match the decomposed segments to one another
         for p in np.unique(self.smembership):
             sy_part, sx_part = np.where(self.smembership == p)
@@ -342,48 +347,36 @@ class Edge(dict, MutableMapping):
         k : int
             The number of neighbors to find
         """
-        def mono_matches(a, b, aidx=None, bidx=None):
-            """
-            Apply the FLANN match_features
+        pass
 
-            Parameters
-            ----------
-            a : object
-                A node object
+    def cuda_match(self, ratio=0.8, **kwargs):
+        """
+        Apply a composite CUDA matcher and ratio check.  If this method is used,
+        no additional ratio check is necessary and no symmetry check is required.
+        The ratio check is embedded on the cuda side and returned as an
+        ambiguity value.  In testing symmetry is not required as it is expensive
+        without significant gain in accuracy when using this implementation.
+        """
+        if not autocnet.cudasift:
+            warnings.warn('CudaSift is not available, please use the standard matcher.')
+        s_siftdata = autocnet.cs.PySiftData.from_data_frame(self.source.get_keypoints(), self.source.descriptors)
+        d_siftdata = autocnet.cs.PySiftData.from_data_frame(self.destination.get_keypoints(), self.destination.descriptors)
 
-            b : object
-                A node object
-
-            aidx : iterable
-                   An index for the descriptors to subset
-
-            bidx : iterable
-                   An index for the descriptors to subset
-            """
-            # Subset if requested
-            if aidx is not None:
-                ad = a.descriptors[aidx]
-            else:
-                ad = a.descriptors
-
-            if bidx is not None:
-                bd = b.descriptors[bidx]
-            else:
-                bd = b.descriptors
-
-            # Load, train, and match
-            fl.add(ad, a.node_id, index=aidx)
-            fl.train()
-            matches = fl.query(bd, b.node_id, k, index=bidx)
-            self._add_matches(matches)
-            fl.clear()
-
-        fl = FlannMatcher()
-        mono_matches(self.source, self.destination)
-        mono_matches(self.destination, self.source)
+        autocnet.cs.PyMatchSiftData(s_siftdata, d_siftdata)
+        matches, _ = s_siftdata.to_data_frame()
+        source = np.empty(len(matches))
+        source[:] = self.source.node_id
+        destination = np.empty(len(matches))
+        destination[:] = self.destination.node_id
 
 
-
+        df = pd.concat([pd.Series(source), pd.Series(matches.index),
+                        pd.Series(destination), matches.match,
+                        matches.score, matches.ambiguity], axis=1)
+        df.columns = ['source_image', 'source_idx', 'destination_image',
+                        'destination_idx', 'score', 'ambiguity']
+        print(df)
+        self.matches = df
     def _add_matches(self, matches):
         """
         Given a dataframe of matches, either append to an existing
