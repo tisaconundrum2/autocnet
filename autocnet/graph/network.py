@@ -295,6 +295,17 @@ class CandidateGraph(nx.Graph):
         """
         self.apply_func_to_edges('match', *args, **kwargs)
 
+    def decompose_and_match_features(self, *args, **kwargs):
+        """
+        For all edges in the graph, apply coupled decomposition followed by
+        feature matching.
+
+        See Also
+        --------
+        autocnet.graph.edge.Edge.decompose_and_match
+        """
+        self.apply_func_to_edges('decompose_and_match', *args, **kwargs)
+
     def compute_clusters(self, func=markov_cluster.mcl, *args, **kwargs):
         """
         Apply some graph clustering algorithm to compute a subset of the global
@@ -400,6 +411,16 @@ class CandidateGraph(nx.Graph):
         autocnet.matcher.outlier_detector.compute_fundamental_matrix
         '''
         self.apply_func_to_edges('compute_fundamental_matrix', *args, **kwargs)
+
+    def refine_fundamental_matrix_matches(self, *args, **kwargs):
+        """
+        Refine the fundamental matrix matches using reprojective error
+
+        See Also
+        --------
+        autocnet.transformation.transformations.FundamentalMatrix.refine_matches
+        """
+        self.apply_func_to_edges('refine_fundamental_matrix_matches', *args, **kwargs)
 
     def subpixel_register(self, *args, **kwargs):
         '''

@@ -1,7 +1,7 @@
 import os
 import sys
 import unittest
-
+import warnings
 sys.path.insert(0, os.path.abspath('..'))
 
 import numpy as np
@@ -70,7 +70,7 @@ class TestFundamentalMatrix(unittest.TestCase):
         tp = np.array(np.random.standard_normal((nbr_inliers, 2)))
 
         F = transformations.FundamentalMatrix(np.zeros((3,3)), index=np.arange(20))
-        F.compute(fp, tp)
+        F.compute(fp, tp, method='ransac')
 
         np.testing.assert_array_almost_equal(F, np.array([[-0.685892, -5.870193, 2.268333],
                                                           [-0.704199, 12.88776,  -3.040341],
@@ -88,7 +88,7 @@ class TestFundamentalMatrix(unittest.TestCase):
 
     def test_f_refine(self):
         # This should raise an error.
-        self.F.refine()
+        self.F.refine_matches()
         self.assertEqual(len(self.F._action_stack), 2)
 
         # Previous error should preclude do/undo
