@@ -457,6 +457,10 @@ class Homography(TransformationMatrix):
     def error(self):
         return self.compute_error(self.x1, self.x2)
 
+    @property
+    def inverse(self):
+        return np.linalg.inv(self)
+
     def compute_error(self, a, b, mask=None):
         """
         Give this homography, compute the planar reprojection error

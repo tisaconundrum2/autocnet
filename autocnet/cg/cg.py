@@ -1,7 +1,9 @@
 import pandas as pd
+import numpy as np
 
 from scipy.spatial import ConvexHull
 
+from autocnet.utils import utils
 
 def convex_hull_ratio(points, ideal_area):
     """
@@ -99,3 +101,39 @@ def get_area(poly1, poly2):
     """
     intersection_area = poly1.Intersection(poly2).GetArea()
     return intersection_area
+
+
+def compute_vor_weight(vor, voronoi_df, intersection_poly, verbose):
+    """
+
+    Parameters
+    ----------
+    vor : Voronoi
+          Scipy Voronoi object
+
+    voronoi_df : dataframe
+                 3 column pandas dataframe of x, y, and weights
+
+    intersection_poly : polygon
+                        Intersection polygon to use for
+                        clipping the voronoi diagram
+
+    verbose : boolean
+              Set to True to display the calculated voronoi diagram
+              to the user
+    """
+    i = 0
+    poly_array = []
+    for region in vor.regions:
+        region_point = vor.points[np.argwhere(vor.point_region==i)]
+        if -1 not in region:
+            polygon_points = [vor.vertices[i] for i in region]
+            if len(polygon_points) != 0:
+                polygon = utils.array_to_poly(polygon_points)
+                intersection = polygon.Intersection(intersection_poly)
+                poly_array = np.append(poly_array, intersection)
+                polygon_area = intersection.GetArea()
+                voronoi_df.loc[(voronoi_df["x"] == region_point[0][0][0]) &
+                               (voronoi_df["y"] == region_point[0][0][1]),
+                               'weights'] = polygon_area
+        i += 1

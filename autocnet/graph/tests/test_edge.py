@@ -8,6 +8,7 @@ from plio.io import io_gdal
 
 from autocnet.examples import get_path
 from autocnet.graph.network import CandidateGraph
+from autocnet.utils.utils import array_to_poly
 
 from .. import edge
 from .. import node
@@ -117,7 +118,7 @@ class TestEdge(unittest.TestCase):
         e.source.geodata.latlon_corners = source_corners
         e.destination.geodata.latlon_corners = destination_corners
 
-        vals = {(15, 5):(15, 5), (18, 10):(18, 10), (18, 15):(18, 15), (12, 15):(12, 15), (12, 10):(12, 10)}
+        vals = {(15, 5): (15, 5), (18, 10): (18, 10), (18, 15): (18, 15), (12, 15): (12, 15), (12, 10): (12, 10)}
 
         def pixel_to_latlon(i, j):
             return vals[(i, j)]
@@ -129,3 +130,139 @@ class TestEdge(unittest.TestCase):
 
         self.assertRaises(AttributeError, cg.edge[0][1].coverage)
         self.assertEqual(e.coverage(), 0.3)
+
+    def test_voronoi_transform(self):
+        keypoint_df = pd.DataFrame({'x': (15, 18, 18, 12, 12), 'y': (5, 10, 15, 15, 10)})
+        keypoint_matches = [[0, 0, 1, 0],
+                            [0, 1, 1, 1],
+                            [0, 2, 1, 2],
+                            [0, 3, 1, 3],
+                            [0, 4, 1, 4]]
+
+        matches_df = pd.DataFrame(data=keypoint_matches, columns=['source_image', 'source_idx',
+                                                                  'destination_image', 'destination_idx'])
+        e = edge.Edge()
+
+        e.clean = MagicMock(return_value=(matches_df, None))
+
+        source_node = MagicMock(spec=node.Node())
+        destination_node = MagicMock(spec=node.Node())
+
+        source_node.get_keypoint_coordinates = MagicMock(return_value=keypoint_df)
+        destination_node.get_keypoint_coordinates = MagicMock(return_value=keypoint_df)
+
+        e.source = source_node
+        e.destination = destination_node
+
+        source_geodata = Mock(spec=io_gdal.GeoDataset)
+        destination_geodata = Mock(spec=io_gdal.GeoDataset)
+
+        e.source.geodata = source_geodata
+        e.destination.geodata = destination_geodata
+
+        source_corners = [(0, 0),
+                          (20, 0),
+                          (20, 20),
+                          (0, 20)]
+
+        destination_corners = [(10, 5),
+                               (30, 5),
+                               (30, 25),
+                               (10, 25)]
+
+        source_poly = array_to_poly(source_corners)
+        destination_poly = array_to_poly(destination_corners)
+
+        def latlon_to_pixel(i, j):
+            return vals[(i, j)]
+
+        e.source.geodata.latlon_to_pixel = MagicMock(side_effect=latlon_to_pixel)
+        e.destination.geodata.latlon_to_pixel = MagicMock(side_effect=latlon_to_pixel)
+
+        e.source.geodata.footprint = source_poly
+        e.source.geodata.xy_corners = source_corners
+        e.destination.geodata.footprint = destination_poly
+        e.destination.geodata.xy_corners = destination_corners
+
+        vals = {(10, 5): (10, 5), (20, 5): (20, 5), (20, 20): (20, 20), (10, 20): (10, 20)}
+
+        data_frame = pd.DataFrame({"x": (15, 18, 18, 12, 12),
+                                  "y": (5, 10, 15, 15, 10)})
+        weights = pd.DataFrame({"weights": (19, 28, 37.5, 37.5, 28)})
+
+        frames = [data_frame, weights]
+        weight_pd = pd.concat(frames, axis=1)
+
+        vor = e.vor(clean_keys=[])
+
+        for i in vor[1]:
+            k = 0
+            for j in vor[1][i]:
+                print(i, k, j)
+                self.assertAlmostEquals(j, weight_pd[i][k])
+                k += 1
+
+    def test_voronoi_homography(self):
+        source_keypoint_df = pd.DataFrame({'x': (15, 18, 18, 12, 12), 'y': (5, 10, 15, 15, 10)})
+        destination_keypoint_df = pd.DataFrame({'x': (5, 8, 8, 2, 2), 'y': (0, 5, 10, 10, 5)})
+        keypoint_matches = [[0, 0, 1, 0],
+                            [0, 1, 1, 1],
+                            [0, 2, 1, 2],
+                            [0, 3, 1, 3],
+                            [0, 4, 1, 4]]
+
+        matches_df = pd.DataFrame(data = keypoint_matches, columns=['source_image', 'source_idx',
+                                                                    'destination_image', 'destination_idx'])
+        e = edge.Edge()
+
+        e.clean = MagicMock(return_value=(matches_df, None))
+
+        source_node = MagicMock(spec=node.Node())
+        destination_node = MagicMock(spec=node.Node())
+
+        source_node.get_keypoint_coordinates = MagicMock(return_value=source_keypoint_df)
+        destination_node.get_keypoint_coordinates = MagicMock(return_value=destination_keypoint_df)
+
+        e.source = source_node
+        e.destination = destination_node
+
+        source_geodata = Mock(spec=io_gdal.GeoDataset)
+        destination_geodata = Mock(spec=io_gdal.GeoDataset)
+
+        e.source.geodata = source_geodata
+        e.destination.geodata = destination_geodata
+
+        source_corners = [(0, 0),
+                          (20, 0),
+                          (20, 20),
+                          (0, 20)]
+
+        destination_corners = [(0, 0),
+                               (20, 0),
+                               (20, 20),
+                               (0, 20)]
+
+        e.source.geodata.coordinate_transformation.this = None
+        e.destination.geodata.coordinate_transformation.this = None
+
+        e.source.geodata.xy_corners = source_corners
+        e.destination.geodata.xy_corners = destination_corners
+
+        data_frame = pd.DataFrame({"x": (15, 18, 18, 12, 12),
+                                  "y": (5, 10, 15, 15, 10)})
+        weights = pd.DataFrame({"weights": (19, 28, 37.5, 37.5, 28)})
+
+        frames = [data_frame, weights]
+        weight_pd = pd.concat(frames, axis=1)
+
+        vor = e.vor(clean_keys=[])
+
+        for i in vor[1]:
+            k = 0
+            for j in vor[1][i]:
+                self.assertAlmostEquals(j, weight_pd[i][k])
+                k += 1
+
+
+
+
