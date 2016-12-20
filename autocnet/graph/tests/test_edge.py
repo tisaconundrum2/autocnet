@@ -144,6 +144,7 @@ class TestEdge(unittest.TestCase):
         e = edge.Edge()
 
         e.clean = MagicMock(return_value=(matches_df, None))
+        e.matches = matches_df
 
         source_node = MagicMock(spec=node.Node())
         destination_node = MagicMock(spec=node.Node())
@@ -186,21 +187,14 @@ class TestEdge(unittest.TestCase):
 
         vals = {(10, 5): (10, 5), (20, 5): (20, 5), (20, 20): (20, 20), (10, 20): (10, 20)}
 
-        data_frame = pd.DataFrame({"x": (15, 18, 18, 12, 12),
-                                  "y": (5, 10, 15, 15, 10)})
-        weights = pd.DataFrame({"weights": (19, 28, 37.5, 37.5, 28)})
+        weights = pd.DataFrame({"vor_weights": (19, 28, 37.5, 37.5, 28)})
 
-        frames = [data_frame, weights]
-        weight_pd = pd.concat(frames, axis=1)
+        e.compute_weights(clean_keys=[])
 
-        vor = e.vor(clean_keys=[])
-
-        for i in vor[1]:
-            k = 0
-            for j in vor[1][i]:
-                print(i, k, j)
-                self.assertAlmostEquals(j, weight_pd[i][k])
-                k += 1
+        k = 0
+        for i in e.matches['vor_weights']:
+            self.assertAlmostEquals(i, weights['vor_weights'][k])
+            k += 1
 
     def test_voronoi_homography(self):
         source_keypoint_df = pd.DataFrame({'x': (15, 18, 18, 12, 12), 'y': (5, 10, 15, 15, 10)})
@@ -216,6 +210,7 @@ class TestEdge(unittest.TestCase):
         e = edge.Edge()
 
         e.clean = MagicMock(return_value=(matches_df, None))
+        e.matches = matches_df
 
         source_node = MagicMock(spec=node.Node())
         destination_node = MagicMock(spec=node.Node())
@@ -248,20 +243,14 @@ class TestEdge(unittest.TestCase):
         e.source.geodata.xy_corners = source_corners
         e.destination.geodata.xy_corners = destination_corners
 
-        data_frame = pd.DataFrame({"x": (15, 18, 18, 12, 12),
-                                  "y": (5, 10, 15, 15, 10)})
-        weights = pd.DataFrame({"weights": (19, 28, 37.5, 37.5, 28)})
+        weights = pd.DataFrame({"vor_weights": (19, 28, 37.5, 37.5, 28)})
 
-        frames = [data_frame, weights]
-        weight_pd = pd.concat(frames, axis=1)
+        e.compute_weights(clean_keys=[])
 
-        vor = e.vor(clean_keys=[])
-
-        for i in vor[1]:
-            k = 0
-            for j in vor[1][i]:
-                self.assertAlmostEquals(j, weight_pd[i][k])
-                k += 1
+        k = 0
+        for i in e.matches['vor_weights']:
+            self.assertAlmostEquals(i, weights['vor_weights'][k])
+            k += 1
 
 
 

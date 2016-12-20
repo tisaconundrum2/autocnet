@@ -5,8 +5,6 @@ import numpy as np
 import pandas as pd
 
 from scipy.spatial.distance import cdist
-from scipy.spatial import Voronoi
-import cv2
 
 from autocnet.utils import utils
 from autocnet.matcher import health
@@ -773,102 +771,9 @@ class Edge(dict, MutableMapping):
 
         return total_overlap_coverage
 
-    def vor(self, clean_keys=[], s=30, verbose=False):
-        """
-        Creates a voronoi diagram for an edge using either the coordinate
-        transformation or using the homography between source and destination.
+    def compute_weights(self, clean_keys, **kwargs):
+        if self.matches is None:
+            raise AttributeError('Matches have not been computed for this edge')
+        voronoi = cg.vor(self, clean_keys, **kwargs)
+        self.matches = pd.concat([self.matches, voronoi[1]['vor_weights']], axis=1)
 
-        The coordinate transformation uses the footprint of source and destination to
-        calculate an intersection between the two images, then transforms the vertices of
-        the intersection back into pixel space.
-
-        If a coordinate transform does not exist, use the homography to project the destination image
-        onto the source image, producing an area of intersection.
-
-        The intersection vertices are then scaled by a factor of s (default 30), this accounts for the
-        areas of the voronoi that would be missed if the scaled vertices were not included into the
-        voronoi calculation.
-
-
-        Parameters
-        ----------
-        clean_keys : list
-                     Of strings used to apply masks to omit correspondences
-
-        s : int
-            offset for the corners of the image
-
-        verbose : boolean
-                  Set to True plots the voronoi diagram
-
-        Returns
-        -------
-        vor : Voronoi
-              Scipy Voronoi object
-
-        voronoi_df : dataframe
-                     3 column pandas dataframe of x, y, and weights
-
-        """
-        source_corners = self.source.geodata.xy_corners
-        destination_corners = self.destination.geodata.xy_corners
-
-        matches, _ = self.clean(clean_keys=clean_keys)
-
-        source_keypoints_pd = self.source.get_keypoint_coordinates(index=matches['source_idx'],
-                                                                   homogeneous=True)
-        destination_keypoints_pd = self.destination.get_keypoint_coordinates(index=matches['destination_idx'],
-                                                                             homogeneous=True)
-
-        if self.source.geodata.coordinate_transformation.this is not None:
-            print("Image has coordinate transform.")
-            source_footprint_poly = self.source.geodata.footprint
-            destination_footprint_poly = self.destination.geodata.footprint
-
-            intersection_poly = destination_footprint_poly.Intersection(source_footprint_poly)
-            intersection_geom = intersection_poly.GetGeometryRef(0)
-            intersect_points = intersection_geom.GetPoints()
-
-            intersection_points = [self.source.geodata.latlon_to_pixel(lat, lon) for lat, lon in intersect_points]
-
-        else:
-            print("Other")
-            H, mask = cv2.findHomography(destination_keypoints_pd.values,
-                                         source_keypoints_pd.values,
-                                         cv2.RANSAC,
-                                         2.0)
-
-            proj_corners = []
-            for c in destination_corners:
-                x, y, h = utils.reproj_corner(H, c)
-                x /= h
-                y /= h
-                h /= h
-                proj_corners.append((x, y))
-
-            orig_poly = utils.array_to_poly(source_corners)
-            proj_poly = utils.array_to_poly(proj_corners)
-
-            intersection_poly = orig_poly.Intersection(proj_poly)
-            intersection_geom = intersection_poly.GetGeometryRef(0)
-            intersection_points = intersection_geom.GetPoints()
-
-        centroid = intersection_poly.Centroid().GetPoint()
-
-        voronoi_df = pd.DataFrame(data=source_keypoints_pd, columns=["x", "y", "weights"])
-
-        voronoi_df["x"] = source_keypoints_pd['x']
-        voronoi_df["y"] = source_keypoints_pd['y']
-        keypoints = np.asarray(source_keypoints_pd)
-
-        inters = np.empty((len(intersection_points), 2))
-        for g, (i, j) in enumerate(intersection_points):
-            scaledx, scaledy = utils.scale_point((i, j), centroid, s)
-            point = np.array([scaledx, scaledy])
-            inters[g] = point
-
-        keypoints = np.vstack((keypoints[:, :2], inters))
-        vor = Voronoi(keypoints)
-        cg.compute_vor_weight(vor, voronoi_df, intersection_poly, verbose)
-
-        return vor, voronoi_df
