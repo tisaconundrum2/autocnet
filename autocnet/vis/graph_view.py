@@ -271,3 +271,36 @@ def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
         ax.plot((l[0][0], l[1][0]), (l[0][1], l[1][1]), color=color, **line_kwargs)
 
     return ax
+
+
+def cluster_plot(graph, ax=None, cmap='Spectral'):
+    """
+
+    Parameters
+    ----------
+    graph
+    ax
+    cmap
+
+    Returns
+    -------
+
+    """
+    if ax is None:
+        ax = plt.gca()
+
+    if not hasattr(graph, 'clusters'):
+        graph.compute_clusters()
+
+    cmap = matplotlib.cm.get_cmap(cmap)
+
+    colors = []
+
+    for i, n in graph.nodes_iter(data=True):
+        for j in enumerate(graph.clusters):
+            if i in graph.clusters.get(j[1]):
+                colors.append(cmap(j[1])[0])
+                continue
+
+    nx.draw(graph, ax=ax, node_color=colors)
+    return ax
