@@ -275,16 +275,22 @@ def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
 
 def cluster_plot(graph, ax=None, cmap='Spectral'):
     """
-
     Parameters
     ----------
-    graph
-    ax
-    cmap
+    graph : object
+            A networkX or derived graph object
+
+    ax : object
+         A MatPlotLib axes object
+
+    cmap : str
+           A MatPlotLib color map string. Default 'Spectral'
 
     Returns
     -------
-
+    ax : object
+         A MatPlotLib axes object that was either passed in
+         or a new axes object
     """
     if ax is None:
         ax = plt.gca()
