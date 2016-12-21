@@ -76,6 +76,17 @@ class Node(dict, MutableMapping):
         """.format(self.node_id, self.image_name, self.image_path,
                    self.nkeypoints, self.masks, self.__class__)
 
+    def __getitem__(self, item):
+        attribute_dict = {'image_name': self.image_name,
+                          'image_path': self.image_path,
+                          'geodata': self.geodata,
+                          'keypoints': self._keypoints,
+                          'nkeypoints': self.nkeypoints,
+                          'descriptors': self.descriptors,
+                          'masks': self.masks,
+                          'isis_serial': self.isis_serial}
+        return attribute_dict[item]
+
     @property
     def geodata(self):
         if not getattr(self, '_geodata', None):

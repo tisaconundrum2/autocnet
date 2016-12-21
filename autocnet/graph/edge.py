@@ -49,6 +49,7 @@ class Edge(dict, MutableMapping):
         self.matches = None
         self._subpixel_offsets = None
 
+        self.provenance = {}
         self.weight = {}
 
         self._observers = set()
@@ -62,6 +63,14 @@ class Edge(dict, MutableMapping):
         Destination Image Index: {}
         Available Masks: {}
         """.format(self.source, self.destination, self.masks)
+
+    def __getitem__(self, item):
+        attribute_dict = {'source': self.source,
+                          'destination': self.destination,
+                          'masks': self.masks,
+                          'provenance': self.provenance,
+                          'weight': self.weight}
+        return attribute_dict[item]
 
     @property
     def masks(self):
@@ -689,18 +698,15 @@ class Edge(dict, MutableMapping):
     def plot_decomposition(self, *args, **kwargs): #pragma: no cover
         return plot_edge_decomposition(self, *args, **kwargs)
 
-    def clean(self, clean_keys, pid=None):
+    def clean(self, clean_keys):
         """
-        Given a list of clean keys and a provenance id compute the
-        mask of valid matches
+        Given a list of clean keys compute the mask of valid
+        matches
 
         Parameters
         ----------
         clean_keys : list
                      of columns names (clean keys)
-        pid : int
-              The provenance id of the parameter set to be cleaned.
-              Defaults to the last run.
 
         Returns
         -------
