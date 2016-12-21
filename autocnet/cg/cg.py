@@ -125,8 +125,8 @@ def vor(edge, clean_keys=[], s=30):
 
         Parameters
         ----------
-        edge : edge
-               info
+        edge : object
+               An edge object
 
         clean_keys : list
                      Of strings used to apply masks to omit correspondences
@@ -136,7 +136,7 @@ def vor(edge, clean_keys=[], s=30):
 
         Returns
         -------
-        vor : Voronoi
+        vor : object
               Scipy Voronoi object
 
         voronoi_df : dataframe
