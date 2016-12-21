@@ -106,9 +106,9 @@ def plot_node(node, ax=None, clean_keys=[], index_mask=None, **kwargs):
 
     return ax
 
+
 def plot_edge_decomposition(edge, ax=None, clean_keys=[], image_space=100,
                             scatter_kwargs={}, line_kwargs={}, image_kwargs={}):
-
 
     if ax is None:
         ax = plt.gca()
@@ -175,6 +175,8 @@ def plot_edge_decomposition(edge, ax=None, clean_keys=[], image_space=100,
         ax.plot((l[0][0], l[1][0]), (l[0][1], l[1][1]), color=color, **line_kwargs)
 
     return ax
+
+
 def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
               scatter_kwargs={}, line_kwargs={}, image_kwargs={}):
     """
@@ -273,7 +275,7 @@ def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
     return ax
 
 
-def cluster_plot(graph, ax=None, cmap='Spectral'):
+def cluster_plot(graph, ax=None, cmap='Spectral'):  # pragma: no cover
     """
     Parameters
     ----------
@@ -296,7 +298,7 @@ def cluster_plot(graph, ax=None, cmap='Spectral'):
         ax = plt.gca()
 
     if not hasattr(graph, 'clusters'):
-        graph.compute_clusters()
+        raise AttributeError('Clusters have not been computed.')
 
     cmap = matplotlib.cm.get_cmap(cmap)
 
