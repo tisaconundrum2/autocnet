@@ -3,6 +3,7 @@ from collections import MutableMapping
 
 import numpy as np
 import pandas as pd
+
 from scipy.spatial.distance import cdist
 
 from autocnet.utils import utils
@@ -548,8 +549,8 @@ class Edge(dict, MutableMapping):
         Parameters
         ----------
         clean_keys : list
-             of string keys to masking arrays
-             (created by calling outlier detection)
+                     of string keys to masking arrays
+                     (created by calling outlier detection)
 
         threshold : float
                     On the range [-1, 1].  Values less than or equal to
@@ -775,3 +776,21 @@ class Edge(dict, MutableMapping):
         total_overlap_coverage = (convex_poly.GetArea()/intersection_area)
 
         return total_overlap_coverage
+
+    def compute_weights(self, clean_keys, **kwargs):
+        """
+        Computes a voronoi diagram for the overlap between two images
+        then gets the area of each polygon resulting in a voronoi weight.
+        These weights are then appended to the matches dataframe.
+
+        Parameters
+        ----------
+        clean_keys : list
+                     Of strings used to apply masks to omit correspondences
+
+        """
+        if self.matches is None:
+            raise AttributeError('Matches have not been computed for this edge')
+        voronoi = cg.vor(self, clean_keys, **kwargs)
+        self.matches = pd.concat([self.matches, voronoi[1]['vor_weights']], axis=1)
+

@@ -106,9 +106,9 @@ def plot_node(node, ax=None, clean_keys=[], index_mask=None, **kwargs):
 
     return ax
 
+
 def plot_edge_decomposition(edge, ax=None, clean_keys=[], image_space=100,
                             scatter_kwargs={}, line_kwargs={}, image_kwargs={}):
-
 
     if ax is None:
         ax = plt.gca()
@@ -175,6 +175,8 @@ def plot_edge_decomposition(edge, ax=None, clean_keys=[], image_space=100,
         ax.plot((l[0][0], l[1][0]), (l[0][1], l[1][1]), color=color, **line_kwargs)
 
     return ax
+
+
 def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
               scatter_kwargs={}, line_kwargs={}, image_kwargs={}):
     """
@@ -270,4 +272,43 @@ def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
     for l in zip(s_kps, d_kps):
         ax.plot((l[0][0], l[1][0]), (l[0][1], l[1][1]), color=color, **line_kwargs)
 
+    return ax
+
+
+def cluster_plot(graph, ax=None, cmap='Spectral'):  # pragma: no cover
+    """
+    Parameters
+    ----------
+    graph : object
+            A networkX or derived graph object
+
+    ax : object
+         A MatPlotLib axes object
+
+    cmap : str
+           A MatPlotLib color map string. Default 'Spectral'
+
+    Returns
+    -------
+    ax : object
+         A MatPlotLib axes object that was either passed in
+         or a new axes object
+    """
+    if ax is None:
+        ax = plt.gca()
+
+    if not hasattr(graph, 'clusters'):
+        raise AttributeError('Clusters have not been computed.')
+
+    cmap = matplotlib.cm.get_cmap(cmap)
+
+    colors = []
+
+    for i, n in graph.nodes_iter(data=True):
+        for j in enumerate(graph.clusters):
+            if i in graph.clusters.get(j[1]):
+                colors.append(cmap(j[1])[0])
+                continue
+
+    nx.draw(graph, ax=ax, node_color=colors)
     return ax
