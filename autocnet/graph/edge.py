@@ -71,7 +71,10 @@ class Edge(dict, MutableMapping):
                           'masks': self.masks,
                           'provenance': self.provenance,
                           'weight': self.weight}
-        return attribute_dict[item]
+        if item in attribute_dict.keys():
+            return attribute_dict[item]
+        else:
+            return super(Edge, self).__getitem__(item)
 
     @property
     def masks(self):
