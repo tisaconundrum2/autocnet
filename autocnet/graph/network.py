@@ -284,7 +284,7 @@ class CandidateGraph(nx.Graph):
 
         hdf = None
 
-    def match_features(self, *args, **kwargs):
+    def match(self, *args, **kwargs):
         """
         For all connected edges in the graph, apply feature matching
 
@@ -294,10 +294,8 @@ class CandidateGraph(nx.Graph):
         """
         self.apply_func_to_edges('match', *args, **kwargs)
 
-    def cuda_match(self, *args, **kwargs):
-        self.apply_func_to_edges('cuda_match', *args, **kwargs)
 
-    def decompose_and_match_features(self, *args, **kwargs):
+    def decompose_and_match(self, *args, **kwargs):
         """
         For all edges in the graph, apply coupled decomposition followed by
         feature matching.
