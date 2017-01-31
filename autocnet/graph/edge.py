@@ -30,11 +30,6 @@ class Edge(dict, MutableMapping):
     masks : set
             A list of the available masking arrays
 
-    provenance : dict
-                 With key equal to an autoincrementing integer and value
-                 equal to a dict of parameters used to generate this
-                 realization.
-
     weight : dict
              Dictionary with two keys overlap_area, and overlap_percn
              overlap_area returns the area overlaped by both images
@@ -44,19 +39,10 @@ class Edge(dict, MutableMapping):
     def __init__(self, source=None, destination=None):
         self.source = source
         self.destination = destination
-
         self.homography = None
         self.fundamental_matrix = None
         self.matches = None
-        self._subpixel_offsets = None
-
-        self.provenance = {}
-        self.weight = {}
-
-        self._observers = set()
-
-        # Subscribe the heatlh observer
-        self._health = health.EdgeHealth()
+        self['weight'] = {}
 
     def __repr__(self):
         return """
@@ -69,8 +55,7 @@ class Edge(dict, MutableMapping):
         attribute_dict = {'source': self.source,
                           'destination': self.destination,
                           'masks': self.masks,
-                          'provenance': self.provenance,
-                          'weight': self.weight}
+                          'weight': self['weight']}
         if item in attribute_dict.keys():
             return attribute_dict[item]
         else:
@@ -78,8 +63,7 @@ class Edge(dict, MutableMapping):
 
     @property
     def masks(self):
-        mask_lookup = {'fundamental': 'fundamental_matrix',
-                       'ratio': 'distance_ratio'}
+        mask_lookup = {'fundamental': 'fundamental_matrix'}
         if not hasattr(self, '_masks'):
             if self.matches is not None:
                 self._masks = pd.DataFrame(True, columns=['symmetry'],
@@ -100,10 +84,6 @@ class Edge(dict, MutableMapping):
         column_name = v[0]
         boolean_mask = v[1]
         self.masks[column_name] = boolean_mask
-
-    @property
-    def health(self):
-        return self._health.health
 
     def decompose_and_match(self, k=2, maxiteration=3, size=18, buf_dist=3,**kwargs):
         """
@@ -179,9 +159,9 @@ class Edge(dict, MutableMapping):
                 bd = b.descriptors
 
             # Load, train, and match
-            fl.add(ad, a.node_id, index=aidx)
+            fl.add(ad, a['node_id'], index=aidx)
             fl.train()
-            matches = fl.query(bd, b.node_id, k, index=bidx)
+            matches = fl.query(bd, b['node_id'], k, index=bidx)
             self._add_matches(matches)
             fl.clear()
 
@@ -238,7 +218,7 @@ class Edge(dict, MutableMapping):
                 bsub = ddata[mindy:maxdy, mindx:maxdx]
 
                 # Utilize the FLANN matcher to find a match to approximate a center
-                fl.add(self.destination.descriptors, self.destination.node_id)
+                fl.add(self.destination.descriptors, self.destination['node_id'])
                 fl.train()
 
                 scounter = 0
@@ -252,7 +232,7 @@ class Edge(dict, MutableMapping):
                         size = len(sub_skp)
                     candidate_idx = np.random.choice(sub_skp.index, size=size, replace=False)
                     candidates = self.source.descriptors[candidate_idx]
-                    matches = fl.query(candidates, self.source.node_id, k=3, index=candidate_idx)
+                    matches = fl.query(candidates, self.source['node_id'], k=3, index=candidate_idx)
 
                     # Apply Lowe's ratio test to try to find a 'good' starting point
                     mask = matches.groupby('source_idx')['distance'].transform(func).astype('bool')
@@ -316,7 +296,7 @@ class Edge(dict, MutableMapping):
                     self.dmembership[mindy:maxdy,
                                 mindx:maxdx] = d_submembership
                     pcounter += 4
-        
+
         # Now match the decomposed segments to one another
         for p in np.unique(self.smembership):
             sy_part, sx_part = np.where(self.smembership == p)
@@ -385,9 +365,9 @@ class Edge(dict, MutableMapping):
                 bd = b.descriptors
 
             # Load, train, and match
-            fl.add(ad, a.node_id, index=aidx)
+            fl.add(ad, a['node_id'], index=aidx)
             fl.train()
-            matches = fl.query(bd, b.node_id, k, index=bidx)
+            matches = fl.query(bd, b['node_id'], k, index=bidx)
             self._add_matches(matches)
             fl.clear()
 
@@ -424,16 +404,9 @@ class Edge(dict, MutableMapping):
 
     def ratio_check(self, clean_keys=[], **kwargs):
         if hasattr(self, 'matches'):
-
             matches, mask = self.clean(clean_keys)
-
-            self.distance_ratio = od.DistanceRatio(matches)
-            self.distance_ratio.compute(mask=mask, **kwargs)
-
-            # Setup to be notified
-            self.distance_ratio._notify_subscribers(self.distance_ratio)
-
-            self.masks = ('ratio', self.distance_ratio.mask)
+            distance_mask = od.distance_ratio(matches, **kwargs)
+            self.masks = ('ratio', distance_mask)
         else:
             raise AttributeError('No matches have been computed for this edge.')
 
@@ -480,7 +453,6 @@ class Edge(dict, MutableMapping):
         mask[mask] = self.fundamental_matrix.mask
 
         # Subscribe the health watcher to the fundamental matrix observable
-        self.fundamental_matrix.subscribe(self._health.update)
         self.fundamental_matrix._notify_subscribers(self.fundamental_matrix)
 
         # Set the initial state of the fundamental mask in the masks
@@ -737,8 +709,8 @@ class Edge(dict, MutableMapping):
 
         overlapinfo = cg.two_poly_overlap(poly1, poly2)
 
-        self.weight['overlap_area'] = overlapinfo[1]
-        self.weight['overlap_percn'] = overlapinfo[0]
+        self['weight']['overlap_area'] = overlapinfo[1]
+        self['weight']['overlap_percn'] = overlapinfo[0]
 
     def coverage(self, clean_keys = []):
         """
@@ -795,4 +767,3 @@ class Edge(dict, MutableMapping):
             raise AttributeError('Matches have not been computed for this edge')
         voronoi = cg.vor(self, clean_keys, **kwargs)
         self.matches = pd.concat([self.matches, voronoi[1]['vor_weights']], axis=1)
-

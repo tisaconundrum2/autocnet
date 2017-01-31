@@ -21,10 +21,9 @@ class CandidateGraph(nx.Graph):
     """
     A NetworkX derived directed graph to store candidate overlap images.
 
-    Parameters
+    Attributes
     ----------
 
-    Attributes
     node_counter : int
                    The number of nodes in the graph.
     node_name_map : dict
@@ -43,21 +42,21 @@ class CandidateGraph(nx.Graph):
 
     def __init__(self, *args, basepath=None, **kwargs):
         super(CandidateGraph, self).__init__(*args, **kwargs)
-        self.node_counter = 0
+        self.graph['node_counter'] = 0
         node_labels = {}
-        self.node_name_map = {}
+        self.graph['node_name_map'] = {}
 
         for node_name in self.nodes():
             image_name = os.path.basename(node_name)
             image_path = node_name
             # Replace the default attr dict with a Node object
-            self.node[node_name] = Node(image_name, image_path, self.node_counter)
+            self.node[node_name] = Node(image_name, image_path, self.graph['node_counter'])
 
             # fill the dictionary used for relabelling nodes with relative path keys
-            node_labels[node_name] = self.node_counter
+            node_labels[node_name] = self.graph['node_counter']
             # fill the dictionary used for mapping base name to node index
-            self.node_name_map[self.node[node_name].image_name] = self.node_counter
-            self.node_counter += 1
+            self.graph['node_name_map'][self.node[node_name]['image_name']] = self.graph['node_counter']
+            self.graph['node_counter'] += 1
 
         nx.relabel_nodes(self, node_labels, copy=False)
 
@@ -68,8 +67,8 @@ class CandidateGraph(nx.Graph):
             e.source = self.node[s]
             e.destination = self.node[d]
 
-        self.creationdate = strftime("%Y-%m-%d %H:%M:%S", gmtime())
-        self.modifieddate = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        self.graph['creationdate'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        self.graph['modifieddate'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
     @classmethod
     def from_graph(cls, graph):
@@ -175,7 +174,7 @@ class CandidateGraph(nx.Graph):
         """
         Update the last modified date attribute.
         """
-        self.modifieddate = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+        self.graph['modifieddate'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
     def get_name(self, node_index):
         """
@@ -193,7 +192,7 @@ class CandidateGraph(nx.Graph):
 
 
         """
-        return self.node[node_index].image_name
+        return self.node[node_index]['image_name']
 
     def add_image(self, *args, **kwargs):
         """

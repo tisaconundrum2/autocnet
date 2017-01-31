@@ -20,9 +20,8 @@ class TestOutlierDetector(unittest.TestCase):
                                     [1.25, 10.1, 2.3, 2.4, 1.2, 5.5, 5.7]]).T,
                           columns=['source_idx', 'destination_idx', 'distance'])
 
-        d = outlier_detector.DistanceRatio(df)
-        d.compute(single=True)
-        self.assertEqual(d.nvalid, 2)
+        mask = outlier_detector.distance_ratio(df, ratio=0.8)
+        self.assertEqual(2, sum(mask))
 
     def test_distance_ratio_unique(self):
         data = [['A', 0, 'B', 1, 10],
@@ -30,8 +29,7 @@ class TestOutlierDetector(unittest.TestCase):
         df = pd.DataFrame(data, columns=['source_image', 'source_idx',
                                          'destination_image', 'destination_idx',
                                          'distance'])
-        d = outlier_detector.DistanceRatio(df)
-        d.compute(0.9)
+        mask = outlier_detector.distance_ratio(df, ratio=0.9)
         self.assertTrue(d.mask.all() == False)
 
     def test_mirroring_test(self):

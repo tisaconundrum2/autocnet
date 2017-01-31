@@ -58,9 +58,10 @@ class Node(dict, MutableMapping):
     """
 
     def __init__(self, image_name=None, image_path=None, node_id=None):
-        self.image_name = image_name
-        self.image_path = image_path
-        self.node_id = node_id
+        self['image_name'] = image_name
+        self['image_path'] = image_path
+        self['node_id'] = node_id
+        self['hash'] = self['image_name']  #TODO: Repalce with farmhash
         self._mask_arrays = {}
         self.point_to_correspondence = defaultdict(set)
         self.point_to_correspondence_df = None
@@ -73,9 +74,10 @@ class Node(dict, MutableMapping):
         Number Keypoints: {}
         Available Masks : {}
         Type: {}
-        """.format(self.node_id, self.image_name, self.image_path,
+        """.format(self['node_id'], self['image_name'], self['image_path'],
                    self.nkeypoints, self.masks, self.__class__)
 
+    """
     def __getitem__(self, item):
         attribute_dict = {'image_name': self.image_name,
                           'image_path': self.image_path,
@@ -89,11 +91,11 @@ class Node(dict, MutableMapping):
             return attribute_dict[item]
         else:
             return super(Node, self).__getitem__(item)
-
+    """
     @property
     def geodata(self):
-        if not getattr(self, '_geodata', None) and self.image_path is not None:
-            self._geodata = GeoDataset(self.image_path)
+        if not getattr(self, '_geodata', None) and self['image_path'] is not None:
+            self._geodata = GeoDataset(self['image_path'])
             return self._geodata
         if hasattr(self, '_geodata'):
             return self._geodata
@@ -133,7 +135,7 @@ class Node(dict, MutableMapping):
         """
         if not hasattr(self, '_isis_serial'):
             try:
-                self._isis_serial = generate_serial_number(self.image_path)
+                self._isis_serial = generate_serial_number(self['image_path'])
             except:
                 self._isis_serial = None
         return self._isis_serial
@@ -288,8 +290,8 @@ class Node(dict, MutableMapping):
         else:
             hdf = in_path
 
-        self._descriptors = hdf['{}/descriptors'.format(self.image_name)][:]
-        raw_kps = hdf['{}/keypoints'.format(self.image_name)][:]
+        self._descriptors = hdf['{}/descriptors'.format(self['image_name'])][:]
+        raw_kps = hdf['{}/keypoints'.format(self['image_name'])][:]
         index = raw_kps['index']
         clean_kps = utils.remove_field_name(raw_kps, 'index')
         columns = clean_kps.dtype.names
@@ -329,16 +331,16 @@ class Node(dict, MutableMapping):
             hdf = out_path
 
         try:
-            hdf.create_dataset('{}/descriptors'.format(self.image_name),
+            hdf.create_dataset('{}/descriptors'.format(self['image_name']),
                                data=self._descriptors,
                                compression=io_hdf.DEFAULT_COMPRESSION,
                                compression_opts=io_hdf.DEFAULT_COMPRESSION_VALUE)
-            hdf.create_dataset('{}/keypoints'.format(self.image_name),
+            hdf.create_dataset('{}/keypoints'.format(self['image_name']),
                                data=hdf.df_to_sarray(self._keypoints.reset_index()),
                                compression=io_hdf.DEFAULT_COMPRESSION,
                                compression_opts=io_hdf.DEFAULT_COMPRESSION_VALUE)
         except:
-            warnings.warn('Descriptors for the node {} are already stored'.format(self.image_name))
+            warnings.warn('Descriptors for the node {} are already stored'.format(self['image_name']))
 
         # If the out_path is a string, assume this method is being called as a singleton
         # and close the hdf file gracefully.  If an object, let the instantiator of the
@@ -357,7 +359,7 @@ class Node(dict, MutableMapping):
         deepen : bool
                  If True, attempt to punch matches through to all incident edges.  Default: False
         """
-        node = self.node_id
+        node = self['node_id']
         # Get the edges incident to the current node
         incident_edges = set(cg.edges(node)).intersection(set(cg.edges()))
 

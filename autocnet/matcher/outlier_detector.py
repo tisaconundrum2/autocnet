@@ -7,103 +7,43 @@ import pandas as pd
 
 from autocnet.utils.observable import Observable
 
-
-class DistanceRatio(Observable):
-
+def distance_ratio(matches, ratio=0.8, single=False):
     """
-    A stateful object to store ratio test results and provenance.
+    Compute and return a mask for a matches dataframe
+    using Lowe's ratio test.  If keypoints have a single
+    Lowe (2004) [Lowe2004]_
 
-    Attributes
+    Parameters
     ----------
-
-    nvalid : int
-             The number of valid entries in the mask
-
-    mask : series
-           Pandas boolean series indexed by the match id
-
-    matches : dataframe
-              The matches dataframe from an edge.  This dataframe
-              must have 'source_idx' and 'distance' columns.
+    ratio : float
+            the ratio between the first and second-best match distances
+            for each keypoint to use as a bound for marking the first keypoint
+            as "good". Default: 0.8
 
     single : bool
-             If True, then single entries in the distance ratio
-             mask are assumed to have passed the ratio test.  Else
-             False.
+             If True, points with only a single entry are included (True)
+             in the result mask, else False.
 
-    References
-    ----------
-    [Lowe2004]_
-
+    Returns
+    -------
+    mask : pd.dataframe
+           A Pandas DataFrame mask for the matches with those failing the
+           ratio test set to False.
     """
+    def func(group):
+        res = [False] * len(group)
+        if len(res) == 1:
+            return [single]
+        if group.iloc[0] < group.iloc[1] * ratio:
+            res[0] = True
+        return res
 
-    def __init__(self, matches):
+    mask_s = matches.groupby('source_idx')['distance'].transform(func).astype('bool')
+    single = True
+    mask_d = matches.groupby('destination_idx')['distance'].transform(func).astype('bool')
+    mask = mask_s & mask_d
 
-        self._action_stack = deque(maxlen=10)
-        self._current_action_stack = 0
-        self._observers = set()
-        self.matches = matches
-        self.mask = None
-        self.clean_keys = None
-        self.single = None
-        self.attrs = ['mask', 'ratio', 'clean_keys', 'single']
-
-    @property
-    def nvalid(self):
-        return self.mask.sum()
-
-    def compute(self, ratio=0.8, mask=None, mask_name=None, single=False):
-        """
-        Compute and return a mask for a matches dataframe
-        using Lowe's ratio test.  If keypoints have a single
-        Lowe (2004) [Lowe2004]_
-
-        Parameters
-        ----------
-        ratio : float
-                the ratio between the first and second-best match distances
-                for each keypoint to use as a bound for marking the first keypoint
-                as "good". Default: 0.8
-
-        mask : series
-               A pandas boolean series to initially mask the matches array
-
-        mask_name : list or str
-                    An arbitrary mask name for provenance tracking
-
-        single : bool
-                 If True, points with only a single entry are included (True)
-                 in the result mask, else False.
-        """
-        def func(group):
-            res = [False] * len(group)
-            if len(res) == 1:
-                return [single]
-            if group.iloc[0] < group.iloc[1] * ratio:
-                res[0] = True
-            return res
-
-        if mask is not None:
-            self.mask = mask.copy()
-            mask_s = self.matches[mask].groupby('source_idx')['distance'].transform(func).astype('bool')
-            single = True
-            mask_d = self.matches[mask].groupby('destination_idx')['distance'].transform(func).astype('bool')
-            self.mask[mask] = mask_s & mask_d
-        else:
-            mask_s = self.matches.groupby('source_idx')['distance'].transform(func).astype('bool')
-            single = True
-            mask_d = self.matches.groupby('destination_idx')['distance'].transform(func).astype('bool')
-
-            self.mask = mask_s & mask_d
-
-        state_package = {'ratio': ratio,
-                         'mask': self.mask.copy(),
-                         'clean_keys': mask_name,
-                         'single': single
-                         }
-
-        self._action_stack.append(state_package)
-        self._current_action_stack = len(self._action_stack) - 1
+    return mask
 
 
 class SpatialSuppression(Observable):
