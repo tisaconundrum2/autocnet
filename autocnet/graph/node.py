@@ -261,7 +261,8 @@ class Node(dict, MutableMapping):
 
         return keypoints
 
-    def extract_features(self, array, **kwargs):
+    @staticmethod
+    def _extract_features(*args, **kwargs):
         """
         Extract features for the node
 
@@ -273,7 +274,10 @@ class Node(dict, MutableMapping):
                  kwargs passed to autocnet.feature_extractor.extract_features
 
         """
-        self._keypoints, self._descriptors = fe.extract_features(array, **kwargs)
+        pass
+
+    def extract_features(self, *args, **kwargs):
+        self._keypoints, self.descriptors = Node._extract_features(*args, **kwargs)
 
     def load_features(self, in_path):
         """

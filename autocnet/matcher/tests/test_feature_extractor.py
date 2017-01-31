@@ -33,7 +33,7 @@ class TestFeatureExtractor(unittest.TestCase):
 
     def test_extract_vlfeat(self):
         kps, descriptors = feature_extractor.extract_features(self.data_array,
-                                                              method='vl_sift',
+                                                              method='vlfeat',
                                                               extractor_parameters={})
         self.assertIsInstance(kps, pd.DataFrame)
         self.assertEqual(descriptors.dtype, np.float32)

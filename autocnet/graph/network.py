@@ -205,7 +205,7 @@ class CandidateGraph(nx.Graph):
 
         raise NotImplementedError
 
-    def extract_features(self, method='orb', extractor_parameters={}):
+    def extract_features(self, *args, **kwargs):
         """
         Extracts features from each image in the graph and uses the result to assign the
         node attributes for 'handle', 'image', 'keypoints', and 'descriptors'.
@@ -223,8 +223,7 @@ class CandidateGraph(nx.Graph):
         """
         for i, node in self.nodes_iter(data=True):
             image = node.get_array()
-            node.extract_features(image, method=method,
-                                  extractor_parameters=extractor_parameters)
+            node.extract_features(image, *args, **kwargs),
 
     def save_features(self, out_path, nodes=[]):
         """
@@ -284,7 +283,7 @@ class CandidateGraph(nx.Graph):
 
         hdf = None
 
-    def match_features(self, *args, **kwargs):
+    def match(self, *args, **kwargs):
         """
         For all connected edges in the graph, apply feature matching
 
@@ -294,7 +293,8 @@ class CandidateGraph(nx.Graph):
         """
         self.apply_func_to_edges('match', *args, **kwargs)
 
-    def decompose_and_match_features(self, *args, **kwargs):
+
+    def decompose_and_match(self, *args, **kwargs):
         """
         For all edges in the graph, apply coupled decomposition followed by
         feature matching.
