@@ -3,7 +3,7 @@ import warnings
 import cudasift as cs
 import numpy as np
 import pandas as pd
- 
+
 def match(self, ratio=0.8, **kwargs):
     """
     Apply a composite CUDA matcher and ratio check.  If this method is used,
@@ -20,9 +20,9 @@ def match(self, ratio=0.8, **kwargs):
     cs.PyMatchSiftData(s_siftdata, d_siftdata)
     matches, _ = s_siftdata.to_data_frame()
     source = np.empty(len(matches))
-    source[:] = self.source.node_id
+    source[:] = self.source['node_id']
     destination = np.empty(len(matches))
-    destination[:] = self.destination.node_id
+    destination[:] = self.destination['node_id']
 
 
     df = pd.concat([pd.Series(source), pd.Series(matches.index),

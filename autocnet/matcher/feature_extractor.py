@@ -77,6 +77,4 @@ def extract_features(array, method='orb', extractor_parameters={}):
         if descriptors.dtype != np.float32:
             descriptors = descriptors.astype(np.float32)
 
-        descriptors = pd.DataFrame(descriptors)                            
-
     return keypoints, descriptors

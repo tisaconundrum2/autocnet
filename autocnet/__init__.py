@@ -52,4 +52,5 @@ def cuda(enable=False, gpu=0):
 
     from autocnet.matcher.cpu_decompose import decompose_and_match
     Edge.decompose_and_match = decompose_and_match
+
 cuda()

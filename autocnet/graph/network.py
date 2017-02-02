@@ -7,8 +7,7 @@ import dill as pickle
 import networkx as nx
 import pandas as pd
 
-from plio.io import io_hdf
-from plio.io import io_json
+from plio.io import io_hdf, io_json, io_autocnetgraph
 from plio.utils import utils as io_utils
 from plio.io.io_gdal import GeoDataset
 from autocnet.graph import markov_cluster
@@ -69,6 +68,17 @@ class CandidateGraph(nx.Graph):
 
         self.graph['creationdate'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())
         self.graph['modifieddate'] = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+
+    def __eq__(self, other):
+        eq = True
+        # Check the nodes
+        for n in self.nodes_iter():
+            if not self.node[n] == other.node[n]:
+                eq = False
+        for s, d in self.edges_iter():
+            if not self.edge[s][d] == other.edge[s][d]:
+                eq = False
+        return eq
 
     @classmethod
     def from_graph(cls, graph):
@@ -545,12 +555,7 @@ class CandidateGraph(nx.Graph):
         filename : str
                    The relative or absolute PATH where the network is saved
         """
-        for i, node in self.nodes_iter(data=True):
-            # Close the file handle because pickle doesn't handle SwigPyObjects
-            node._handle = None
-
-        with open(filename, 'wb') as f:
-            pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
+        io_autocnetgraph.save(self, filename)
 
     def plot(self, ax=None, **kwargs):  # pragma: no cover
         """
@@ -670,6 +675,7 @@ class CandidateGraph(nx.Graph):
         bunch = set(self.nbunch_iter(nodes))
         # create new graph and copy subgraph into it
         H = self.__class__()
+
         # copy node and attribute dictionaries
         for n in bunch:
             H.node[n] = self.node[n]

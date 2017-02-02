@@ -61,10 +61,11 @@ class Node(dict, MutableMapping):
         self['image_name'] = image_name
         self['image_path'] = image_path
         self['node_id'] = node_id
-        self['hash'] = self['image_name']  #TODO: Repalce with farmhash
+        self['hash'] = image_name
         self._mask_arrays = {}
         self.point_to_correspondence = defaultdict(set)
         self.point_to_correspondence_df = None
+        self.descriptors = None
 
     def __repr__(self):
         return """
@@ -77,10 +78,24 @@ class Node(dict, MutableMapping):
         """.format(self['node_id'], self['image_name'], self['image_path'],
                    self.nkeypoints, self.masks, self.__class__)
 
+    def __eq__(self, other):
+        eq = True
+        d = self.__dict__
+        o = other.__dict__
+        for k, v in d.items():
+            if isinstance(v, pd.DataFrame):
+                if not v.equals(o[k]):
+                    eq = False
+                    print('N', k)
+            elif isinstance(v, np.ndarray):
+                if not v.all() == o[k].all():
+                    eq = False
+                    print('N2', k)
+        return eq
     """
     def __getitem__(self, item):
-        attribute_dict = {'image_name': self.image_name,
-                          'image_path': self.image_path,
+        attribute_dict = {'image_name': self['image_name'],
+                          'image_path': self['image_path'],
                           'geodata': self.geodata,
                           'keypoints': self.keypoints,
                           'nkeypoints': self.nkeypoints,
@@ -92,6 +107,7 @@ class Node(dict, MutableMapping):
         else:
             return super(Node, self).__getitem__(item)
     """
+
     @property
     def geodata(self):
         if not getattr(self, '_geodata', None) and self['image_path'] is not None:
@@ -147,7 +163,7 @@ class Node(dict, MutableMapping):
         else:
             return 0
 
-    @property
+    """    @property
     def keypoints(self):
         if hasattr(self, '_keypoints'):
             return self._keypoints.copy()
@@ -159,7 +175,7 @@ class Node(dict, MutableMapping):
         if hasattr(self, '_descriptors'):
             return np.copy(self._descriptors)
         else:
-            return None
+            return None"""
 
     def coverage(self):
         """
@@ -294,7 +310,7 @@ class Node(dict, MutableMapping):
         else:
             hdf = in_path
 
-        self._descriptors = hdf['{}/descriptors'.format(self['image_name'])][:]
+        self.descriptors = hdf['{}/descriptors'.format(self['image_name'])][:]
         raw_kps = hdf['{}/keypoints'.format(self['image_name'])][:]
         index = raw_kps['index']
         clean_kps = utils.remove_field_name(raw_kps, 'index')
@@ -334,17 +350,17 @@ class Node(dict, MutableMapping):
         else:
             hdf = out_path
 
-        try:
-            hdf.create_dataset('{}/descriptors'.format(self['image_name']),
-                               data=self._descriptors,
-                               compression=io_hdf.DEFAULT_COMPRESSION,
-                               compression_opts=io_hdf.DEFAULT_COMPRESSION_VALUE)
-            hdf.create_dataset('{}/keypoints'.format(self['image_name']),
-                               data=hdf.df_to_sarray(self._keypoints.reset_index()),
-                               compression=io_hdf.DEFAULT_COMPRESSION,
-                               compression_opts=io_hdf.DEFAULT_COMPRESSION_VALUE)
-        except:
-            warnings.warn('Descriptors for the node {} are already stored'.format(self['image_name']))
+        #try:
+        hdf.create_dataset('{}/descriptors'.format(self['image_name']),
+                           data=self.descriptors,
+                           compression=io_hdf.DEFAULT_COMPRESSION,
+                           compression_opts=io_hdf.DEFAULT_COMPRESSION_VALUE)
+        hdf.create_dataset('{}/keypoints'.format(self['image_name']),
+                           data=hdf.df_to_sarray(self._keypoints.reset_index()),
+                           compression=io_hdf.DEFAULT_COMPRESSION,
+                           compression_opts=io_hdf.DEFAULT_COMPRESSION_VALUE)
+        #except:
+            #warnings.warn('Descriptors for the node {} are already stored'.format(self['image_name']))
 
         # If the out_path is a string, assume this method is being called as a singleton
         # and close the hdf file gracefully.  If an object, let the instantiator of the

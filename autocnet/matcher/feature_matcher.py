@@ -52,19 +52,19 @@ def match(self, k=2, **kwargs):
     	"""
     	# Subset if requested
         if aidx is not None:
-            ad = a.descriptors[aidx]
+            ad = a.descriptors[aidx].values
         else:
             ad = a.descriptors
 
         if bidx is not None:
-            bd = b.descriptors[bidx]
+            bd = b.descriptors[bidx].values
         else:
             bd = b.descriptors
 
         # Load, train, and match
-        fl.add(ad, a.node_id, index=aidx)
+        fl.add(ad, a['node_id'], index=aidx)
         fl.train()
-        matches = fl.query(bd, b.node_id, k, index=bidx)
+        matches = fl.query(bd, b['node_id'], k, index=bidx)
         _add_matches(matches)
         fl.clear()
 

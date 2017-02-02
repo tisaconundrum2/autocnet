@@ -24,9 +24,9 @@ def decompose_and_match(self, maxiterations=3, ratio=0.9, buf_dist=3, **kwargs):
                'destination_idx', 'score', 'ambiguity']
 
     m = np.empty((len(raw_matches), len(columns)))
-    m[:,0] = self.source.node_id
+    m[:,0] = self.source['node_id']
     m[:,1] = raw_matches.index
-    m[:,2] = self.destination.node_id
+    m[:,2] = self.destination['node_id']
     m[:,3] = raw_matches['match']
     m[:,4] = raw_matches['score']
     m[:,5] = raw_matches['ambiguity']
