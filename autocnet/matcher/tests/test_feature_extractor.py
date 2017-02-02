@@ -10,8 +10,6 @@ import sys
 from .. import feature_extractor
 from plio.io import io_gdal
 
-sys.path.insert(0, os.path.abspath('..'))
-
 
 class TestFeatureExtractor(unittest.TestCase):
 
@@ -37,3 +35,11 @@ class TestFeatureExtractor(unittest.TestCase):
                                                               extractor_parameters={})
         self.assertIsInstance(kps, pd.DataFrame)
         self.assertEqual(descriptors.dtype, np.float32)
+
+    def test_extract_vlfeat_without(self):
+        feature_extractor.vlfeat = False
+        with self.assertRaises(ImportError):
+            kps, descriptors = feature_extractor.extract_features(self.data_array,
+                                                                  method='vlfeat',
+                                                                  extractor_parameters={})
+        feature_extractor.vlfeat = True

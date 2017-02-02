@@ -9,7 +9,7 @@ from scipy.misc import bytescale
 try:
     import cyvlfeat as vl
     vlfeat = True
-except Exception:
+except Exception:  # pragma: no cover
     vlfeat = False
     pass
 
@@ -46,7 +46,7 @@ def extract_features(array, method='orb', extractor_parameters={}):
                  'orb': cv2.ORB_create}
 
     if method == 'vlfeat' and vlfeat != True:
-        print('VLFeat is not available.  Please install vlfeat or use a different extractor.')
+        raise ImportError('VLFeat is not available.  Please install vlfeat or use a different extractor.')
 
     if  method == 'vlfeat':
         keypoint_objs, descriptors  = vl.sift.sift(array,
