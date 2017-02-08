@@ -47,7 +47,7 @@ class TestThreeImageMatching(unittest.TestCase):
             self.assertIn(node.nkeypoints, range(490, 511))
 
         cg.match(k=5)
-        cg.symmetry_checks()
+        cg.symmetry_checks(single=False)
         cg.ratio_checks()
 
         cg.apply_func_to_edges("compute_homography", clean_keys=['symmetry', 'ratio'])
