@@ -161,7 +161,7 @@ def test_apply_func_to_edges(graph):
         pass
 
     mst_graph.extract_features(extractor_parameters={'nfeatures': 50})
-    mst_graph.match_features()
+    mst_graph.match()
     mst_graph.apply_func_to_edges("symmetry_check")
 
     # Test passing the func by signature

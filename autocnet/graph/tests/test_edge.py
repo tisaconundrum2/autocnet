@@ -72,8 +72,8 @@ class TestEdge(unittest.TestCase):
         destination.geodata.footprint = poly2
 
         e.overlap()
-        self.assertEqual(e['weight']['overlap_area'], 400)
-        self.assertAlmostEqual(e['weight']['overlap_percn'], 14.285714285)
+        self.assertEqual(e['weights']['overlap_area'], 400)
+        self.assertAlmostEqual(e['weights']['overlap_percn'], 14.285714285)
 
     def test_coverage(self):
         adjacency = get_path('two_image_adjacency.json')
