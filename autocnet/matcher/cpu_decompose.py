@@ -163,7 +163,7 @@ def decompose_and_match(self, k=2, maxiteration=3, size=18, buf_dist=3,**kwargs)
                 # Apply Lowe's ratio test to try to find a 'good' starting point
                 mask = matches.groupby('source_idx')['distance'].transform(func).astype('bool')
                 candidate_matches = matches[mask]
-                match_idx = candidate_matches['source_idx']
+                match_idx = candidate_matches['source_idx'].astype(np.int)
 
                 # Extract those matches that pass the ratio check
                 sub_skp = skp.iloc[match_idx]
