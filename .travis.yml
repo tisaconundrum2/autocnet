@@ -54,7 +54,7 @@ install:
   # Development installation
   - conda install nose coverage sh anaconda-client
   - pip install coveralls
-  - python runipynbs.py
+  # - python runipynbs.py
 
 
     # Straight from the menpo team
