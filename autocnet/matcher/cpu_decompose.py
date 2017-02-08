@@ -79,9 +79,9 @@ def decompose_and_match(self, k=2, maxiteration=3, size=18, buf_dist=3,**kwargs)
             bd = b.descriptors
 
         # Load, train, and match
-        fl.add(ad, a.node_id, index=aidx)
+        fl.add(ad, a['node_id'], index=aidx)
         fl.train()
-        matches = fl.query(bd, b.node_id, k, index=bidx)
+        matches = fl.query(bd, b['node_id'], k, index=bidx)
         if self.matches is None:
             self.matches = matches
         else:
@@ -144,7 +144,7 @@ def decompose_and_match(self, k=2, maxiteration=3, size=18, buf_dist=3,**kwargs)
             bsub = ddata[mindy:maxdy, mindx:maxdx]
 
             # Utilize the FLANN matcher to find a match to approximate a center
-            fl.add(self.destination.descriptors, self.destination.node_id)
+            fl.add(self.destination.descriptors, self.destination['node_id'])
             fl.train()
 
             scounter = 0
@@ -158,7 +158,7 @@ def decompose_and_match(self, k=2, maxiteration=3, size=18, buf_dist=3,**kwargs)
                     size = len(sub_skp)
                 candidate_idx = np.random.choice(sub_skp.index, size=size, replace=False)
                 candidates = self.source.descriptors[candidate_idx]
-                matches = fl.query(candidates, self.source.node_id, k=3, index=candidate_idx)
+                matches = fl.query(candidates, self.source['node_id'], k=3, index=candidate_idx)
 
                 # Apply Lowe's ratio test to try to find a 'good' starting point
                 mask = matches.groupby('source_idx')['distance'].transform(func).astype('bool')
@@ -182,7 +182,7 @@ def decompose_and_match(self, k=2, maxiteration=3, size=18, buf_dist=3,**kwargs)
 
                 # Grab the corresponding point in the destination
                 q = candidate_matches.query('source_idx == {}'.format(closest.name))
-                dest_idx = q['destination_idx'].iat[0]
+                dest_idx = int(q['destination_idx'].iat[0])
                 doriginx = dkp.at[dest_idx, 'x']
                 doriginy = dkp.at[dest_idx, 'y']
 

@@ -46,7 +46,7 @@ class TestThreeImageMatching(unittest.TestCase):
         for i, node, in cg.nodes_iter(data=True):
             self.assertIn(node.nkeypoints, range(490, 511))
 
-        cg.match_features(k=5)
+        cg.match(k=5)
         cg.symmetry_checks()
         cg.ratio_checks()
 

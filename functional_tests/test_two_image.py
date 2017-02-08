@@ -59,7 +59,7 @@ class TestTwoImageMatching(unittest.TestCase):
             ratio = node.coverage_ratio()
             self.assertIn(round(ratio, 8), truth_ratios)
 
-        cg.decompose_and_match_features(k=2, maxiteration=2)
+        cg.decompose_and_match(k=2, maxiteration=2)
         self.assertTrue(isinstance(cg.edge[0][1].smembership, np.ndarray))
 
         # Perform the symmetry check

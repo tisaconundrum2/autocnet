@@ -487,7 +487,7 @@ class CandidateGraph(nx.Graph):
         """
         filelist = []
         for i, node in self.nodes_iter(data=True):
-            filelist.append(node.image_path)
+            filelist.append(node['image_path'])
         return filelist
 
     def generate_cnet(self, *args, deepen=False, **kwargs):
