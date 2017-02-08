@@ -30,7 +30,7 @@ class Edge(dict, MutableMapping):
     masks : set
             A list of the available masking arrays
 
-    weight : dict
+    weights : dict
              Dictionary with two keys overlap_area, and overlap_percn
              overlap_area returns the area overlaped by both images
              overlap_percn retuns the total percentage of overlap
@@ -42,7 +42,7 @@ class Edge(dict, MutableMapping):
         self['homography'] = None
         self['fundamental_matrix'] = None
         self.matches = None
-        self['weight'] = {}
+        self['weights'] = {}
 
     def __repr__(self):
         return """
@@ -420,15 +420,15 @@ class Edge(dict, MutableMapping):
         """
         Acts on an edge and returns the overlap area and percentage of overlap
         between the two images on the edge. Data is returned to the
-        weight dictionary
+        weights dictionary
         """
         poly1 = self.source.geodata.footprint
         poly2 = self.destination.geodata.footprint
 
         overlapinfo = cg.two_poly_overlap(poly1, poly2)
 
-        self['weight']['overlap_area'] = overlapinfo[1]
-        self['weight']['overlap_percn'] = overlapinfo[0]
+        self['weights']['overlap_area'] = overlapinfo[1]
+        self['weights']['overlap_percn'] = overlapinfo[0]
 
     def coverage(self, clean_keys = []):
         """

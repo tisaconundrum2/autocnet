@@ -49,11 +49,11 @@ install:
   - conda install -c conda-forge vlfeat
   - conda install -c menpo cyvlfeat
   - pip install pillow pysal
-  - conda install scipy networkx numexpr dill cython pyyaml matplotlib runipy pytest
+  - conda install scipy networkx numexpr dill cython pyyaml matplotlib runipy
 
   # Development installation
-  - conda install nose coverage sh anaconda-client
-  - pip install coveralls
+  - conda install pytest sh anaconda-client
+  - pip install pytest-cov
   # - python runipynbs.py
 
 
@@ -67,7 +67,7 @@ install:
   - python condaci.py setup
 
 script:
-  - nosetests --with-coverage --cover-package=autocnet
+  - py.test --cov-report term-missing --cov=autocnet .
 
 after_success:
   # Upload to anaconda and push to coveralls
