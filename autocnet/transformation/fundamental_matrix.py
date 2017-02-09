@@ -167,9 +167,10 @@ def compute_fundamental_matrix(kp1, kp2, method='mle', reproj_threshold=2.0,
                                      param1=reproj_threshold,
                                      param2=confidence)
 
+
     if F.shape != (3,3):
-        warnings.warn('F computation fell back to 7-point algorithm and returned 3 F matrices.')
-        return
+        warnings.warn('F computation fell back to 7-point algorithm, not setting F.')
+        return None, None
     # Ensure that the singularity constraint is met
     F = enforce_singularity_constraint(F)
 

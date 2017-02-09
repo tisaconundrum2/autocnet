@@ -46,6 +46,9 @@ def deepen_correspondences(ab_kp, bc, source_idx,
     # Grab F for reprojection
     f_matrix = bc['fundamental_matrix']
 
+    if f_matrix is None:
+        return None, None
+
     # Compute the epipolar line projecting point ab into bc
     epipolar_line = normalize_vector(ab_kp.dot(f_matrix.T))
 

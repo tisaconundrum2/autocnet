@@ -58,12 +58,10 @@ class Edge(dict, MutableMapping):
         for k, v in d.items():
             if isinstance(v, pd.DataFrame):
                 if not v.equals(o[k]):
-                    print('E', k, self.source['node_id'], self.destination['node_id'])
                     eq = False
             elif isinstance(v, np.ndarray):
                 if not v.all() == o[k].all():
                     eq = False
-                    print('E2', k)
         return eq
 
     @property
@@ -166,11 +164,12 @@ class Edge(dict, MutableMapping):
 
         self['fundamental_matrix'], fmask = fm.compute_fundamental_matrix(s_keypoints, d_keypoints, **kwargs)
 
-        # Convert the truncated RANSAC mask back into a full length mask
-        mask[mask] = fmask
+        if self['fundamental_matrix'] != None:
+            # Convert the truncated RANSAC mask back into a full length mask
+            mask[mask] = fmask
 
-        # Set the initial state of the fundamental mask in the masks
-        self.masks = ('fundamental', mask)
+            # Set the initial state of the fundamental mask in the masks
+            self.masks = ('fundamental', mask)
 
     def refine_fundamental_matrix_matches(self, clean_keys=[], **kwargs): # pragma: no cover
         """
