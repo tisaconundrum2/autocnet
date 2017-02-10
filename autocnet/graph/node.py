@@ -5,12 +5,13 @@ import warnings
 import numpy as np
 import pandas as pd
 from plio.io.io_gdal import GeoDataset
-from plio.io import io_hdf
 from plio.io.isis_serial_number import generate_serial_number
 from scipy.misc import bytescale
 
 from autocnet.cg import cg
 from autocnet.control.control import Correspondence, Point
+
+from autocnet.io import keypoints as io_keypoints
 
 from autocnet.matcher.add_depth import deepen_correspondences
 from autocnet.matcher import feature_extractor as fe
@@ -295,7 +296,7 @@ class Node(dict, MutableMapping):
     def extract_features(self, *args, **kwargs):
         self._keypoints, self.descriptors = Node._extract_features(*args, **kwargs)
 
-    def load_features(self, in_path):
+    def load_features(self, in_path, format='npy'):
         """
         Load keypoints and descriptors for the given image
         from a HDF file.
@@ -304,28 +305,16 @@ class Node(dict, MutableMapping):
         ----------
         in_path : str or object
                   PATH to the hdf file or a HDFDataset object handle
+
+        format : {'npy', 'hdf5'}
         """
-        if isinstance(in_path, str):
-            hdf = io_hdf.HDFDataset(in_path, mode='r')
-        else:
-            hdf = in_path
+        if format == 'npy':
+            io_keypoints.from_npy(in_path, self)
+        elif format == 'hdf5':
+            io_keypoints.from_hdf(in_path, self)
 
-        self.descriptors = hdf['{}/descriptors'.format(self['image_name'])][:]
-        raw_kps = hdf['{}/keypoints'.format(self['image_name'])][:]
-        index = raw_kps['index']
-        clean_kps = utils.remove_field_name(raw_kps, 'index')
-        columns = clean_kps.dtype.names
 
-        allkps = pd.DataFrame(data=clean_kps, columns=columns, index=index)
-
-        if 'response' in allkps.columns:
-            self._keypoints = allkps.sort_values(by='response', ascending=False)
-        elif 'size' in allkps.columns:
-            self._keypoints = allkps.sort_values(by='size', ascending=False)
-        if isinstance(in_path, str):
-            hdf = None
-
-    def save_features(self, out_path):
+    def save_features(self, out_path, format='npy'):
         """
         Save the extracted keypoints and descriptors to
         the given HDF5 file.
@@ -334,39 +323,21 @@ class Node(dict, MutableMapping):
         ----------
         out_path : str or object
                    PATH to the hdf file or a HDFDataset object handle
+
+        format : {'npy', 'hdf5'}
+                 The desired output format.
         """
 
         if not hasattr(self, '_keypoints'):
             warnings.warn('Node {} has not had features extracted.'.format(i))
             return
 
-        # If the out_path is a string, access the HDF5 file
-        if isinstance(out_path, str):
-            if os.path.exists(out_path):
-                mode = 'a'
-            else:
-                mode = 'w'
-            hdf = io_hdf.HDFDataset(out_path, mode=mode)
+        if format == 'hdf':
+            io_keypoints.to_hdf(out_path, self)
+        elif format == 'npy':
+            io_keypoints.to_npy(out_path, self)
         else:
-            hdf = out_path
-
-        #try:
-        hdf.create_dataset('{}/descriptors'.format(self['image_name']),
-                           data=self.descriptors,
-                           compression=io_hdf.DEFAULT_COMPRESSION,
-                           compression_opts=io_hdf.DEFAULT_COMPRESSION_VALUE)
-        hdf.create_dataset('{}/keypoints'.format(self['image_name']),
-                           data=hdf.df_to_sarray(self._keypoints.reset_index()),
-                           compression=io_hdf.DEFAULT_COMPRESSION,
-                           compression_opts=io_hdf.DEFAULT_COMPRESSION_VALUE)
-        #except:
-            #warnings.warn('Descriptors for the node {} are already stored'.format(self['image_name']))
-
-        # If the out_path is a string, assume this method is being called as a singleton
-        # and close the hdf file gracefully.  If an object, let the instantiator of the
-        # object close the file
-        if isinstance(out_path, str):
-            hdf = None
+            warnings.warn('Unknown keypoint output format.')
 
     def group_correspondences(self, cg, *args, deepen=False, **kwargs):
         """
