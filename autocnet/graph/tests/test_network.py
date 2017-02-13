@@ -16,6 +16,7 @@ from .. import network
 
 sys.path.insert(0, os.path.abspath('..'))
 
+
 @pytest.fixture()
 def graph():
     basepath = get_path('Apollo15')
@@ -72,11 +73,11 @@ def test_save_load_features(tmpdir, graph):
     allout = tmpdir.join("all_out.hdf")
     oneout = tmpdir.join("one_out.hdf")
 
-    graph.save_features(allout.strpath)
-    graph.save_features(oneout.strpath, nodes=[1])
+    graph.save_features(allout.strpath, format='hdf')
+    graph.save_features(oneout.strpath, nodes=[1], format='hdf')
 
     graph_no_features = graph.copy()
-    graph_no_features.load_features(allout.strpath, nodes=[1])
+    graph_no_features.load_features(allout.strpath, nodes=[1], format='hdf')
     assert graph.node[1].get_keypoints().all().all() == graph_no_features.node[1].get_keypoints().all().all()
 
 def test_filter(graph):

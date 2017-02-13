@@ -306,25 +306,29 @@ class Node(dict, MutableMapping):
         in_path : str or object
                   PATH to the hdf file or a HDFDataset object handle
 
-        format : {'npy', 'hdf5'}
+        format : {'npy', 'hdf'}
         """
         if format == 'npy':
-            io_keypoints.from_npy(in_path, self)
-        elif format == 'hdf5':
-            io_keypoints.from_hdf(in_path, self)
+            keypoints, descriptors = io_keypoints.from_npy(in_path)
+        elif format == 'hdf':
+            keypoints, descriptors = io_keypoints.from_hdf(in_path,
+                                                           key=self['image_name'])
 
+        self._keypoints = keypoints
+        self.descriptors = descriptors
 
     def save_features(self, out_path, format='npy'):
         """
         Save the extracted keypoints and descriptors to
-        the given HDF5 file.
+        the given HDF5 file.  By default, the .npz files are saved
+        along side the image, e.g. in the same folder as the image.
 
         Parameters
         ----------
         out_path : str or object
                    PATH to the hdf file or a HDFDataset object handle
 
-        format : {'npy', 'hdf5'}
+        format : {'npy', 'hdf'}
                  The desired output format.
         """
 
@@ -333,9 +337,11 @@ class Node(dict, MutableMapping):
             return
 
         if format == 'hdf':
-            io_keypoints.to_hdf(out_path, self)
+            io_keypoints.to_hdf(self._keypoints, self.descriptors, out_path,
+                                key=self['image_name'])
         elif format == 'npy':
-            io_keypoints.to_npy(out_path, self)
+            io_keypoints.to_npy(self._keypoints, self.descriptors,
+                                out_path)
         else:
             warnings.warn('Unknown keypoint output format.')
 

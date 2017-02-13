@@ -7,12 +7,13 @@ import dill as pickle
 import networkx as nx
 import pandas as pd
 
-from plio.io import io_hdf, io_json, io_autocnetgraph
+from plio.io import io_hdf, io_json
 from plio.utils import utils as io_utils
 from plio.io.io_gdal import GeoDataset
 from autocnet.graph import markov_cluster
 from autocnet.graph.edge import Edge
 from autocnet.graph.node import Node
+from autocnet.io import network as io_network
 from autocnet.vis.graph_view import plot_graph, cluster_plot
 
 
@@ -235,7 +236,7 @@ class CandidateGraph(nx.Graph):
             image = node.get_array()
             node.extract_features(image, *args, **kwargs),
 
-    def save_features(self, out_path, nodes=[]):
+    def save_features(self, out_path, nodes=[], **kwargs):
         """
 
         Save the features (keypoints and descriptors) for the
@@ -251,24 +252,12 @@ class CandidateGraph(nx.Graph):
                 of nodes to save features for.  If empty, save for all nodes
         """
 
-        if os.path.exists(out_path):
-            mode = 'a'
-        else:
-            mode = 'w'
+        for i, n in self.nodes_iter(data=True):
+            if nodes and not i in nodes:
+                continue
+            n.save_features(out_path, **kwargs)
 
-        hdf = io_hdf.HDFDataset(out_path, mode=mode)
-
-        # Cleaner way to do this?
-        if nodes:
-            for i, n in self.subgraph(nodes).nodes_iter(data=True):
-                n.save_features(hdf)
-        else:
-            for i, n in self.nodes_iter(data=True):
-                n.save_features(hdf)
-
-        hdf = None
-
-    def load_features(self, in_path, nodes=[], nfeatures=None):
+    def load_features(self, in_path, nodes=[], nfeatures=None, **kwargs):
         """
         Load features (keypoints and descriptors) for the
         specified nodes.
@@ -282,16 +271,11 @@ class CandidateGraph(nx.Graph):
                 of nodes to load features for.  If empty, load features
                 for all nodes
         """
-        hdf = io_hdf.HDFDataset(in_path, 'r')
-
-        if nodes:
-            for i, n in self.subgraph(nodes).nodes_iter(data=True):
-                n.load_features(hdf)
-        else:
-            for i, n in self.nodes_iter(data=True):
-                n.load_features(hdf)
-
-        hdf = None
+        for i, n in self.nodes_iter(data=True):
+            if nodes and not i in nodes:
+                continue
+            else:
+                n.load_features(in_path, **kwargs)
 
     def match(self, *args, **kwargs):
         """
@@ -555,7 +539,7 @@ class CandidateGraph(nx.Graph):
         filename : str
                    The relative or absolute PATH where the network is saved
         """
-        io_autocnetgraph.save(self, filename)
+        io_network.save(self, filename)
 
     def plot(self, ax=None, **kwargs):  # pragma: no cover
         """
