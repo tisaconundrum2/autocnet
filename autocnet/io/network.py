@@ -54,9 +54,9 @@ def save(network, projectname):
             grp = data['node_id']
             np.savez('{}.npz'.format(data['node_id']),
                      descriptors=data.descriptors,
-                     _keypoints=data._keypoints,
-                     _keypoints_idx=data._keypoints.index,
-                     _keypoints_columns=data._keypoints.columns)
+                     keypoints=data._keypoints,
+                     keypoints_idx=data._keypoints.index,
+                     keypoints_columns=data._keypoints.columns)
             pzip.write('{}.npz'.format(data['node_id']))
             os.remove('{}.npz'.format(data['node_id']))
 
@@ -112,7 +112,7 @@ def load(projectname):
             edge.source = cg.node[e['source']]
             edge.destination = cg.node[e['target']]
             edge['fundamental_matrix'] = e['fundamental_matrix']
-            edge['weight'] = e['weight']
+            edge['weights'] = e['weights']
             nzf = np.load(BytesIO(pzip.read('{}_{}.npz'.format(e['source'], e['target']))))
 
             edge._masks = pd.DataFrame(nzf['_masks'], index=nzf['_masks_idx'], columns=nzf['_masks_columns'])
