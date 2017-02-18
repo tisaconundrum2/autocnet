@@ -67,7 +67,7 @@ install:
 script:
   - pytest --cov=autocnet
   # clean up any remaining processes...
-  - if [["$TRAVIS_OS_NAME" == "osx"]]; then
+  - if ["$TRAVIS_OS_NAME" == "linux"]; then
       killall5;
     fi
 
