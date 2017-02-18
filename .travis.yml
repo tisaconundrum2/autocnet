@@ -52,8 +52,8 @@ install:
   # The plio install is pulling in pandas as well.
   - conda install -c jlaura plio
   - conda install -c conda-forge vlfeat opencv3
-  - pip install pillow cyvlfeat
   - conda install scipy networkx numexpr cython pyyaml matplotlib
+  - pip install pillow cyvlfeat
 
   # Development installation
   - conda install pytest sh anaconda-client
