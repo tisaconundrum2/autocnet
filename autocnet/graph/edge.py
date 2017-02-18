@@ -171,30 +171,6 @@ class Edge(dict, MutableMapping):
             # Set the initial state of the fundamental mask in the masks
             self.masks = ('fundamental', mask)
 
-    def refine_fundamental_matrix_matches(self, clean_keys=[], **kwargs): # pragma: no cover
-        """
-        Given an estimated fundamental matrix, refine the correspondences based
-        on the reprojective error.
-
-        See Also
-        --------
-        autocnet.transformation.transformations.FundamentalMatrix.refine_matches
-        """
-        if not hasattr(self, 'fundamental_matrix'):
-            raise AttributeError('No fundamental matrix exists for this edge.')
-            return
-        # TODO: Homogeneous is horribly inefficient here, use Numpy array notation
-        s_keypoints = self.source.get_keypoint_coordinates(index=matches['source_idx'],
-                                                                 homogeneous=True)
-        d_keypoints = self.destination.get_keypoint_coordinates(index=matches['destination_idx'],
-                                                                homogeneous=True)
-
-
-        mask = update_fundamental_mask(self['fundamental_matrix'],
-                                       s_keypoints, d_keypoints,
-                                       index=self.matches.index, **kwargs)
-        self.masks = ('fundamental', mask)
-
     def compute_homography(self, method='ransac', clean_keys=[], pid=None, **kwargs):
         """
         For each edge in the (sub) graph, compute the homography

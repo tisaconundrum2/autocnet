@@ -61,11 +61,6 @@ def test_connected_subgraphs(graph, disconnected_graph):
     subgraph_list = graph.connected_subgraphs()
     assert len(subgraph_list) == 1
 
-def test_save_graph(tmpdir, graph):
-    p = tmpdir.join("graph.json")
-    graph.to_json_file(p.strpath)
-    assert len(tmpdir.listdir()) == 1
-
 def test_save_load_features(tmpdir, graph):
     # Create the graph and save the features
     graph = graph.copy()
