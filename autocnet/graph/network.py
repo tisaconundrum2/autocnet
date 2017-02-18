@@ -3,7 +3,6 @@ import os
 from time import gmtime, strftime
 import warnings
 
-import dill as pickle
 import networkx as nx
 import pandas as pd
 
@@ -80,24 +79,6 @@ class CandidateGraph(nx.Graph):
             if not self.edge[s][d] == other.edge[s][d]:
                 eq = False
         return eq
-
-    @classmethod
-    def from_graph(cls, graph):
-        """
-        Return a graph object from a pickled file
-        Parameters
-        ----------
-        graph : str
-                PATH to the graph object
-
-        Returns
-        -------
-        graph : object
-                CandidateGraph object
-        """
-        with open(graph, 'rb') as f:
-            graph = pickle.load(f)
-        return graph
 
     @classmethod
     def from_filelist(cls, filelist, basepath=None):
@@ -287,7 +268,6 @@ class CandidateGraph(nx.Graph):
         """
         self.apply_func_to_edges('match', *args, **kwargs)
 
-
     def decompose_and_match(self, *args, **kwargs):
         """
         For all edges in the graph, apply coupled decomposition followed by
@@ -343,6 +323,20 @@ class CandidateGraph(nx.Graph):
                 if(s,n) in self.edges() and (d,n) in self.edges():
                     cycles.append((s,d,n))
         return cycles
+
+    def minimum_spanning_tree(self):
+        """
+        Calculates the minimum spanning tree of the graph
+
+        Returns
+        -------
+
+         : DataFrame
+           boolean mask for edges in the minimum spanning tree
+        """
+
+        mst = nx.minimum_spanning_tree(self)
+        return self.create_edge_subgraph(mst.edges())
 
     def apply_func_to_edges(self, function, *args, **kwargs):
         """
@@ -405,16 +399,6 @@ class CandidateGraph(nx.Graph):
         '''
         self.apply_func_to_edges('compute_fundamental_matrix', *args, **kwargs)
 
-    def refine_fundamental_matrix_matches(self, *args, **kwargs):
-        """
-        Refine the fundamental matrix matches using reprojective error
-
-        See Also
-        --------
-        autocnet.transformation.transformations.FundamentalMatrix.refine_matches
-        """
-        self.apply_func_to_edges('refine_fundamental_matrix_matches', *args, **kwargs)
-
     def subpixel_register(self, *args, **kwargs):
         '''
         Compute subpixel offsets for all edges using identical parameters
@@ -444,20 +428,6 @@ class CandidateGraph(nx.Graph):
         autocnet.cg.cg.two_image_overlap
         '''
         self.apply_func_to_edges('overlap')
-
-    def minimum_spanning_tree(self):
-        """
-        Calculates the minimum spanning tree of the graph
-
-        Returns
-        -------
-
-         : DataFrame
-           boolean mask for edges in the minimum spanning tree
-        """
-
-        mst = nx.minimum_spanning_tree(self)
-        return self.create_edge_subgraph(mst.edges())
 
     def to_filelist(self):
         """
@@ -492,21 +462,6 @@ class CandidateGraph(nx.Graph):
             n.group_correspondences(self, *args, deepen=deepen, **kwargs)
         self.cn = [n.point_to_correspondence_df for i, n in self.nodes_iter(data=True) if
                    isinstance(n.point_to_correspondence_df, pd.DataFrame)]
-
-    def to_json_file(self, outputfile):
-        """
-        Write the edge structure to a JSON adjacency list
-
-        Parameters
-        ----------
-
-        outputfile : str
-                     PATH where the JSON will be written
-        """
-        adjacency_dict = {}
-        for n in self.nodes():
-            adjacency_dict[n] = self.neighbors(n)
-        io_json.write_json(adjacency_dict, outputfile)
 
     def island_nodes(self):
         """
