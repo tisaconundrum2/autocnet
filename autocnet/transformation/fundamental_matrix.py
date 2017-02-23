@@ -1,5 +1,6 @@
 import warnings
 import numpy as np
+import pandas as pd
 from scipy import optimize
 from autocnet.camera import camera
 from autocnet.camera import utils as camera_utils
@@ -8,26 +9,23 @@ from autocnet.utils.utils import make_homogeneous, normalize_vector
 try:
     import cv2
     cv2_avail = True
-except:
+except:  # pragma: no cover
     cv_avail = False
 
 
-def compute_error(F, x, x1):
+def compute_reprojection_error(F, x, x1):
     """
     Given a set of matches and a known fundamental matrix,
-    compute distance between all match points and the associated
+    compute distance between match points and the associated
     epipolar lines.
-
-    Ideal error is defined by $x^{\intercal}Fx = 0$,
-    where $x$ are all matchpoints in a given image and
-    $x^{\intercal}F$ defines the standard form of the
-    epipolar line in the second image.
 
     The distance between a point and the associated epipolar
     line is computed as: $d = \frac{\lvert ax_{0} + by_{0} + c \rvert}{\sqrt{a^{2} + b^{2}}}$.
 
     Parameters
     ----------
+    F : ndarray
+        (3,3) Fundamental matrix
 
     x : arraylike
         (n,2) or (n,3) array of homogeneous coordinates
@@ -53,7 +51,53 @@ def compute_error(F, x, x1):
 
     return F_error
 
-def update_fundamental_mask(F, x1, x2, threshold=1.0, index=None):
+def compute_fundamental_error(F, x, x1):
+    """
+    Compute the fundamental error using the idealized error metric.
+
+    Ideal error is defined by $x^{\intercal}Fx = 0$,
+    where $x$ are all matchpoints in a given image and
+    $x^{\intercal}F$ defines the standard form of the
+    epipolar line in the second image.
+
+    This method assumes that x and x1 are ordered such that x[0]
+    correspondes to x1[0].
+
+    Parameters
+    ----------
+    F : ndarray
+        (3,3) Fundamental matrix
+
+    x : arraylike
+        (n,2) or (n,3) array of homogeneous coordinates
+
+    x1 : arraylike
+        (n,2) or (n,3) array of homogeneous coordinates with the same
+        length as argument x
+
+    Returns
+    -------
+    F_error : ndarray
+              n,1 vector of reprojection errors
+    """
+
+    # TODO: Can this be vectorized for performance?
+    if x.shape[1] != 3:
+        x = make_homogeneous(x)
+    if x1.shape[1] != 3:
+        x1 = make_homogeneous(x1)
+
+    if isinstance(x, pd.DataFrame):
+        x = x.values
+    if isinstance(x1, pd.DataFrame):
+        x1 = x1.values
+
+    err = np.empty(len(x))
+    for i in range(len(x)):
+        err[i] = x1[i].T.dot(F).dot(x[i])
+    return err
+
+def update_fundamental_mask(F, x1, x2, threshold=1.0, index=None, method='reprojection'):
     """
     Given a Fundamental matrix and two sets of points, compute the
     reprojection error between x1 and x2.  A mask is returned with all
@@ -71,7 +115,10 @@ def update_fundamental_mask(F, x1, x2, threshold=1.0, index=None):
          (n,2) or (n,3) array of homogeneous coordinates
 
     threshold : float
-                The new upper, reprojective error limit, in pixels.
+                The new upper limit for error.  If using
+                reprojection this is measured in pixels (the default).  If
+                using fundamental, the idealized error is 0.  Values +- 0.05
+                should be good.
 
     index : ndarray
             Optional index for mapping between reprojective error
@@ -82,10 +129,16 @@ def update_fundamental_mask(F, x1, x2, threshold=1.0, index=None):
     mask : dataframe
 
     """
-    error = compute_error(F, x1, x2)
-    mask = error <= threshold
+    if method == 'reprojection':
+        error = compute_reprojection_error(F, x1, x2)
+    elif method == 'fundamental':
+        error = compute_fundamental_error(F, x1, x2)
+    else:
+        warnings.warn('Unknown error method.  Options are "reprojection" or "fundamental".')
+    mask = pd.DataFrame(np.abs(error) <= threshold, index=index, columns=['fundamental'])
     if index != None:
-        mask = pd.DataFrame(mask, index=index, columns='F_Error')
+        mask.index = index
+
     return mask
 
 def enforce_singularity_constraint(F):
@@ -182,13 +235,18 @@ def compute_fundamental_matrix(kp1, kp2, method='mle', reproj_threshold=2.0,
     if method == 'mle':
         # Now apply the gold standard algorithm to refine F
 
+        if kp1.shape[1] != 3:
+            kp1 = make_homogeneous(kp1)
+        if kp2.shape[1] != 3:
+            kp2 = make_homogeneous(kp2)
+
         # Generate an idealized and to be updated camera model
         p1 = camera.estimated_camera_from_f(F)
         p = camera.idealized_camera()
 
         # Grab the points used to estimate F
-        pt = kp1.loc[mask]
-        pt1 = kp2.loc[mask]
+        pt = kp1.loc[mask].T
+        pt1 = kp2.loc[mask].T
 
         if pt.shape[1] < 9 or pt1.shape[1] < 9:
             warnings.warn("Unable to apply MLE.  Not enough correspondences.  Returning with a RANSAC computed F matrix.")
@@ -205,5 +263,9 @@ def compute_fundamental_matrix(kp1, kp2, method='mle', reproj_threshold=2.0,
         gold_standard_f = camera_utils.crossform(gold_standard_p[:,3]).dot(gold_standard_p[:,:3])
 
         F = gold_standard_f
+
+        mask = update_fundamental_mask(F, kp1, kp2,
+                                       threshold=reproj_threshold).values
+
 
     return F, mask
