@@ -8,7 +8,6 @@ from scipy.spatial.distance import cdist
 
 import autocnet
 from autocnet.utils import utils
-from autocnet.matcher import health
 from autocnet.matcher import outlier_detector as od
 from autocnet.matcher import suppression_funcs as spf
 from autocnet.matcher import subpixel as sp
@@ -57,6 +56,8 @@ class Edge(dict, MutableMapping):
         o = other.__dict__
         for k, v in d.items():
             if isinstance(v, pd.DataFrame):
+                if not k in o.keys():
+                    print(o)
                 if not v.equals(o[k]):
                     eq = False
             elif isinstance(v, np.ndarray):
@@ -326,17 +327,9 @@ class Edge(dict, MutableMapping):
         merged = matches.merge(coords, left_on=['source_idx'], right_index=True)
         merged['strength'] = merged.apply(suppression_func, axis=1, args=([self]))
 
-        if not hasattr(self, 'suppression'):
-            # Instantiate the suppression object and suppress matches
-            self.suppression = od.SpatialSuppression(merged, domain, **kwargs)
-            self.suppression.suppress()
-        else:
-            for k, v in kwargs.items():
-                if hasattr(self.suppression, k):
-                    setattr(self.suppression, k, v)
-            self.suppression.suppress()
+        smask, k = od.spatial_suppression(merged, domain, **kwargs)
 
-        mask[mask] = self.suppression.mask
+        mask[mask] = smask
         self.masks = ('suppression', mask)
 
     def plot_source(self, ax=None, clean_keys=[], **kwargs):  # pragma: no cover
