@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 
+from autocnet.utils.utils import make_homogeneous
+
 try:
     import cv2
     cv2_avail = True
@@ -10,7 +12,9 @@ except:
 def compute_error(H, x, x1):
     """
     Give this homography, compute the planar reprojection error
-    between points a and b.
+    between points a and b.  x and x1 can be n, 2 or n,3 homogeneous
+    coordinates.  If only x, y coordinates, assume that z=1, e.g. x, y, 1 for
+    all coordiantes.
 
     Parameters
     ----------
@@ -35,28 +39,32 @@ def compute_error(H, x, x1):
     if x1.shape[1] == 2:
         x1 = make_homogeneous(x1)
 
+    z = np.empty(x.shape)
     # ToDo: Vectorize for performance
     for i, j in enumerate(x):
-        x[i] = H.dot(j)
-        x[i] /= x[i][-1]
+        z[i] = H.dot(j)
+        z[i] /= z[i][-1]
 
     data = np.empty((x.shape[0], 4))
 
-    data[:, 0] = x_res = x1[:, 0] - x[:, 0]
-    data[:, 1] = y_res = x1[:, 1] - x[:, 1]
-    data[:, 2] = rms = np.sqrt(x_res**2 + y_res**2)
-    total_rms = np.sqrt(np.mean(x_res**2 + y_res**2))
-    x_rms = np.sqrt(np.mean(x_res**2))
-    y_rms = np.sqrt(np.mean(y_res**2))
+    data[:, 0] = x_res = x1[:, 0] - z[:, 0]
+    data[:, 1] = y_res = x1[:, 1] - z[:, 1]
 
-    data[:, 3] = rms / total_rms
+    if data[:,:1].all() == 0:
+        data[:] = 0.0
+        total_rms = x_rms = y_rms = 0
+    else:
+        data[:, 2] = rms = np.sqrt(x_res**2 + y_res**2)
+        total_rms = np.sqrt(np.mean(x_res**2 + y_res**2))
+        x_rms = np.sqrt(np.mean(x_res**2))
+        y_rms = np.sqrt(np.mean(y_res**2))
+        data[:, 3] = rms / total_rms
 
     df = pd.DataFrame(data,
                       columns=['x_residuals',
                                'y_residuals',
                                'rmse',
                                'error_contribution'])
-
     df.total_rms = total_rms
     df.x_rms = x_rms
     df.y_rms = y_rms
