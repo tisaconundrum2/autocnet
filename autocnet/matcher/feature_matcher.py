@@ -52,12 +52,12 @@ def match(self, k=2, **kwargs):
     	"""
     	# Subset if requested
         if aidx is not None:
-            ad = a.descriptors[aidx].values
+            ad = a.descriptors[aidx]
         else:
             ad = a.descriptors
 
         if bidx is not None:
-            bd = b.descriptors[bidx].values
+            bd = b.descriptors[bidx]
         else:
             bd = b.descriptors
 
@@ -69,5 +69,5 @@ def match(self, k=2, **kwargs):
         fl.clear()
 
     fl = FlannMatcher()
-    mono_matches(self.source, self.destination)
-    mono_matches(self.destination, self.source)
+    mono_matches(self.source, self.destination, **kwargs)
+    mono_matches(self.destination, self.source, **kwargs)

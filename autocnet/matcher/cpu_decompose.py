@@ -2,6 +2,7 @@ import numpy as np
 from scipy.spatial.distance import cdist
 
 from autocnet.matcher.feature import FlannMatcher
+from autocnet.matcher.feature_matcher import match
 from autocnet.transformation.decompose import coupled_decomposition
 
 
@@ -49,48 +50,6 @@ def decompose_and_match(self, k=2, maxiteration=3, size=18, buf_dist=3,**kwargs)
                partioning point.  The smaller the distance, the more likely
                percision errors can results in erroneous partitions.
     """
-    def mono_matches(a, b, aidx=None, bidx=None):
-        """
-        Apply the FLANN match_features
-
-        Parameters
-        ----------
-        a : object
-            A node object
-
-        b : object
-            A node object
-
-        aidx : iterable
-               An index for the descriptors to subset
-
-        bidx : iterable
-               An index for the descriptors to subset
-        """
-        # Subset if requested
-        if aidx is not None:
-            ad = a.descriptors[aidx]
-        else:
-            ad = a.descriptors
-
-        if bidx is not None:
-            bd = b.descriptors[bidx]
-        else:
-            bd = b.descriptors
-
-        # Load, train, and match
-        fl.add(ad, a['node_id'], index=aidx)
-        fl.train()
-        matches = fl.query(bd, b['node_id'], k, index=bidx)
-        if self.matches is None:
-            self.matches = matches
-        else:
-            df = self.matches
-            self.matches = df.append(matches,
-                                     ignore_index=True,
-                                     verify_integrity=True)
-        fl.clear()
-
     def func(group):
         ratio = 0.8
         res = [False] * len(group)
@@ -245,5 +204,5 @@ def decompose_and_match(self, k=2, maxiteration=3, size=18, buf_dist=3,**kwargs)
         didx = dkp.query('x >= {} and x <= {} and y >= {} and y <= {}'.format(mindx, maxdx, mindy, maxdy)).index
         # If the candidates < k, OpenCV throws an error
         if len(sidx) >= k and len(didx) >=k:
-            mono_matches(self.source, self.destination, sidx, didx)
-            mono_matches(self.destination, self.source, didx, sidx)
+            match(self, aidx=sidx, bidx=didx)
+            match(self, aidx=didx, bidx=sidx)
