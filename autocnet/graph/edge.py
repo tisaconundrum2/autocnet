@@ -55,14 +55,18 @@ class Edge(dict, MutableMapping):
         d = self.__dict__
         o = other.__dict__
         for k, v in d.items():
+            # If the attribute key is missing they can not be equal
+            if not k in o.keys():
+                eq = False
+                return eq
+
             if isinstance(v, pd.DataFrame):
-                if not k in o.keys():
-                    print(o)
                 if not v.equals(o[k]):
                     eq = False
             elif isinstance(v, np.ndarray):
                 if not v.all() == o[k].all():
                     eq = False
+                    
         return eq
 
     @property

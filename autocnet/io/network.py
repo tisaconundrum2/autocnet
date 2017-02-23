@@ -102,8 +102,11 @@ def load(projectname):
         for d in data['nodes']:
             n = Node(image_name=d['image_name'], image_path=d['image_path'], node_id=d['id'])
             n['hash'] = d['hash']
-            # Load the byte stream for the nested npz file into memory and then unpack
-            n.load_features(BytesIO(pzip.read('{}.npz'.format(d['id']))))
+            try:
+                # Load the byte stream for the nested npz file into memory and then unpack
+                n.load_features(BytesIO(pzip.read('{}.npz'.format(d['id']))))
+            except:
+                pass  # The node does not have features to load.
             cg.add_node(d['node_id'])
             cg.node[d['node_id']] = n
         for e in data['links']:
@@ -113,10 +116,12 @@ def load(projectname):
             edge.destination = cg.node[e['target']]
             edge['fundamental_matrix'] = e['fundamental_matrix']
             edge['weights'] = e['weights']
-            nzf = np.load(BytesIO(pzip.read('{}_{}.npz'.format(e['source'], e['target']))))
-
-            edge._masks = pd.DataFrame(nzf['_masks'], index=nzf['_masks_idx'], columns=nzf['_masks_columns'])
-            edge.matches = pd.DataFrame(nzf['matches'], index=nzf['matches_idx'], columns=nzf['matches_columns'])
+            try:
+                nzf = np.load(BytesIO(pzip.read('{}_{}.npz'.format(e['source'], e['target']))))
+                edge._masks = pd.DataFrame(nzf['_masks'], index=nzf['_masks_idx'], columns=nzf['_masks_columns'])
+                edge.matches = pd.DataFrame(nzf['matches'], index=nzf['matches_idx'], columns=nzf['matches_columns'])
+            except:
+                pass
             # Add a mock edge
             cg.edge[e['source']][e['target']] = edge
 

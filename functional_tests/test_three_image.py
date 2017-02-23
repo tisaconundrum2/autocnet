@@ -51,7 +51,7 @@ class TestThreeImageMatching(unittest.TestCase):
         cg.ratio_checks()
 
         cg.apply_func_to_edges("compute_homography", clean_keys=['symmetry', 'ratio'])
-        cg.compute_fundamental_matrices(clean_keys=['symmetry', 'ratio'], reproj_threshold=3.0)
+        cg.compute_fundamental_matrices(clean_keys=['symmetry', 'ratio'], reproj_threshold=3.0, method='ransac')
 
         # Step: And create a C object
         cg.generate_cnet(clean_keys=['symmetry', 'ratio', 'ransac'])
