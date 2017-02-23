@@ -42,7 +42,7 @@ def plot_graph(graph, ax=None, cmap='Spectral', labels=False, font_size=12, clus
     nx.draw_networkx_nodes(graph, pos)
     nx.draw_networkx_edges(graph, pos)
     if labels:
-        labels = dict((i, d.image_name) for i, d in graph.nodes_iter(data=True))
+        labels = dict((i, d['image_name']) for i, d in graph.nodes_iter(data=True))
         nx.draw_networkx_labels(graph, pos, labels, font_size=font_size)
     ax.axis('off')
     return ax
@@ -83,7 +83,7 @@ def plot_node(node, ax=None, clean_keys=[], index_mask=None, **kwargs):
 
     array = node.get_array(band)
 
-    ax.set_title(node.image_name)
+    ax.set_title(node['image_name'])
     ax.margins(tight=True)
     ax.axis('off')
 
@@ -120,8 +120,8 @@ def plot_edge_decomposition(edge, ax=None, clean_keys=[], image_space=100,
         ax = plt.gca()
 
     # Plot setup
-    ax.set_title('Matching: {} to {}'.format(edge.source.image_name,
-                                             edge.destination.image_name))
+    ax.set_title('Matching: {} to {}'.format(edge.source['image_name'],
+                                             edge.destination['image_name']))
     ax.margins(tight=True)
     ax.axis('off')
 
@@ -221,8 +221,8 @@ def plot_edge(edge, ax=None, clean_keys=[], image_space=100,
         ax = plt.gca()
 
     # Plot setup
-    ax.set_title('Matching: {} to {}'.format(edge.source.image_name,
-                                             edge.destination.image_name))
+    ax.set_title('Matching: {} to {}'.format(edge.source['image_name'],
+                                             edge.destination['image_name']))
     ax.margins(tight=True)
     ax.axis('off')
 
