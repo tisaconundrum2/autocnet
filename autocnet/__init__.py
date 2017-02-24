@@ -1,4 +1,6 @@
 import os
+import warnings
+
 import autocnet
 
 import autocnet.examples
@@ -24,7 +26,6 @@ def cuda(enable=False, gpu=0):
     from autocnet.graph.node import Node
     from autocnet.graph.edge import Edge
     if enable:
-        print('Enabling CUDA')
         try:
             import cudasift as cs
             cs.PyInitCuda(gpu)
@@ -39,10 +40,9 @@ def cuda(enable=False, gpu=0):
             from autocnet.matcher.cuda_decompose import decompose_and_match
             Edge.decompose_and_match = decompose_and_match
         except Exception:
-            print('Failed to enable Cuda')
+            warning.warn('Failed to enable Cuda')
         return
 
-    print('CUDA Disabled')
     # Here is where the CPU methods get patched into the class
     from autocnet.matcher.feature_extractor import extract_features
     Node._extract_features = staticmethod(extract_features)
