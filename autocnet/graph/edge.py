@@ -7,6 +7,7 @@ import pandas as pd
 from scipy.spatial.distance import cdist
 
 import autocnet
+from autocnet.graph.node import Node
 from autocnet.utils import utils
 from autocnet.matcher import outlier_detector as od
 from autocnet.matcher import suppression_funcs as spf
@@ -479,3 +480,65 @@ class Edge(dict, MutableMapping):
 
         """
         pass
+
+    def get_keypoints(self, node, clean_keys):
+        """
+
+        Returns a list of keypoint coordinates that match the specified
+        paramaters
+
+        Parameters
+        ----------
+        node :      str or Node
+                    Can be "source" or "destination" based on which node we're
+                    pulling keypoint data for; Also can pass Node obj itself
+
+        clean_keys :    list
+                        List of clean key strings
+
+        Return
+        ------
+        masked_keypts : Dataframe
+                        Dataframe of keypoints that match the specified masks
+                        on the specified node
+        """
+
+        # Assert parameter types are correct
+        try:
+            assert (isinstance(node, str) or isinstance(node, Node))
+        except AssertionError:
+            raise TypeError('Parameter "node" must be of type str or type Node')
+        try:
+            assert isinstance(clean_keys, list)
+        except AssertionError:
+            raise TypeError('Parameter "clean_keys" must be of type list')
+
+        # If node param is a string, make sure it's one of the right strings
+        if isinstance(node, str):
+            try:
+                assert (node in ["source", "destination"])
+                # Define the node if str is passed as param
+                if node == "source":
+                    node = self.source
+                else:
+                    node = self.destination
+            except AssertionError:
+                raise KeyError('node" parameter must be "source"' +
+                               'or "destination"')
+
+        # Get cleaned, combined src & dst keypt df for this edge ("matches")
+        matches, mask = self.clean(clean_keys)
+
+        # Grab the keypt indices filtered by clean_keys as ints, pandas
+        # complains when you use them as indicies if they're not ints
+        if node == self.source:
+            keypt_indices = matches["source_idx"].astype(int)
+        elif node == self.destination:
+            keypt_indices = matches["destination_idx"].astype(int)
+
+        # Get all keypts for the specified node
+        all_keypts = node.get_keypoints()
+        # Return keypts @ masked indecies for the node
+        masked_keypts = all_keypts.iloc[keypt_indices].sort_index()
+
+        return masked_keypts
