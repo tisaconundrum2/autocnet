@@ -520,7 +520,7 @@ class Edge(dict, MutableMapping):
                 # Define the node if str is passed as param
                 if node == "source":
                     node = self.source
-                else:
+                elif node == "destination":
                     node = self.destination
             except AssertionError:
                 raise KeyError('node" parameter must be "source"' +
